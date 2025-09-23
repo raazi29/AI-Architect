@@ -1,682 +1,523 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useRef, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Slider } from "@/components/ui/slider"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import {
-  PenTool,
-  Square,
-  Move,
-  Trash2,
-  Save,
-  Share,
-  Download,
-  Grid3X3,
-  Ruler,
-  Sofa,
-  Bed,
-  ChefHat,
-  Bath,
-  Briefcase,
   Zap,
-  Undo,
-  Redo,
+  Search,
+  Home,
+  Building,
+  Castle,
+  Briefcase,
+  Sparkles,
+  Filter,
+  Grid3X3,
+  List,
+  Square,
+  Ruler,
+  MapPin,
+  Download
 } from "lucide-react"
+import {
+  floorPlanTemplates,
+  type FloorPlanTemplate,
+  getCategories,
+  getSubcategories,
+  getTemplatesByCategory,
+  searchTemplates
+} from "./floor_plan_templates"
 
-interface Room {
-  id: string
-  type: string
-  x: number
-  y: number
-  width: number
-  height: number
-  color: string
-  label: string
-}
-
-interface Wall {
-  id: string
-  x1: number
-  y1: number
-  x2: number
-  y2: number
-  thickness: number
-}
-
-interface FloorPlanTemplate {
-  id: string
-  name: string
-  type: string
-  rooms: Room[]
-  walls: Wall[]
-  dimensions: { width: number; height: number }
-  thumbnail: string
-}
-
-const roomTypes = [
-  { type: "living-room", label: "Living Room", icon: Sofa, color: "#E3F2FD" },
-  { type: "bedroom", label: "Bedroom", icon: Bed, color: "#F3E5F5" },
-  { type: "kitchen", label: "Kitchen", icon: ChefHat, color: "#E8F5E8" },
-  { type: "bathroom", label: "Bathroom", icon: Bath, color: "#FFF3E0" },
-  { type: "office", label: "Office", icon: Briefcase, color: "#F1F8E9" },
-]
-
-const floorPlanTemplates: FloorPlanTemplate[] = [
-  {
-    id: "studio",
-    name: "Studio Apartment",
-    type: "Apartment",
-    rooms: [
-      {
-        id: "main",
-        type: "living-room",
-        x: 50,
-        y: 50,
-        width: 300,
-        height: 200,
-        color: "#E3F2FD",
-        label: "Main Room",
-      },
-      {
-        id: "kitchen",
-        type: "kitchen",
-        x: 50,
-        y: 250,
-        width: 150,
-        height: 100,
-        color: "#E8F5E8",
-        label: "Kitchen",
-      },
-      {
-        id: "bathroom",
-        type: "bathroom",
-        x: 200,
-        y: 250,
-        width: 150,
-        height: 100,
-        color: "#FFF3E0",
-        label: "Bathroom",
-      },
-    ],
-    walls: [],
-    dimensions: { width: 400, height: 400 },
-    thumbnail: "/placeholder.svg?height=120&width=160&text=Studio",
-  },
-  {
-    id: "one-bedroom",
-    name: "One Bedroom",
-    type: "Apartment",
-    rooms: [
-      {
-        id: "living",
-        type: "living-room",
-        x: 50,
-        y: 50,
-        width: 200,
-        height: 150,
-        color: "#E3F2FD",
-        label: "Living Room",
-      },
-      {
-        id: "bedroom",
-        type: "bedroom",
-        x: 250,
-        y: 50,
-        width: 150,
-        height: 150,
-        color: "#F3E5F5",
-        label: "Bedroom",
-      },
-      {
-        id: "kitchen",
-        type: "kitchen",
-        x: 50,
-        y: 200,
-        width: 150,
-        height: 100,
-        color: "#E8F5E8",
-        label: "Kitchen",
-      },
-      {
-        id: "bathroom",
-        type: "bathroom",
-        x: 200,
-        y: 200,
-        width: 100,
-        height: 100,
-        color: "#FFF3E0",
-        label: "Bathroom",
-      },
-    ],
-    walls: [],
-    dimensions: { width: 450, height: 350 },
-    thumbnail: "/placeholder.svg?height=120&width=160&text=1BR",
-  },
-  {
-    id: "two-bedroom",
-    name: "Two Bedroom",
-    type: "House",
-    rooms: [
-      {
-        id: "living",
-        type: "living-room",
-        x: 50,
-        y: 50,
-        width: 250,
-        height: 150,
-        color: "#E3F2FD",
-        label: "Living Room",
-      },
-      {
-        id: "bedroom1",
-        type: "bedroom",
-        x: 300,
-        y: 50,
-        width: 150,
-        height: 120,
-        color: "#F3E5F5",
-        label: "Master Bedroom",
-      },
-      {
-        id: "bedroom2",
-        type: "bedroom",
-        x: 300,
-        y: 170,
-        width: 150,
-        height: 100,
-        color: "#F3E5F5",
-        label: "Bedroom 2",
-      },
-      {
-        id: "kitchen",
-        type: "kitchen",
-        x: 50,
-        y: 200,
-        width: 150,
-        height: 100,
-        color: "#E8F5E8",
-        label: "Kitchen",
-      },
-      {
-        id: "bathroom",
-        type: "bathroom",
-        x: 200,
-        y: 200,
-        width: 100,
-        height: 100,
-        color: "#FFF3E0",
-        label: "Bathroom",
-      },
-    ],
-    walls: [],
-    dimensions: { width: 500, height: 350 },
-    thumbnail: "/placeholder.svg?height=120&width=160&text=2BR",
-  },
-]
+type ViewMode = "grid" | "list"
+type FilterCategory = string | "all"
 
 export default function FloorPlanGenerator() {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [selectedTemplate, setSelectedTemplate] = useState<FloorPlanTemplate | null>(null)
-  const [rooms, setRooms] = useState<Room[]>([])
-  const [walls, setWalls] = useState<Wall[]>([])
-  const [selectedTool, setSelectedTool] = useState<"select" | "room" | "wall">("select")
-  const [selectedRoomType, setSelectedRoomType] = useState("living-room")
-  const [selectedRoom, setSelectedRoom] = useState<Room | null>(null)
-  const [showGrid, setShowGrid] = useState(true)
-  const [showMeasurements, setShowMeasurements] = useState(false)
-  const [planName, setPlanName] = useState("My Floor Plan")
-  const [scale, setScale] = useState(1)
-  const [canvasSize, setCanvasSize] = useState({ width: 600, height: 400 })
+  const [prompt, setPrompt] = useState("")
+  const [generatedImage, setGeneratedImage] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [selectedModel, setSelectedModel] = useState("default")
+  const [viewMode, setViewMode] = useState<ViewMode>("grid")
+  const [selectedCategory, setSelectedCategory] = useState<FilterCategory>("all")
+  const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all")
+  const [selectedDimension, setSelectedDimension] = useState<string>("all")
+  const [searchQuery, setSearchQuery] = useState("")
 
-  useEffect(() => {
-    drawCanvas()
-  }, [rooms, walls, showGrid, selectedRoom, scale])
+  const categories = getCategories()
+  const availableSubcategories = selectedCategory === "all"
+    ? []
+    : getSubcategories(selectedCategory)
 
-  const drawCanvas = () => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+  const filteredTemplates = useMemo(() => {
+    let filtered = floorPlanTemplates
 
-    const ctx = canvas.getContext("2d")
-    if (!ctx) return
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
-
-    // Draw grid
-    if (showGrid) {
-      ctx.strokeStyle = "#e5e7eb"
-      ctx.lineWidth = 1
-      const gridSize = 20 * scale
-
-      for (let x = 0; x <= canvas.width; x += gridSize) {
-        ctx.beginPath()
-        ctx.moveTo(x, 0)
-        ctx.lineTo(x, canvas.height)
-        ctx.stroke()
-      }
-
-      for (let y = 0; y <= canvas.height; y += gridSize) {
-        ctx.beginPath()
-        ctx.moveTo(0, y)
-        ctx.lineTo(canvas.width, y)
-        ctx.stroke()
-      }
+    // Filter by category
+    if (selectedCategory !== "all") {
+      filtered = filtered.filter(t => t.category === selectedCategory)
     }
 
-    // Draw walls
-    walls.forEach((wall) => {
-      ctx.strokeStyle = "#374151"
-      ctx.lineWidth = wall.thickness * scale
-      ctx.beginPath()
-      ctx.moveTo(wall.x1 * scale, wall.y1 * scale)
-      ctx.lineTo(wall.x2 * scale, wall.y2 * scale)
-      ctx.stroke()
-    })
+    // Filter by subcategory
+    if (selectedSubcategory !== "all") {
+      filtered = filtered.filter(t => t.subcategory === selectedSubcategory)
+    }
 
-    // Draw rooms
-    rooms.forEach((room) => {
-      const x = room.x * scale
-      const y = room.y * scale
-      const width = room.width * scale
-      const height = room.height * scale
+    // Filter by dimension
+    if (selectedDimension !== "all") {
+      filtered = filtered.filter(t => t.dimensions.includes(selectedDimension))
+    }
 
-      // Fill room
-      ctx.fillStyle = room.color
-      ctx.fillRect(x, y, width, height)
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = searchTemplates(searchQuery)
+    }
 
-      // Draw room border
-      ctx.strokeStyle = selectedRoom?.id === room.id ? "#0891b2" : "#9ca3af"
-      ctx.lineWidth = selectedRoom?.id === room.id ? 3 : 1
-      ctx.strokeRect(x, y, width, height)
+    return filtered
+  }, [selectedCategory, selectedSubcategory, selectedDimension, searchQuery])
 
-      // Draw room label
-      ctx.fillStyle = "#374151"
-      ctx.font = `${12 * scale}px sans-serif`
-      ctx.textAlign = "center"
-      ctx.fillText(room.label, x + width / 2, y + height / 2)
+  const generateFloorPlan = async () => {
+    if (!prompt) return
 
-      // Draw measurements if enabled
-      if (showMeasurements) {
-        ctx.fillStyle = "#6b7280"
-        ctx.font = `${10 * scale}px sans-serif`
-        ctx.textAlign = "center"
-        ctx.fillText(`${room.width}cm`, x + width / 2, y - 5)
-        ctx.save()
-        ctx.translate(x - 15, y + height / 2)
-        ctx.rotate(-Math.PI / 2)
-        ctx.fillText(`${room.height}cm`, 0, 0)
-        ctx.restore()
-      }
-    })
-  }
+    setIsLoading(true)
+    setGeneratedImage("")
 
-  const handleCanvasClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
+    // Create an AbortController for timeout handling
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 90000) // 90 second timeout
 
-    const rect = canvas.getBoundingClientRect()
-    const x = (event.clientX - rect.left) / scale
-    const y = (event.clientY - rect.top) / scale
+    try {
+      const response = await fetch("http://localhost:8001/floor-plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt, model: selectedModel }),
+        signal: controller.signal
+      })
 
-    if (selectedTool === "room") {
-      const roomType = roomTypes.find((type) => type.type === selectedRoomType)
-      if (roomType) {
-        const newRoom: Room = {
-          id: `room-${Date.now()}`,
-          type: selectedRoomType,
-          x: x - 50,
-          y: y - 50,
-          width: 100,
-          height: 100,
-          color: roomType.color,
-          label: roomType.label,
+      clearTimeout(timeoutId)
+
+      if (!response.ok) {
+        const errorData = await response.text()
+        let errorMessage = "Failed to generate floor plan"
+
+        try {
+          const errorJson = JSON.parse(errorData)
+          if (errorJson.detail) {
+            errorMessage = errorJson.detail
+          }
+        } catch {
+          if (errorData) {
+            errorMessage = errorData
+          }
         }
-        setRooms((prev) => [...prev, newRoom])
+
+        throw new Error(errorMessage)
       }
-    } else if (selectedTool === "select") {
-      // Find clicked room
-      const clickedRoom = rooms.find(
-        (room) => x >= room.x && x <= room.x + room.width && y >= room.y && y <= room.y + room.height,
-      )
-      setSelectedRoom(clickedRoom || null)
+
+      const imageBlob = await response.blob()
+      const imageUrl = URL.createObjectURL(imageBlob)
+      setGeneratedImage(imageUrl)
+    } catch (error) {
+      clearTimeout(timeoutId)
+      console.error("Floor plan generation error:", error)
+
+      let errorMessage = "Failed to generate floor plan"
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = "Request timed out. The model may be loading or temporarily unavailable. Please try again in a few minutes."
+        } else {
+          errorMessage = error.message
+        }
+      }
+
+      alert(errorMessage)
+
+      // If the API token is not set, provide helpful guidance
+      if (errorMessage.includes("HUGGING_FACE_API_TOKEN")) {
+        alert("Please set up your HUGGING_FACE_API_TOKEN environment variable in the backend .env file")
+      }
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const loadTemplate = (template: FloorPlanTemplate) => {
-    setSelectedTemplate(template)
-    setRooms(template.rooms)
-    setWalls(template.walls)
-    setCanvasSize(template.dimensions)
-    setPlanName(template.name)
-    setSelectedRoom(null)
+  const selectTemplate = (template: FloorPlanTemplate) => {
+    setPrompt(template.prompt)
   }
 
-  const updateSelectedRoom = (updates: Partial<Room>) => {
-    if (!selectedRoom) return
-
-    const updatedRoom = { ...selectedRoom, ...updates }
-    setSelectedRoom(updatedRoom)
-    setRooms((prev) => prev.map((room) => (room.id === selectedRoom.id ? updatedRoom : room)))
+  const clearFilters = () => {
+    setSelectedCategory("all")
+    setSelectedSubcategory("all")
+    setSelectedDimension("all")
+    setSearchQuery("")
   }
 
-  const deleteSelectedRoom = () => {
-    if (!selectedRoom) return
-
-    setRooms((prev) => prev.filter((room) => room.id !== selectedRoom.id))
-    setSelectedRoom(null)
+  const getDimensionColor = (dimensions: string) => {
+    if (dimensions.includes("Small")) return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+    if (dimensions.includes("Medium")) return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+    if (dimensions.includes("Large")) return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+    if (dimensions.includes("Extra Large")) return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300"
+    return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
   }
 
-  const generateAILayout = async () => {
-    // Simulate AI processing
-    console.log("Generating AI-optimized floor plan layout...")
-
-    // In production, this would call an AI service to optimize the layout
-    // For now, we'll just rearrange rooms in a more optimal way
-    const optimizedRooms = rooms.map((room, index) => ({
-      ...room,
-      x: 50 + (index % 2) * 200,
-      y: 50 + Math.floor(index / 2) * 150,
-    }))
-
-    setRooms(optimizedRooms)
-  }
-
-  const saveFloorPlan = () => {
-    const floorPlanData = {
-      name: planName,
-      rooms,
-      walls,
-      dimensions: canvasSize,
-      scale,
-      timestamp: new Date().toISOString(),
+  const getCategoryIcon = (category: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      "Apartments": <Home className="h-4 w-4" />,
+      "Houses": <Building className="h-4 w-4" />,
+      "Villas": <Castle className="h-4 w-4" />,
+      "Commercial": <Briefcase className="h-4 w-4" />,
+      "Specialty": <Sparkles className="h-4 w-4" />,
     }
-
-    console.log("Saving floor plan:", floorPlanData)
-    // In production, this would save to a database
-    alert("Floor plan saved successfully!")
+    return icons[category] || <Home className="h-4 w-4" />
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/20">
       <Navigation />
 
-      <main className="ml-64 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <PenTool className="h-6 w-6 text-primary" />
-                  <h1 className="text-3xl font-bold text-foreground">Floor Plan Generator</h1>
-                </div>
-                <p className="text-lg text-muted-foreground">
-                  Create and modify floor plans with AI assistance and professional tools.
-                </p>
+      <main className="ml-64 p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Header */}
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-3">
+              <div className="p-2 rounded-full bg-primary/10">
+                <Zap className="h-6 w-6 text-primary" />
               </div>
-
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={generateAILayout} disabled={rooms.length === 0}>
-                  <Zap className="h-4 w-4 mr-2" />
-                  AI Optimize
-                </Button>
-                <Button variant="outline" onClick={saveFloorPlan} disabled={rooms.length === 0}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Plan
-                </Button>
-                <Button variant="outline">
-                  <Share className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
-                <Button variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-              </div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                AI Floor Plan Generator
+              </h1>
             </div>
-
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex-1 max-w-md">
-                <Label htmlFor="plan-name" className="text-sm font-medium">
-                  Plan Name
-                </Label>
-                <Input id="plan-name" value={planName} onChange={(e) => setPlanName(e.target.value)} className="mt-1" />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button variant={showGrid ? "default" : "outline"} size="sm" onClick={() => setShowGrid(!showGrid)}>
-                  <Grid3X3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={showMeasurements ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setShowMeasurements(!showMeasurements)}
-                >
-                  <Ruler className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Create stunning floor plans with AI. Choose from our extensive template library or describe your vision.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-3">
-              <Card>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Main Generator and Results */}
+            <div className="space-y-6">
+              <Card className="shadow-lg border-0 bg-card/50 backdrop-blur">
                 <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>Floor Plan Canvas</span>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm">Scale:</Label>
-                      <Slider
-                        value={[scale]}
-                        onValueChange={([value]) => setScale(value)}
-                        min={0.5}
-                        max={2}
-                        step={0.1}
-                        className="w-20"
-                      />
-                      <span className="text-sm text-muted-foreground">{Math.round(scale * 100)}%</span>
+                  <CardTitle className="flex items-center gap-2">
+                    <div className="p-1 rounded-lg bg-primary/10">
+                      <Zap className="h-5 w-5 text-primary" />
                     </div>
+                    Generate Your Floor Plan
                   </CardTitle>
-                  <CardDescription>Click and drag to create your floor plan</CardDescription>
+                  <CardDescription>
+                    Describe your ideal space or use one of our professional templates
+                  </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="border border-border rounded-lg overflow-hidden">
-                    <canvas
-                      ref={canvasRef}
-                      width={canvasSize.width * scale}
-                      height={canvasSize.height * scale}
-                      className="cursor-crosshair bg-white"
-                      onClick={handleCanvasClick}
+                <CardContent className="space-y-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="prompt" className="text-sm font-medium">
+                      Description
+                    </Label>
+                    <Textarea
+                      id="prompt"
+                      placeholder="e.g., A modern two-bedroom apartment with an open-concept kitchen, a large living room, and a balcony overlooking the city..."
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      rows={5}
+                      className="resize-none border-0 bg-muted/50 focus-visible:ring-2"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between mt-4">
-                    <div className="flex gap-2">
-                      <Button
-                        variant={selectedTool === "select" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedTool("select")}
-                      >
-                        <Move className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={selectedTool === "room" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedTool("room")}
-                      >
-                        <Square className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant={selectedTool === "wall" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setSelectedTool("wall")}
-                      >
-                        <PenTool className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm">
-                        <Undo className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Redo className="h-4 w-4" />
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => setRooms([])}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="model" className="text-sm font-medium">
+                      AI Model
+                    </Label>
+                    <Select value={selectedModel} onValueChange={setSelectedModel}>
+                      <SelectTrigger className="bg-muted/50 border-0">
+                        <SelectValue placeholder="Select a model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">Default (naver/sdxl-floorplan)</SelectItem>
+                        <SelectItem value="stability">Stable Diffusion XL</SelectItem>
+                        <SelectItem value="floorplan-sdxl">Floorplan SDXL v1</SelectItem>
+                        <SelectItem value="maria26">Maria26 Floor Plan LoRA</SelectItem>
+                        <SelectItem value="envy">Envy Floorplans XL</SelectItem>
+                        <SelectItem value="lora4iabd">Lora4IABD Floor Plans</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
+
+                  <Button
+                    onClick={generateFloorPlan}
+                    disabled={isLoading || !prompt}
+                    className="w-full py-3 text-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200"
+                    size="lg"
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        Generating...
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-5 w-5" />
+                        Generate Floor Plan
+                      </div>
+                    )}
+                  </Button>
                 </CardContent>
               </Card>
+
+              {/* Generated Result */}
+              {generatedImage && (
+                <Card className="shadow-md border-0 bg-card/50 backdrop-blur">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2 text-lg">
+                        <div className="p-1 rounded-lg bg-green-500/10">
+                          <Sparkles className="h-4 w-4 text-green-500" />
+                        </div>
+                        Generated Floor Plan
+                      </CardTitle>
+                      <Button variant="outline" size="sm" className="h-8" asChild>
+                        <a href={generatedImage} download="floor-plan.png">
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </a>
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pb-3">
+                    <div className="relative group">
+                      <img
+                        src={generatedImage}
+                        alt="Generated Floor Plan"
+                        className="w-full h-auto rounded-md border shadow-sm group-hover:shadow-md transition-shadow"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/3 rounded-md transition-colors pointer-events-none" />
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
+            {/* Templates Section */}
             <div className="space-y-6">
-              <Card>
+              <Card className="shadow-lg border-0 bg-card/50 backdrop-blur">
                 <CardHeader>
-                  <CardTitle>Templates</CardTitle>
-                  <CardDescription>Start with a pre-built layout</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {floorPlanTemplates.map((template) => (
-                      <div
-                        key={template.id}
-                        className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                        onClick={() => loadTemplate(template)}
-                      >
-                        <img
-                          src={template.thumbnail || "/placeholder.svg"}
-                          alt={template.name}
-                          className="w-12 h-12 object-cover rounded-md"
-                        />
-                        <div className="flex-1">
-                          <h4 className="font-medium text-foreground text-sm">{template.name}</h4>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className="text-xs">
-                              {template.type}
-                            </Badge>
-                            <span className="text-xs text-muted-foreground">{template.rooms.length} rooms</span>
-                          </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <div className="p-1 rounded-lg bg-blue-500/10">
+                          <Grid3X3 className="h-5 w-5 text-blue-500" />
                         </div>
-                      </div>
-                    ))}
+                        Template Library
+                      </CardTitle>
+                      <CardDescription>
+                        Choose from {floorPlanTemplates.length} professional templates
+                      </CardDescription>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant={viewMode === "grid" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setViewMode("grid")}
+                      >
+                        <Grid3X3 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={viewMode === "list" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setViewMode("list")}
+                      >
+                        <List className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Room Tools</CardTitle>
-                  <CardDescription>Add rooms to your floor plan</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Tabs value={selectedRoomType} onValueChange={setSelectedRoomType}>
-                    <TabsList className="grid grid-cols-2 w-full mb-4">
-                      <TabsTrigger value="living-room">
-                        <Sofa className="h-4 w-4 mr-1" />
-                        Living
+                  {/* Category Tabs */}
+                  <Tabs defaultValue="all" className="w-full mb-6" onValueChange={setSelectedCategory}>
+                    <TabsList className="grid w-full grid-cols-6">
+                      <TabsTrigger value="all" className="flex items-center gap-2">
+                        <Grid3X3 className="h-4 w-4" />
+                        All
                       </TabsTrigger>
-                      <TabsTrigger value="bedroom">
-                        <Bed className="h-4 w-4 mr-1" />
-                        Bedroom
+                      <TabsTrigger value="Apartments" className="flex items-center gap-2">
+                        <Home className="h-4 w-4" />
+                        Apartments
                       </TabsTrigger>
-                    </TabsList>
-                    <TabsList className="grid grid-cols-2 w-full mb-4">
-                      <TabsTrigger value="kitchen">
-                        <ChefHat className="h-4 w-4 mr-1" />
-                        Kitchen
+                      <TabsTrigger value="Houses" className="flex items-center gap-2">
+                        <Building className="h-4 w-4" />
+                        Houses
                       </TabsTrigger>
-                      <TabsTrigger value="bathroom">
-                        <Bath className="h-4 w-4 mr-1" />
-                        Bathroom
+                      <TabsTrigger value="Villas" className="flex items-center gap-2">
+                        <Castle className="h-4 w-4" />
+                        Villas
+                      </TabsTrigger>
+                      <TabsTrigger value="Commercial" className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Commercial
+                      </TabsTrigger>
+                      <TabsTrigger value="Specialty" className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        Specialty
                       </TabsTrigger>
                     </TabsList>
                   </Tabs>
 
-                  <div className="text-sm text-muted-foreground mb-4">
-                    Select a room type above, then click on the canvas to add it.
+                  {/* Filters */}
+                  <div className="flex flex-wrap gap-2 mb-4 p-3 bg-muted/30 rounded-md">
+                    <div className="flex items-center gap-1.5">
+                      <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                      <Input
+                        placeholder="Search templates..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-32 text-sm border-0 bg-background"
+                      />
+                    </div>
+
+                    <Separator orientation="vertical" className="h-5" />
+
+                    {selectedCategory !== "all" && (
+                      <Select value={selectedSubcategory} onValueChange={setSelectedSubcategory}>
+                        <SelectTrigger className="w-32 text-sm border-0 bg-background">
+                          <SelectValue placeholder="Type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          {availableSubcategories.map((subcategory) => (
+                            <SelectItem key={subcategory} value={subcategory}>
+                              {subcategory}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    <Select value={selectedDimension} onValueChange={setSelectedDimension}>
+                      <SelectTrigger className="w-24 text-sm border-0 bg-background">
+                        <SelectValue placeholder="Size" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Sizes</SelectItem>
+                        <SelectItem value="Small">Small</SelectItem>
+                        <SelectItem value="Medium">Medium</SelectItem>
+                        <SelectItem value="Large">Large</SelectItem>
+                        <SelectItem value="Extra Large">Extra Large</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={clearFilters}>
+                      <Filter className="h-3 w-3 mr-1" />
+                      Clear
+                    </Button>
                   </div>
 
-                  {selectedRoom && (
-                    <div className="space-y-4 p-4 bg-muted rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">Edit Room</h4>
-                        <Button size="sm" variant="destructive" onClick={deleteSelectedRoom}>
-                          <Trash2 className="h-4 w-4" />
+                  {/* Results Count */}
+                  <div className="flex items-center justify-between mb-4">
+                    <p className="text-sm text-muted-foreground">
+                      Showing {filteredTemplates.length} of {floorPlanTemplates.length} templates
+                    </p>
+                    {filteredTemplates.length !== floorPlanTemplates.length && (
+                      <Badge variant="secondary" className="text-xs">
+                        Filtered
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Templates Grid/List */}
+                  <div className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto"
+                      : "space-y-2 max-h-96 overflow-y-auto"
+                  }>
+                    {filteredTemplates.length > 0 ? (
+                      filteredTemplates.map((template) => (
+                        <Card
+                          key={template.id}
+                          className={`cursor-pointer transition-all duration-200 hover:shadow-md border-0 bg-background/50 ${
+                            viewMode === "list" ? "flex flex-row" : ""
+                          }`}
+                          onClick={() => selectTemplate(template)}
+                        >
+                          <CardHeader className={`pb-2 ${viewMode === "list" ? "flex-1" : ""}`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="text-xl">{template.icon}</div>
+                                <div className="flex-1">
+                                  <CardTitle className="text-base mb-0.5">{template.name}</CardTitle>
+                                  <CardDescription className="text-xs">
+                                    {template.description}
+                                  </CardDescription>
+                                </div>
+                              </div>
+                              {viewMode === "grid" && (
+                                <div className="text-right">
+                                  <Badge className={`${getDimensionColor(template.dimensions)} text-xs px-1.5 py-0.5`} variant="secondary">
+                                    {template.dimensions.split(" ")[0]}
+                                  </Badge>
+                                </div>
+                              )}
+                            </div>
+                          </CardHeader>
+
+                          {viewMode === "list" && (
+                            <CardContent className="pb-2 flex-1">
+                              <div className="flex items-center justify-between">
+                                <div className="flex flex-wrap gap-1">
+                                  {template.features.slice(0, 2).map((feature) => (
+                                    <Badge key={feature} variant="outline" className="text-xs px-1.5 py-0.5">
+                                      {feature}
+                                    </Badge>
+                                  ))}
+                                </div>
+                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Ruler className="h-3 w-3" />
+                                  {template.estimatedSize}
+                                </div>
+                              </div>
+                            </CardContent>
+                          )}
+
+                          {viewMode === "grid" && (
+                            <CardContent className="pb-2 pt-0">
+                              <div className="flex flex-wrap gap-1 mb-2">
+                                {template.features.slice(0, 2).map((feature) => (
+                                  <Badge key={feature} variant="outline" className="text-xs px-1.5 py-0.5">
+                                    {feature}
+                                  </Badge>
+                                ))}
+                              </div>
+                              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {template.subcategory}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Ruler className="h-3 w-3" />
+                                  {template.estimatedSize}
+                                </div>
+                              </div>
+                            </CardContent>
+                          )}
+                        </Card>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className="text-4xl mb-2">🔍</div>
+                        <h3 className="text-base font-medium mb-1">No templates found</h3>
+                        <p className="text-muted-foreground text-sm mb-3">
+                          Try adjusting your search criteria or browse all templates.
+                        </p>
+                        <Button variant="outline" size="sm" onClick={clearFilters}>
+                          Show All Templates
                         </Button>
                       </div>
-
-                      <div>
-                        <Label className="text-sm">Room Name</Label>
-                        <Input
-                          value={selectedRoom.label}
-                          onChange={(e) => updateSelectedRoom({ label: e.target.value })}
-                          className="mt-1"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <Label className="text-sm">Width (cm)</Label>
-                          <Slider
-                            value={[selectedRoom.width]}
-                            onValueChange={([value]) => updateSelectedRoom({ width: value })}
-                            min={50}
-                            max={500}
-                            step={10}
-                            className="mt-2"
-                          />
-                          <span className="text-xs text-muted-foreground">{selectedRoom.width}cm</span>
-                        </div>
-
-                        <div>
-                          <Label className="text-sm">Height (cm)</Label>
-                          <Slider
-                            value={[selectedRoom.height]}
-                            onValueChange={([value]) => updateSelectedRoom({ height: value })}
-                            min={50}
-                            max={500}
-                            step={10}
-                            className="mt-2"
-                          />
-                          <span className="text-xs text-muted-foreground">{selectedRoom.height}cm</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Plan Statistics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total Rooms:</span>
-                      <span className="font-medium">{rooms.length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total Area:</span>
-                      <span className="font-medium">
-                        {Math.round(rooms.reduce((sum, room) => sum + (room.width * room.height) / 10000, 0))} m²
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Plan Dimensions:</span>
-                      <span className="font-medium">
-                        {canvasSize.width} × {canvasSize.height} cm
-                      </span>
-                    </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
