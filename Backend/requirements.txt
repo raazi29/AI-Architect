@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+httpx
+python-dotenv
+aiosqlite
+groq
+python-multipart
+Pillow
+requests
