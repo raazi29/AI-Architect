@@ -39,17 +39,17 @@ export function Navigation() {
   return (
     <nav className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border">
       <div className="flex h-full flex-col">
-        <div className="flex h-16 items-center px-6 border-b border-sidebar-border">
+        <div className="flex h-16 items-center px-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
               <Cube className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-semibold text-sidebar-foreground">AR Interior</span>
+            <span className="font-semibold text-sidebar-foreground text-sm">AR Interior</span>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-4">
-          <div className="space-y-1 px-3">
+        <div className="flex-1 overflow-y-auto py-2">
+          <div className="space-y-1 px-2">
             {navigation.map((item) => {
               const isActive = pathname === item.href
               return (
@@ -72,7 +72,7 @@ export function Navigation() {
           </div>
         </div>
 
-        <div className="border-t border-sidebar-border p-4">
+        <div className="border-t border-sidebar-border p-2">
           <Button variant="ghost" className="w-full justify-start gap-3">
             <User className="h-4 w-4" />
             <span className="text-sm">Sign in with Google</span>
