@@ -29,7 +29,10 @@ import {
   CheckCircle,
   ArrowRight,
   Grid3X3,
-  Ruler
+  Ruler,
+  Image as ImageIcon,
+  FileText,
+  Sparkles
 } from 'lucide-react';
 
 interface RoomType {
@@ -99,11 +102,45 @@ interface LayoutOptimization {
   raw_response?: string;
 }
 
+interface ImageLayoutResponse {
+  success: boolean;
+  image_data?: string;
+  model_used?: string;
+  prompt_used?: string;
+  image_dimensions?: {
+    width: number;
+    height: number;
+  };
+  layout_analysis?: {
+    room_analysis: {
+      type: string;
+      dimensions: string;
+      total_area: string;
+      primary_function: string;
+      style: string;
+    };
+    design_features: {
+      traffic_flow: string;
+      furniture_consideration: number;
+      special_requirements: string;
+    };
+    optimization_notes: string[];
+    prompt_engineering: {
+      original_prompt: string;
+      optimization_applied: string;
+    };
+  };
+  error?: string;
+  message?: string;
+  fallback_suggestions?: string[];
+}
+
 const AILayoutPage = () => {
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [optimization, setOptimization] = useState<LayoutOptimization | null>(null);
+  const [imageResponse, setImageResponse] = useState<ImageLayoutResponse | null>(null);
 
   // Form state
   const [roomType, setRoomType] = useState('');
@@ -114,6 +151,9 @@ const AILayoutPage = () => {
   const [primaryFunction, setPrimaryFunction] = useState('');
   const [trafficFlowRequirements, setTrafficFlowRequirements] = useState('');
   const [furnitureInput, setFurnitureInput] = useState('');
+  const [outputMode, setOutputMode] = useState<'text' | 'image'>('text');
+  const [designStyle, setDesignStyle] = useState('modern');
+  const [specialRequirements, setSpecialRequirements] = useState('');
 
   useEffect(() => {
     fetchRoomTypes();
@@ -148,34 +188,66 @@ const AILayoutPage = () => {
 
     setLoading(true);
     setError(null);
+    setOptimization(null);
+    setImageResponse(null);
 
     try {
-      const response = await fetch('http://localhost:8001/ai/layout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          room_type: roomType,
-          room_dimensions: {
-            length: parseFloat(roomLength),
-            width: parseFloat(roomWidth),
-            height: roomHeight ? parseFloat(roomHeight) : 3.0
+      if (outputMode === 'text') {
+        const response = await fetch('http://localhost:8001/ai/layout', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          existing_furniture: existingFurniture.length > 0 ? existingFurniture : null,
-          primary_function: primaryFunction,
-          traffic_flow_requirements: trafficFlowRequirements
-        })
-      });
+          body: JSON.stringify({
+            room_type: roomType,
+            room_dimensions: {
+              length: parseFloat(roomLength),
+              width: parseFloat(roomWidth),
+              height: roomHeight ? parseFloat(roomHeight) : 3.0
+            },
+            existing_furniture: existingFurniture.length > 0 ? existingFurniture : null,
+            primary_function: primaryFunction,
+            traffic_flow_requirements: trafficFlowRequirements
+          })
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to optimize room layout');
+        if (!response.ok) {
+          throw new Error('Failed to optimize room layout');
+        }
+
+        const data = await response.json();
+        setOptimization(data);
+      } else {
+        // Image-based layout generation
+        const response = await fetch('http://localhost:8001/ai/layout-image', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            room_type: roomType,
+            room_dimensions: {
+              length: parseFloat(roomLength),
+              width: parseFloat(roomWidth),
+              height: roomHeight ? parseFloat(roomHeight) : 3.0
+            },
+            existing_furniture: existingFurniture.length > 0 ? existingFurniture : null,
+            primary_function: primaryFunction,
+            traffic_flow_requirements: trafficFlowRequirements,
+            style: designStyle,
+            special_requirements: specialRequirements || null
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to generate layout image');
+        }
+
+        const data = await response.json();
+        setImageResponse(data);
       }
-
-      const data = await response.json();
-      setOptimization(data);
     } catch (error) {
-      setError('Failed to optimize room layout. Please try again.');
+      setError(`Failed to ${outputMode === 'text' ? 'optimize room layout' : 'generate layout image'}. Please try again.`);
       console.error('Error optimizing layout:', error);
     } finally {
       setLoading(false);
@@ -273,6 +345,54 @@ const AILayoutPage = () => {
           </Button>
         </div>
       </div>
+
+      {/* Output Mode Toggle */}
+      <Card className="border-0 shadow-lg bg-gradient-to-r from-purple-50 to-pink-50">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Choose Output Format</h3>
+              <p className="text-sm text-muted-foreground">
+                Select between detailed text analysis or visual floor plan generation
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Button
+                variant={outputMode === 'text' ? 'default' : 'outline'}
+                onClick={() => setOutputMode('text')}
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Text Analysis
+              </Button>
+              <Button
+                variant={outputMode === 'image' ? 'default' : 'outline'}
+                onClick={() => setOutputMode('image')}
+                className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              >
+                <ImageIcon className="h-4 w-4" />
+                <Sparkles className="h-4 w-4" />
+                Floor Plan Image
+              </Button>
+            </div>
+          </div>
+          
+          {outputMode === 'image' && (
+            <div className="mt-4 p-4 bg-white rounded-lg border border-purple-200">
+              <div className="flex items-start gap-3">
+                <Sparkles className="h-5 w-5 text-purple-500 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-purple-700">AI-Powered Floor Plan Generation</p>
+                  <p className="text-xs text-purple-600 mt-1">
+                    Uses advanced Hugging Face models to create visual floor plans based on your specifications. 
+                    Perfect for visualizing layouts and sharing with clients or contractors.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Input Form */}
       <Card className="border-0 shadow-lg">
@@ -406,17 +526,66 @@ const AILayoutPage = () => {
             )}
           </div>
 
+          {/* Additional fields for image mode */}
+          {outputMode === 'image' && (
+            <div className="space-y-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="h-5 w-5 text-purple-500" />
+                <h4 className="font-medium text-purple-700">Image Generation Settings</h4>
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="design-style">Design Style</Label>
+                  <Select value={designStyle} onValueChange={setDesignStyle}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select design style" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="modern">Modern</SelectItem>
+                      <SelectItem value="traditional">Traditional</SelectItem>
+                      <SelectItem value="scandinavian">Scandinavian</SelectItem>
+                      <SelectItem value="industrial">Industrial</SelectItem>
+                      <SelectItem value="luxury">Luxury</SelectItem>
+                      <SelectItem value="minimalist">Minimalist</SelectItem>
+                      <SelectItem value="bohemian">Bohemian</SelectItem>
+                      <SelectItem value="rustic">Rustic</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="special-requirements">Special Requirements</Label>
+                  <Input
+                    id="special-requirements"
+                    placeholder="e.g., wheelchair accessible, pet-friendly..."
+                    value={specialRequirements}
+                    onChange={(e) => setSpecialRequirements(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
           <Button 
             onClick={optimizeLayout} 
-            className="w-full bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600"
+            className={`w-full ${outputMode === 'image' 
+              ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' 
+              : 'bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600'
+            }`}
             disabled={loading}
           >
             {loading ? (
               <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+            ) : outputMode === 'image' ? (
+              <ImageIcon className="mr-2 h-4 w-4" />
             ) : (
               <Layout className="mr-2 h-4 w-4" />
             )}
-            {loading ? 'Optimizing Layout...' : 'Optimize Room Layout'}
+            {loading 
+              ? (outputMode === 'image' ? 'Generating Floor Plan...' : 'Optimizing Layout...') 
+              : (outputMode === 'image' ? 'Generate Floor Plan Image' : 'Optimize Room Layout')
+            }
           </Button>
 
           {error && (
@@ -428,7 +597,165 @@ const AILayoutPage = () => {
         </CardContent>
       </Card>
 
-      {/* Results */}
+      {/* Image Results */}
+      {imageResponse && (
+        <div className="space-y-6">
+          {!imageResponse.success ? (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {imageResponse.message}
+                {imageResponse.fallback_suggestions && (
+                  <div className="mt-3">
+                    <p className="font-medium mb-2">Suggestions:</p>
+                    <ul className="list-disc list-inside space-y-1 text-sm">
+                      {imageResponse.fallback_suggestions.map((suggestion, index) => (
+                        <li key={index}>{suggestion}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              {/* Generated Floor Plan Image */}
+              <Card className="border-0 shadow-lg bg-gradient-to-r from-purple-500/10 to-pink-500/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ImageIcon className="h-6 w-6 text-purple-600" />
+                    Generated Floor Plan
+                  </CardTitle>
+                  <CardDescription>
+                    AI-generated floor plan using {imageResponse.model_used}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {/* Image Display */}
+                    <div className="relative bg-white rounded-lg border-2 border-purple-200 p-4">
+                      <img 
+                        src={imageResponse.image_data} 
+                        alt="Generated floor plan"
+                        className="w-full h-auto max-w-2xl mx-auto rounded-lg shadow-md"
+                        style={{ maxHeight: '600px', objectFit: 'contain' }}
+                      />
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        <Button size="sm" variant="outline" className="bg-white/80">
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" variant="outline" className="bg-white/80">
+                          <Maximize className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Image Details */}
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
+                        <ImageIcon className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground mb-1">Dimensions</p>
+                        <p className="font-semibold text-purple-600">
+                          {imageResponse.image_dimensions?.width} × {imageResponse.image_dimensions?.height}
+                        </p>
+                      </div>
+                      <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
+                        <Sparkles className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground mb-1">Model Used</p>
+                        <p className="font-semibold text-purple-600 text-xs">
+                          {imageResponse.model_used?.split('/').pop()}
+                        </p>
+                      </div>
+                      <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
+                        <Target className="h-8 w-8 text-purple-500 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground mb-1">Status</p>
+                        <p className="font-semibold text-green-600">Generated</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Layout Analysis */}
+              {imageResponse.layout_analysis && (
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Grid3X3 className="h-5 w-5 text-indigo-500" />
+                      Layout Analysis
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6">
+                      {/* Room Analysis */}
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-3">
+                          <h4 className="font-medium flex items-center gap-2">
+                            <Home className="h-4 w-4 text-blue-500" />
+                            Room Details
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <p><strong>Type:</strong> {imageResponse.layout_analysis.room_analysis.type}</p>
+                            <p><strong>Dimensions:</strong> {imageResponse.layout_analysis.room_analysis.dimensions}</p>
+                            <p><strong>Total Area:</strong> {imageResponse.layout_analysis.room_analysis.total_area}</p>
+                            <p><strong>Style:</strong> {imageResponse.layout_analysis.room_analysis.style}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-3">
+                          <h4 className="font-medium flex items-center gap-2">
+                            <Navigation className="h-4 w-4 text-green-500" />
+                            Design Features
+                          </h4>
+                          <div className="space-y-2 text-sm">
+                            <p><strong>Primary Function:</strong> {imageResponse.layout_analysis.room_analysis.primary_function}</p>
+                            <p><strong>Traffic Flow:</strong> {imageResponse.layout_analysis.design_features.traffic_flow}</p>
+                            <p><strong>Furniture Items:</strong> {imageResponse.layout_analysis.design_features.furniture_consideration}</p>
+                            <p><strong>Special Requirements:</strong> {imageResponse.layout_analysis.design_features.special_requirements}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Optimization Notes */}
+                      <div>
+                        <h4 className="font-medium flex items-center gap-2 mb-3">
+                          <Lightbulb className="h-4 w-4 text-yellow-500" />
+                          Optimization Notes
+                        </h4>
+                        <ul className="space-y-2">
+                          {imageResponse.layout_analysis.optimization_notes.map((note, index) => (
+                            <li key={index} className="flex items-start gap-2 text-sm">
+                              <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                              {note}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Prompt Engineering */}
+                      <div className="p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-medium flex items-center gap-2 mb-3">
+                          <Info className="h-4 w-4 text-blue-500" />
+                          Generation Details
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <p><strong>Original Prompt:</strong></p>
+                          <p className="text-muted-foreground bg-white p-2 rounded border text-xs">
+                            {imageResponse.prompt_used}
+                          </p>
+                          <p><strong>Optimization Applied:</strong> {imageResponse.layout_analysis.prompt_engineering.optimization_applied}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Text Results */}
       {optimization && (
         <div className="space-y-6">
           {optimization.error ? (

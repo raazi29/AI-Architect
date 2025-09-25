@@ -63,7 +63,7 @@ class LayoutRequest(BaseModel):
 class AIDesignService:
     def __init__(self):
         self.client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        self.model = "llama-3.1-70b-versatile"  # Groq's best model for complex reasoning
+        self.model = "llama-3.3-70b-versatile"  # Groq's current production model for complex reasoning
         
     async def get_material_suggestions(self, request: MaterialRequest) -> Dict[str, Any]:
         """Get AI-powered material suggestions"""
