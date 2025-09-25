@@ -89,7 +89,7 @@ class VisionService:
                 }
             ]
             
-            # Call the Groq API with LLaMA 3.1 Vision
+            # Call the Groq API with LLaMA 3.3 Vision
             response = self.client.chat.completions.create(
                 model="meta-llama/llama-4-scout-17b-16e-instruct",
                 messages=messages,
