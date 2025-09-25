@@ -26,8 +26,17 @@ import {
   Square,
   Ruler,
   MapPin,
-  Download
+  Download,
+  Settings
 } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import {
   floorPlanTemplates,
   type FloorPlanTemplate,
@@ -50,6 +59,7 @@ export default function FloorPlanGenerator() {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string>("all")
   const [selectedDimension, setSelectedDimension] = useState<string>("all")
   const [searchQuery, setSearchQuery] = useState("")
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const categories = getCategories()
   const availableSubcategories = selectedCategory === "all"
@@ -205,12 +215,52 @@ export default function FloorPlanGenerator() {
             <div className="space-y-6">
               <Card className="shadow-lg border-0 bg-card/50 backdrop-blur">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <div className="p-1 rounded-lg bg-primary/10">
-                      <Zap className="h-5 w-5 text-primary" />
-                    </div>
-                    Generate Your Floor Plan
-                  </CardTitle>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2">
+                      <div className="p-1 rounded-lg bg-primary/10">
+                        <Zap className="h-5 w-5 text-primary" />
+                      </div>
+                      Generate Your Floor Plan
+                    </CardTitle>
+                    <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="icon">
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Generator Settings</DialogTitle>
+                          <DialogDescription>
+                            Configure your floor plan generation settings
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="model" className="text-sm font-medium">
+                              AI Model
+                            </Label>
+                            <Select 
+                              value={selectedModel} 
+                              onValueChange={setSelectedModel}
+                            >
+                              <SelectTrigger className="bg-muted/50 border-0">
+                                <SelectValue placeholder="Select a model" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="default">Default (naver/sdxl-floorplan)</SelectItem>
+                                <SelectItem value="stability">Stable Diffusion XL</SelectItem>
+                                <SelectItem value="floorplan-sdxl">Floorplan SDXL v1</SelectItem>
+                                <SelectItem value="maria26">Maria26 Floor Plan LoRA</SelectItem>
+                                <SelectItem value="envy">Envy Floorplans XL</SelectItem>
+                                <SelectItem value="lora4iabd">Lora4IABD Floor Plans</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                   <CardDescription>
                     Describe your ideal space or use one of our professional templates
                   </CardDescription>
@@ -228,25 +278,6 @@ export default function FloorPlanGenerator() {
                       rows={5}
                       className="resize-none border-0 bg-muted/50 focus-visible:ring-2"
                     />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="model" className="text-sm font-medium">
-                      AI Model
-                    </Label>
-                    <Select value={selectedModel} onValueChange={setSelectedModel}>
-                      <SelectTrigger className="bg-muted/50 border-0">
-                        <SelectValue placeholder="Select a model" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="default">Default (naver/sdxl-floorplan)</SelectItem>
-                        <SelectItem value="stability">Stable Diffusion XL</SelectItem>
-                        <SelectItem value="floorplan-sdxl">Floorplan SDXL v1</SelectItem>
-                        <SelectItem value="maria26">Maria26 Floor Plan LoRA</SelectItem>
-                        <SelectItem value="envy">Envy Floorplans XL</SelectItem>
-                        <SelectItem value="lora4iabd">Lora4IABD Floor Plans</SelectItem>
-                      </SelectContent>
-                    </Select>
                   </div>
 
                   <Button

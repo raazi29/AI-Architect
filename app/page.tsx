@@ -82,7 +82,7 @@ export default function Dashboard() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
             <Sparkles className="h-6 w-6 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground">Welcome to AR Interior Design</h1>
+            <h1 className="text-3xl font-bold text-foreground">Welcome to AI Interior Design and Architect</h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl">
             Transform your space with AI-powered interior design, augmented reality visualization, and smart shopping
