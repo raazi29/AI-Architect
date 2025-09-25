@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
+import { EMICalculator } from "@/components/shopping/EMICalculator"
 import {
   ShoppingBag,
   Search,
@@ -18,7 +19,7 @@ import {
   Filter,
   Camera,
   TrendingUp,
-  Zap,
+ Zap,
   Eye,
   Compass as Compare,
   ExternalLink,
@@ -27,9 +28,9 @@ import {
 interface Product {
   id: number
   name: string
-  brand: string
-  price: number
-  originalPrice?: number
+ brand: string
+ price: number        // Price in INR
+  originalPrice?: number  // Original price in INR
   rating: number
   reviews: number
   image: string
@@ -41,20 +42,25 @@ interface Product {
     height: number
     depth: number
   }
-  retailer: string
+  retailer: string    // Indian retailer name
   inStock: boolean
   discount?: number
   isWishlisted: boolean
   tags: string[]
+  currency: string    // "INR" for Indian products
+  deliveryTime?: string // Expected delivery time
+  emiAvailable?: boolean // EMI payment option
+ warranty?: string   // Warranty information
+ returnPolicy?: string // Return policy
 }
 
 const mockProducts: Product[] = [
   {
     id: 1,
     name: "Modern Sectional Sofa",
-    brand: "West Elm",
-    price: 1299,
-    originalPrice: 1599,
+    brand: "Urban Ladder",
+    price: 12999,
+    originalPrice: 15999,
     rating: 4.5,
     reviews: 234,
     image: "/modern-sofa.png",
@@ -62,17 +68,22 @@ const mockProducts: Product[] = [
     style: "Modern",
     colors: ["#8B4513", "#2F4F4F", "#696969"],
     dimensions: { width: 220, height: 85, depth: 95 },
-    retailer: "West Elm",
+    retailer: "Urban Ladder",
     inStock: true,
     discount: 19,
     isWishlisted: false,
-    tags: ["bestseller", "free-shipping"],
+    tags: ["bestseller", "free-shipping", "emi-available"],
+    currency: "INR",
+    deliveryTime: "7-10 days",
+    emiAvailable: true,
+    warranty: "2 years warranty",
+    returnPolicy: "7 days return"
   },
   {
     id: 2,
     name: "Glass Coffee Table",
-    brand: "CB2",
-    price: 399,
+    brand: "Pepperfry",
+    price: 3999,
     rating: 4.2,
     reviews: 156,
     image: "/modern-coffee-table.png",
@@ -80,17 +91,22 @@ const mockProducts: Product[] = [
     style: "Modern",
     colors: ["#000000", "#FFFFFF"],
     dimensions: { width: 120, height: 45, depth: 60 },
-    retailer: "CB2",
+    retailer: "Pepperfry",
     inStock: true,
     isWishlisted: false,
-    tags: ["new-arrival"],
+    tags: ["new-arrival", "emi-available"],
+    currency: "INR",
+    deliveryTime: "5-7 days",
+    emiAvailable: true,
+    warranty: "1 year warranty",
+    returnPolicy: "7 days return"
   },
   {
     id: 3,
-    name: "Arc Floor Lamp",
-    brand: "IKEA",
-    price: 199,
-    originalPrice: 249,
+    name: "LED Study Table Lamp",
+    brand: "Nilkamal",
+    price: 1999,
+    originalPrice: 2499,
     rating: 4.0,
     reviews: 89,
     image: "/modern-floor-lamp.png",
@@ -98,77 +114,175 @@ const mockProducts: Product[] = [
     style: "Modern",
     colors: ["#000000", "#FFFFFF", "#C0C0C0"],
     dimensions: { width: 30, height: 160, depth: 30 },
-    retailer: "IKEA",
+    retailer: "Nilkamal",
     inStock: false,
     discount: 20,
     isWishlisted: true,
-    tags: ["eco-friendly"],
+    tags: ["eco-friendly", "energy-efficient"],
+    currency: "INR",
+    deliveryTime: "3-5 days",
+    emiAvailable: false,
+    warranty: "1 year warranty",
+    returnPolicy: "7 days return"
   },
   {
     id: 4,
-    name: "Industrial Bookshelf",
-    brand: "Restoration Hardware",
-    price: 899,
+    name: "6 Shelf Bookshelf",
+    brand: "Godrej Interio",
+    price: 8999,
     rating: 4.7,
     reviews: 312,
     image: "/modern-bookshelf.png",
     category: "Storage",
-    style: "Industrial",
+    style: "Modern",
     colors: ["#8B4513", "#000000"],
     dimensions: { width: 80, height: 200, depth: 30 },
-    retailer: "Restoration Hardware",
+    retailer: "Godrej Interio",
     inStock: true,
     isWishlisted: false,
-    tags: ["premium", "handcrafted"],
+    tags: ["premium", "handcrafted", "emi-available"],
+    currency: "INR",
+    deliveryTime: "10-15 days",
+    emiAvailable: true,
+    warranty: "3 years warranty",
+    returnPolicy: "7 days return"
   },
   {
     id: 5,
-    name: "Velvet Dining Chair",
-    brand: "Article",
-    price: 149,
+    name: "Dining Chair Set of 4",
+    brand: "Wood Street",
+    price: 14999,
     rating: 4.3,
     reviews: 178,
     image: "/modern-dining-chair.png",
     category: "Seating",
     style: "Modern",
-    colors: ["#8B4513", "#000000", "#FFFFFF"],
+    colors: ["#8B4513", "#00000", "#FFFFFF"],
     dimensions: { width: 45, height: 85, depth: 50 },
-    retailer: "Article",
+    retailer: "Wood Street",
     inStock: true,
     isWishlisted: false,
-    tags: ["bestseller"],
+    tags: ["bestseller", "emi-available"],
+    currency: "INR",
+    deliveryTime: "12-15 days",
+    emiAvailable: true,
+    warranty: "2 years warranty",
+    returnPolicy: "14 days return"
   },
   {
     id: 6,
     name: "Marble Side Table",
-    brand: "Pottery Barn",
-    price: 299,
+    brand: "Home Centre",
+    price: 2999,
     originalPrice: 399,
     rating: 4.4,
     reviews: 92,
     image: "/modern-side-table.jpg",
     category: "Tables",
     style: "Modern",
-    colors: ["#FFFFFF", "#000000"],
+    colors: ["#FFFFFF", "#00000"],
     dimensions: { width: 50, height: 55, depth: 50 },
-    retailer: "Pottery Barn",
+    retailer: "Home Centre",
     inStock: true,
     discount: 25,
     isWishlisted: false,
-    tags: ["sale", "limited-time"],
+    tags: ["sale", "limited-time", "emi-available"],
+    currency: "INR",
+    deliveryTime: "5-10 days",
+    emiAvailable: true,
+    warranty: "1 year warranty",
+    returnPolicy: "7 days return"
   },
 ]
 
 export default function SmartShopping() {
-  const [products, setProducts] = useState<Product[]>(mockProducts)
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedStyle, setSelectedStyle] = useState("all")
-  const [priceRange, setPriceRange] = useState([0, 2000])
+  const [priceRange, setPriceRange] = useState([0, 200000])
   const [sortBy, setSortBy] = useState("relevance")
   const [showFilters, setShowFilters] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
+  const [selectedRetailer, setSelectedRetailer] = useState("all")
   const [compareList, setCompareList] = useState<number[]>([])
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+
+  // Fetch products from backend
+  const fetchProducts = async (pageNum: number = 1) => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        query: searchQuery,
+        page: pageNum.toString(),
+        per_page: "30"
+      })
+      
+      if (selectedCategory && selectedCategory !== "all") {
+        params.append("category", selectedCategory)
+      }
+      
+      if (selectedStyle && selectedStyle !== "all") {
+        params.append("style", selectedStyle)
+      }
+      
+      if (priceRange[0] > 0) {
+        params.append("price_min", priceRange[0].toString())
+      }
+      
+      if (priceRange[1] < 200000) {
+        params.append("price_max", priceRange[1].toString())
+      }
+      
+      if (selectedRetailer && selectedRetailer !== "all") {
+        params.append("retailer", selectedRetailer)
+      }
+      
+      const response = await fetch(`http://localhost:8001/india-shopping/products?${params.toString()}`)
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch products")
+      }
+      
+      const data = await response.json()
+      setProducts(data.products || [])
+      setTotalPages(data.total_pages || 1)
+      setPage(pageNum)
+    } catch (err) {
+      setError("Failed to load products. Please try again later.")
+      console.error("Error fetching products:", err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Fetch products when filters change
+  useEffect(() => {
+    fetchProducts(1)
+  }, [searchQuery, selectedCategory, selectedStyle, priceRange, selectedRetailer])
+
+  // Fetch retailers on component mount
+  useEffect(() => {
+    const fetchRetailers = async () => {
+      try {
+        const response = await fetch("http://localhost:8001/india-shopping/retailers")
+        if (response.ok) {
+          const data = await response.json()
+          // Retailers are now available in the backend
+        }
+      } catch (err) {
+        console.error("Error fetching retailers:", err)
+      }
+    }
+    
+    fetchRetailers()
+  }, [])
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
@@ -180,6 +294,7 @@ export default function SmartShopping() {
       selectedCategory === "all" || product.category.toLowerCase() === selectedCategory.toLowerCase()
     const matchesStyle = selectedStyle === "all" || product.style.toLowerCase() === selectedStyle.toLowerCase()
     const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1]
+    const matchesRetailer = selectedRetailer === "all" || product.retailer.toLowerCase().includes(selectedRetailer.toLowerCase())
 
     const matchesTab =
       activeTab === "all" ||
@@ -187,7 +302,7 @@ export default function SmartShopping() {
       (activeTab === "wishlist" && product.isWishlisted) ||
       (activeTab === "in-stock" && product.inStock)
 
-    return matchesSearch && matchesCategory && matchesStyle && matchesPrice && matchesTab
+    return matchesSearch && matchesCategory && matchesStyle && matchesPrice && matchesTab && matchesRetailer
   })
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -205,7 +320,7 @@ export default function SmartShopping() {
     }
   })
 
-  const toggleWishlist = (productId: number) => {
+ const toggleWishlist = (productId: number) => {
     setProducts((prev) =>
       prev.map((product) => (product.id === productId ? { ...product, isWishlisted: !product.isWishlisted } : product)),
     )
@@ -217,7 +332,7 @@ export default function SmartShopping() {
     )
   }
 
-  return (
+ return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
@@ -231,7 +346,7 @@ export default function SmartShopping() {
                   <h1 className="text-3xl font-bold text-foreground">Smart Shopping</h1>
                 </div>
                 <p className="text-lg text-muted-foreground">
-                  Find and compare furniture from multiple retailers with AI-powered recommendations.
+                  Find and compare furniture from multiple Indian retailers with AI-powered recommendations.
                 </p>
               </div>
 
@@ -273,7 +388,7 @@ export default function SmartShopping() {
                     <SelectItem value="reviews">Most Reviews</SelectItem>
                   </SelectContent>
                 </Select>
-
+                
                 <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="gap-2">
                   <Filter className="h-4 w-4" />
                   Filters
@@ -296,6 +411,9 @@ export default function SmartShopping() {
                         <SelectItem value="tables">Tables</SelectItem>
                         <SelectItem value="storage">Storage</SelectItem>
                         <SelectItem value="lighting">Lighting</SelectItem>
+                        <SelectItem value="bedroom">Bedroom</SelectItem>
+                        <SelectItem value="kitchen">Kitchen</SelectItem>
+                        <SelectItem value="outdoor">Outdoor</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -312,20 +430,41 @@ export default function SmartShopping() {
                         <SelectItem value="industrial">Industrial</SelectItem>
                         <SelectItem value="scandinavian">Scandinavian</SelectItem>
                         <SelectItem value="traditional">Traditional</SelectItem>
+                        <SelectItem value="indian">Indian Traditional</SelectItem>
+                        <SelectItem value="contemporary">Contemporary</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div className="md:col-span-2">
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Retailer</label>
+                    <Select value={selectedRetailer} onValueChange={setSelectedRetailer}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Retailers</SelectItem>
+                        <SelectItem value="urban-ladder">Urban Ladder</SelectItem>
+                        <SelectItem value="pepperfry">Pepperfry</SelectItem>
+                        <SelectItem value="nilkamal">Nilkamal</SelectItem>
+                        <SelectItem value="godrej-interio">Godrej Interio</SelectItem>
+                        <SelectItem value="wood-street">Wood Street</SelectItem>
+                        <SelectItem value="home-centre">Home Centre</SelectItem>
+                        <SelectItem value="spaces">Spaces</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
                     <label className="text-sm font-medium text-foreground mb-2 block">
-                      Price Range: ${priceRange[0]} - ${priceRange[1]}
+                      Price Range: ₹{priceRange[0].toLocaleString('en-IN')} - ₹{priceRange[1].toLocaleString('en-IN')}
                     </label>
                     <Slider
                       value={priceRange}
                       onValueChange={setPriceRange}
                       min={0}
-                      max={2000}
-                      step={50}
+                      max={200000}  // Up to ₹2,00,000
+                      step={1000}
                       className="mt-2"
                     />
                   </div>
@@ -337,7 +476,8 @@ export default function SmartShopping() {
                     onClick={() => {
                       setSelectedCategory("all")
                       setSelectedStyle("all")
-                      setPriceRange([0, 2000])
+                      setSelectedRetailer("all")
+                      setPriceRange([0, 200000])
                       setSearchQuery("")
                     }}
                   >
@@ -436,14 +576,31 @@ export default function SmartShopping() {
 
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-primary">${product.price}</span>
+                      <span className="text-lg font-bold text-primary">₹{product.price.toLocaleString('en-IN')}</span>
                       {product.originalPrice && (
-                        <span className="text-sm text-muted-foreground line-through">${product.originalPrice}</span>
+                        <span className="text-sm text-muted-foreground line-through">₹{product.originalPrice.toLocaleString('en-IN')}</span>
+                      )}
+                      {product.discount && (
+                        <span className="text-xs text-green-600 font-medium">Save {product.discount}%</span>
                       )}
                     </div>
                     <Badge variant="outline" className="text-xs">
                       {product.retailer}
                     </Badge>
+                  </div>
+
+                  {/* Indian-specific features */}
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {product.emiAvailable && (
+                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                        EMI Available
+                      </Badge>
+                    )}
+                    {product.deliveryTime && (
+                      <Badge variant="secondary" className="text-xs">
+                        {product.deliveryTime}
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="flex flex-wrap gap-1 mb-3">
@@ -453,6 +610,20 @@ export default function SmartShopping() {
                       </Badge>
                     ))}
                   </div>
+
+                  {/* Warranty and return policy */}
+                  {product.warranty && (
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {product.warranty}
+                    </div>
+                  )}
+                  
+                  {/* EMI Calculator for products that support EMI */}
+                  {product.emiAvailable && (
+                    <div className="mt-2 pt-2 border-t border-gray-200">
+                      <EMICalculator price={product.price} />
+                    </div>
+                  )}
 
                   <div className="flex gap-2">
                     <Button size="sm" className="flex-1" disabled={!product.inStock}>
@@ -482,9 +653,9 @@ export default function SmartShopping() {
           </div>
 
           <div className="mt-16 border-t border-border pt-12">
-            <h2 className="text-2xl font-bold text-foreground mb-6">Featured Retailers</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-6">Top Indian Furniture Retailers</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {["IKEA", "West Elm", "CB2", "Article", "Pottery Barn", "Restoration Hardware"].map((retailer) => (
+              {["Urban Ladder", "Pepperfry", "Nilkamal", "Godrej Interio", "Wood Street", "Home Centre"].map((retailer) => (
                 <Card key={retailer} className="p-4 text-center hover:shadow-md transition-shadow cursor-pointer">
                   <div className="h-12 bg-muted rounded-lg flex items-center justify-center mb-2">
                     <span className="font-semibold text-sm">{retailer}</span>

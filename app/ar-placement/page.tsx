@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,21 +9,16 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
+import EnhancedARScene from "@/components/ar/enhanced-ar-scene"
+import { modelService, DEFAULT_FURNITURE_MODELS, ModelInfo } from "@/components/ar/model-service"
 import {
   Cable as Cube,
   Camera,
-  RotateCcw,
-  Move3D,
   Search,
   Save,
   Share,
   Trash2,
   Ruler,
-  Grid3X3,
-  Pause,
-  RotateCw,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react"
 
 interface FurnitureItem {
@@ -38,6 +33,8 @@ interface FurnitureItem {
     depth: number
   }
   colors: string[]
+  modelUrl?: string
+  thumbnailUrl?: string
 }
 
 interface PlacedItem {
@@ -45,8 +42,9 @@ interface PlacedItem {
   furnitureId: number
   position: { x: number; y: number; z: number }
   rotation: { x: number; y: number; z: number }
-  scale: number
-  color: string
+  scale: { x: number; y: number; z: number }
+  model?: any // THREE.Object3D
+  selected?: boolean
 }
 
 const furnitureCategories = ["All", "Seating", "Tables", "Storage", "Lighting", "Decor"]
@@ -111,13 +109,11 @@ const furnitureItems: FurnitureItem[] = [
 export default function ARPlacement() {
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [searchQuery, setSearchQuery] = useState("")
-  const [isARActive, setIsARActive] = useState(false)
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
   const [selectedItem, setSelectedItem] = useState<PlacedItem | null>(null)
-  const [cameraPermission, setCameraPermission] = useState<"granted" | "denied" | "prompt">("prompt")
   const [showMeasurements, setShowMeasurements] = useState(false)
   const [roomDimensions, setRoomDimensions] = useState({ width: 400, length: 500 })
-  const videoRef = useRef<HTMLVideoElement>(null)
+  const [selectedFurnitureForPlacement, setSelectedFurnitureForPlacement] = useState<FurnitureItem | null>(null)
 
   useEffect(() => {
     console.log("AR Placement page loaded successfully")
@@ -129,48 +125,9 @@ export default function ARPlacement() {
     return matchesCategory && matchesSearch
   })
 
-  const requestCameraAccess = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      })
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        videoRef.current.play()
-      }
-
-      setCameraPermission("granted")
-      setIsARActive(true)
-    } catch (error) {
-      console.error("Camera access denied:", error)
-      setCameraPermission("denied")
-    }
-  }
-
-  const placeFurniture = (furnitureId: number) => {
-    const furniture = furnitureItems.find((item) => item.id === furnitureId)
-    if (!furniture) return
-
-    const newItem: PlacedItem = {
-      id: `${furnitureId}-${Date.now()}`,
-      furnitureId,
-      position: { x: 0, y: 0, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: 1,
-      color: furniture.colors[0],
-    }
-
-    setPlacedItems((prev) => [...prev, newItem])
-    setSelectedItem(newItem)
-  }
-
-  const updateSelectedItem = (updates: Partial<PlacedItem>) => {
-    if (!selectedItem) return
-
-    const updatedItem = { ...selectedItem, ...updates }
-    setSelectedItem(updatedItem)
-    setPlacedItems((prev) => prev.map((item) => (item.id === selectedItem.id ? updatedItem : item)))
+  const handlePlaceItem = (item: PlacedItem) => {
+    setPlacedItems((prev) => [...prev, item])
+    setSelectedFurnitureForPlacement(null) // Deselect after placing
   }
 
   const removeSelectedItem = () => {
@@ -178,6 +135,19 @@ export default function ARPlacement() {
 
     setPlacedItems((prev) => prev.filter((item) => item.id !== selectedItem.id))
     setSelectedItem(null)
+  }
+
+  const handleUpdateItem = (updatedItem: PlacedItem) => {
+    setPlacedItems((prev) => 
+      prev.map((item) => item.id === updatedItem.id ? updatedItem : item)
+    )
+  }
+
+  const handleDeleteItem = (itemId: string) => {
+    setPlacedItems((prev) => prev.filter((item) => item.id !== itemId))
+    if (selectedItem?.id === itemId) {
+      setSelectedItem(null)
+    }
   }
 
   const saveScene = () => {
@@ -253,91 +223,18 @@ export default function ARPlacement() {
                       <Camera className="h-5 w-5" />
                       AR Camera View
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant={isARActive ? "default" : "secondary"}>
-                        {isARActive ? "AR Active" : "AR Inactive"}
-                      </Badge>
-                      {isARActive && (
-                        <Button size="sm" variant="outline" onClick={() => setIsARActive(false)}>
-                          <Pause className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
                   </CardTitle>
                   <CardDescription>Point your camera at the room to place furniture</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="aspect-video bg-muted rounded-lg flex items-center justify-center relative overflow-hidden">
-                    {isARActive && cameraPermission === "granted" ? (
-                      <>
-                        <video ref={videoRef} className="w-full h-full object-cover" autoPlay playsInline muted />
-
-                        <div className="absolute inset-0 pointer-events-none">
-                          {placedItems.map((item) => {
-                            const furniture = furnitureItems.find((f) => f.id === item.furnitureId)
-                            return (
-                              <div
-                                key={item.id}
-                                className={`absolute w-16 h-16 border-2 rounded-lg flex items-center justify-center text-xs font-bold ${
-                                  selectedItem?.id === item.id
-                                    ? "border-primary bg-primary/20 text-primary"
-                                    : "border-white bg-white/20 text-white"
-                                }`}
-                                style={{
-                                  left: `${50 + item.position.x}%`,
-                                  top: `${50 + item.position.y}%`,
-                                  transform: `translate(-50%, -50%) scale(${item.scale})`,
-                                }}
-                              >
-                                {furniture?.name.split(" ")[0]}
-                              </div>
-                            )
-                          })}
-
-                          {showMeasurements && (
-                            <div className="absolute top-4 left-4 bg-black/70 text-white p-2 rounded text-sm">
-                              Room: {roomDimensions.width} × {roomDimensions.length} cm
-                            </div>
-                          )}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-center">
-                        <Camera className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                        <p className="text-muted-foreground mb-4">
-                          {cameraPermission === "denied"
-                            ? "Camera access denied. Please enable camera permissions."
-                            : "Camera access required for AR placement"}
-                        </p>
-                        <Button onClick={requestCameraAccess} disabled={cameraPermission === "denied"}>
-                          <Camera className="h-4 w-4 mr-2" />
-                          Enable Camera
-                        </Button>
-                      </div>
-                    )}
-
-                    {isARActive && (
-                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2 bg-black/50 p-2 rounded-lg">
-                        <Button size="sm" variant="secondary">
-                          <Move3D className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="secondary">
-                          <RotateCcw className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="secondary">
-                          <RotateCw className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="secondary">
-                          <ZoomIn className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="secondary">
-                          <ZoomOut className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="secondary">
-                          <Grid3X3 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
+                    <EnhancedARScene
+                      selectedFurniture={selectedFurnitureForPlacement}
+                      onPlaceItem={handlePlaceItem}
+                      placedItems={placedItems}
+                      onUpdateItem={handleUpdateItem}
+                      onDeleteItem={handleDeleteItem}
+                    />
                   </div>
 
                   {selectedItem && (
@@ -349,36 +246,6 @@ export default function ARPlacement() {
                         <Button size="sm" variant="destructive" onClick={removeSelectedItem}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label className="text-sm">Scale</Label>
-                          <Slider
-                            value={[selectedItem.scale]}
-                            onValueChange={([value]) => updateSelectedItem({ scale: value })}
-                            min={0.5}
-                            max={2}
-                            step={0.1}
-                            className="mt-2"
-                          />
-                        </div>
-
-                        <div>
-                          <Label className="text-sm">Rotation Y</Label>
-                          <Slider
-                            value={[selectedItem.rotation.y]}
-                            onValueChange={([value]) =>
-                              updateSelectedItem({
-                                rotation: { ...selectedItem.rotation, y: value },
-                              })
-                            }
-                            min={0}
-                            max={360}
-                            step={15}
-                            className="mt-2"
-                          />
-                        </div>
                       </div>
                     </div>
                   )}
@@ -419,8 +286,10 @@ export default function ARPlacement() {
                       {filteredFurniture.map((item) => (
                         <div
                           key={item.id}
-                          className="flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                          onClick={() => placeFurniture(item.id)}
+                          className={`flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors ${
+                            selectedFurnitureForPlacement?.id === item.id ? "bg-muted" : ""
+                          }`}
+                          onClick={() => setSelectedFurnitureForPlacement(item)}
                         >
                           <img
                             src={item.image || "/placeholder.svg"}
@@ -442,11 +311,11 @@ export default function ARPlacement() {
                         </div>
                       ))}
                     </div>
-                  </div>
 
-                  <Button className="w-full mt-4 bg-transparent" variant="outline">
-                    Browse More Furniture
-                  </Button>
+                    <Button className="w-full mt-4 bg-transparent" variant="outline">
+                      Browse More Furniture
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -494,25 +363,31 @@ export default function ARPlacement() {
                       <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">
                         1
                       </div>
-                      <p>Enable camera access</p>
+                      <p>Click the "Start AR" button</p>
                     </div>
                     <div className="flex items-start gap-2">
                       <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">
                         2
                       </div>
-                      <p>Point camera at your room</p>
+                      <p>Point your device at a flat surface</p>
                     </div>
                     <div className="flex items-start gap-2">
                       <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">
                         3
                       </div>
-                      <p>Select furniture to place</p>
+                      <p>Select a furniture item from the catalog</p>
                     </div>
                     <div className="flex items-start gap-2">
                       <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">
                         4
                       </div>
-                      <p>Tap to position and resize</p>
+                      <p>Tap the screen to place the item</p>
+                    </div>
+                     <div className="flex items-start gap-2">
+                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">
+                        5
+                      </div>
+                      <p>Use touch gestures to move, rotate, and scale</p>
                     </div>
                   </div>
                 </CardContent>

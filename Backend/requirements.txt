@@ -7,3 +7,5 @@ groq
 python-multipart
 Pillow
 requests
+beautifulsoup4
+lxml
