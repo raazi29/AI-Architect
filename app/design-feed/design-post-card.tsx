@@ -36,7 +36,10 @@ export default function DesignPostCard({ post, viewMode, priority = false }: Des
     'https://images.pexels.com',
     'https://images.unsplash.com',
     'https://cdn.pixabay.com',
-    'https://picsum.photos'
+    'https://picsum.photos',
+    'https://api.rawpixel.com',
+    'https://images.rawpixel.com',
+    'https://cdn.rawpixel.com'
   ];
   const useDirect = TRUSTED.some(prefix => imageUrl.startsWith(prefix));
   const displayUrl = useDirect ? imageUrl : `/api/image?src=${encodeURIComponent(imageUrl)}`;
@@ -49,7 +52,6 @@ export default function DesignPostCard({ post, viewMode, priority = false }: Des
   const [saves, setSaves] = useState<number>(post.saves || 0);
   const [pending, setPending] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
-
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -83,12 +85,6 @@ export default function DesignPostCard({ post, viewMode, priority = false }: Des
       active = false;
     };
   }, [imageId]);
-
-  // Safety: clear skeleton after 5s even if onLoad didn't fire
-  useEffect(() => {
-    const id = setTimeout(() => setLoaded(true), 5000);
-    return () => clearTimeout(id);
-  }, []);
 
   const handleLike = async () => {
     if (!supabase || pending) return;
@@ -165,7 +161,6 @@ export default function DesignPostCard({ post, viewMode, priority = false }: Des
           {!loaded && (
             <div className="absolute inset-0 animate-pulse bg-gray-200 rounded-md" />
           )}
-          {/* Reserve aspect-ratio space to prevent layout shift */}
           <div style={{ paddingBottom: `${(naturalHeight / naturalWidth) * 100}%` }} />
           {!failed ? (
             <Image
@@ -173,30 +168,24 @@ export default function DesignPostCard({ post, viewMode, priority = false }: Des
               alt={post.title || post.alt || "Design image"}
               width={naturalWidth}
               height={naturalHeight}
-              className={`absolute left-0 top-0 w-full h-auto rounded-md transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+              className={`absolute left-0 top-0 w-full h-auto rounded-md ${loaded ? 'opacity-100' : 'opacity-0'}`}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
               loading={priority ? 'eager' : 'lazy'}
-              decoding="async"
-              fetchPriority={priority ? 'high' as const : 'low' as const}
               priority={priority}
-              quality={70}
+              quality={80}
               placeholder="blur"
               blurDataURL={displayBlur}
               onLoad={() => setLoaded(true)}
               onError={() => {
                 setFailed(true);
                 setLoaded(true);
+                console.log('Image failed to load:', displayUrl);
               }}
             />
           ) : (
-            <img
-              src={displayUrl}
-              alt={post.title || post.alt || 'Design image'}
-              className={`absolute left-0 top-0 w-full h-auto rounded-md transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-              onLoad={() => setLoaded(true)}
-              onError={() => setLoaded(true)}
-              referrerPolicy="no-referrer"
-            />
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 rounded-md">
+              <span className="text-sm text-gray-500">Image unavailable</span>
+            </div>
           )}
         </div>
       </div>

@@ -41,6 +41,7 @@
     "@remix-run/react": "latest",
     "@supabase/supabase-js": "^2.57.4",
     "@sveltejs/kit": "latest",
+    "@types/three": "^0.180.0",
     "@vercel/analytics": "latest",
     "autoprefixer": "^10.4.20",
     "class-variance-authority": "^0.7.1",
@@ -64,12 +65,14 @@
     "svelte": "latest",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.180.0",
     "vaul": "^0.9.9",
     "vue": "latest",
     "vue-router": "latest",
     "zod": "3.25.67"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.1",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^18",

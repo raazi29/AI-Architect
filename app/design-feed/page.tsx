@@ -100,14 +100,14 @@ export default function DesignFeed() {
   );
 
   const fetchDesigns = useCallback(async (pageNumber: number, query: string) => {
-    // Create cache key
-    const cacheKey = `${activeTab}-${selectedStyle}-${roomType}-${layoutType}-${paletteMode}-${lighting.join(',')}-${selectedColors.join(',')}-${selectedMaterials.join(',')}-${query}-${page}`;
-    
-    // Check if we have cached data for page 1
+    // Create cache key without page (since we cache per query/filter combination)
+    const cacheKey = `${activeTab}-${selectedStyle}-${roomType}-${layoutType}-${paletteMode}-${lighting.join(',')}-${selectedColors.join(',')}-${selectedMaterials.join(',')}-${query}`;
+
+    // Check if we have cached data for page 1 only
     if (pageNumber === 1 && cache.current.has(cacheKey)) {
       const cachedEntry = cache.current.get(cacheKey);
-      // Check if cache is still valid (less than 5 minutes old)
-      if (cachedEntry && Date.now() - cachedEntry.timestamp < 5 * 60 * 1000) {
+      // Check if cache is still valid (less than 2 minutes old for better freshness)
+      if (cachedEntry && Date.now() - cachedEntry.timestamp < 2 * 60 * 1000) {
         const cachedPage = cachePage.current.get(cacheKey) || 1;
         setDesignPosts(cachedEntry.data || []);
         setInitialLoading(false);
@@ -117,35 +117,36 @@ export default function DesignFeed() {
       } else {
         // Expired cache, remove it
         cache.current.delete(cacheKey);
+        cachePage.current.delete(cacheKey);
       }
     }
-    
+
     // Skip fetch if already loading
     if (loading) return;
-    
+
     // Set loading states
     setLoading(true);
     if (pageNumber === 1) {
       setInitialLoading(true);
     }
     setError(null);
-    
+
     try {
       // Build query parameters
       const params = new URLSearchParams();
       params.append('page', pageNumber.toString());
       params.append('per_page', '30'); // Request 30 photos for better infinite scroll
-      
+
       // Add query if it exists
       if (query) {
         params.append('query', query);
       }
-      
+
       // Add style if it's not 'all'
       if (selectedStyle !== 'all') {
         params.append('style', selectedStyle);
       }
-      
+
       // Add all filter parameters
       if (roomType) params.append('room_type', roomType);
       if (layoutType) params.append('layout_type', layoutType);
@@ -153,13 +154,13 @@ export default function DesignFeed() {
       if (paletteMode) params.append('palette_mode', paletteMode);
       if (selectedColors.length > 0) params.append('colors', selectedColors.join(','));
       if (selectedMaterials.length > 0) params.append('materials', selectedMaterials.join(','));
-      
+
       const endpoint = "feed"; // Only use feed endpoint
       // Set per_page to 30 for better infinite scroll
       params.set('per_page', '30');
       console.log('Fetching with params:', Object.fromEntries(params.entries())); // Debug log
       const res = await fetchWithRetry(`http://localhost:8001/${endpoint}?${params.toString()}`);
-      
+
       if (!res.ok) {
         if (res.status === 429) {
           throw new Error("Rate limit exceeded. Please wait a moment before trying again.");
@@ -169,13 +170,16 @@ export default function DesignFeed() {
           throw new Error(`Failed to fetch designs: ${res.status} ${res.statusText}`);
         }
       }
-      
+
       const data = await res.json();
+      console.log('Received data:', data); // Debug log
       if (!Array.isArray(data)) {
+        console.error('Invalid response format:', data);
         throw new Error("Invalid response format");
       }
-      
+
       if (data.length === 0) {
+        console.log('No data returned from API');
         setHasMore(false);
       } else {
         // Deduplicate images
@@ -186,37 +190,52 @@ export default function DesignFeed() {
           seenImageIds.add(imageKey);
           return true;
         });
-        
-        const randomized = shuffle(filtered);
-        setDesignPosts((prevPosts) => pageNumber === 1 ? randomized : [...prevPosts, ...randomized]);
-        const newSeenImageIds = new Set([...seenImageIds, ...filtered.map(item => `${item.id}-${item.image || item.src?.original || item.url}`)]);
-        setSeenImageIds(newSeenImageIds);
-        // Save seen image IDs to localStorage
-        try {
-          localStorage.setItem('designFeedSeenImages', JSON.stringify(Array.from(newSeenImageIds)));
-        } catch (e) {
-          console.warn('Failed to save seen image IDs to localStorage:', e);
-        }
-        // Cache the data for page 1
-        if (pageNumber === 1) {
-          cache.current.set(cacheKey, {
-            data: randomized,
-            timestamp: Date.now()
-          });
-          cachePage.current.set(cacheKey, 1);
+
+        console.log(`Filtered ${filtered.length} unique images from ${data.length} total`);
+
+        if (filtered.length === 0) {
+          console.log('All images were duplicates, trying to fetch more...');
+          setHasMore(false);
+        } else {
+          const randomized = shuffle(filtered);
+          setDesignPosts((prevPosts) => pageNumber === 1 ? randomized : [...prevPosts, ...randomized]);
+          const newSeenImageIds = new Set([...seenImageIds, ...filtered.map(item => `${item.id}-${item.image || item.src?.original || item.url}`)]);
+          setSeenImageIds(newSeenImageIds);
+          // Save seen image IDs to localStorage
+          try {
+            localStorage.setItem('designFeedSeenImages', JSON.stringify(Array.from(newSeenImageIds)));
+          } catch (e) {
+            console.warn('Failed to save seen image IDs to localStorage:', e);
+          }
+          // Cache the data for page 1
+          if (pageNumber === 1) {
+            cache.current.set(cacheKey, {
+              data: randomized,
+              timestamp: Date.now()
+            });
+            cachePage.current.set(cacheKey, 1);
+          }
         }
       }
     } catch (error) {
       console.error("Failed to fetch designs:", error);
       setError(error instanceof Error ? error.message : "An unknown error occurred");
       setHasMore(false);
+
+      // If this is the first page and we got an error, try to clear cache and retry
+      if (pageNumber === 1) {
+        console.log('Clearing cache and retrying...');
+        cache.current.clear();
+        cachePage.current.clear();
+        // Don't retry automatically to avoid infinite loops
+      }
     } finally {
       setLoading(false);
       if (pageNumber === 1) {
         setInitialLoading(false);
       }
     }
-  }, [activeTab, selectedStyle, roomType, layoutType, paletteMode, lighting, selectedColors, selectedMaterials, page]);
+  }, [activeTab, selectedStyle, roomType, layoutType, paletteMode, lighting, selectedColors, selectedMaterials]);
 
   // Handle search with debounce
   const handleSearch = (query: string) => {
@@ -564,6 +583,23 @@ export default function DesignFeed() {
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
           <strong className="font-bold">Error: </strong>
           <span className="block sm:inline">{error}</span>
+          <div className="mt-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setError(null);
+                setPage(1);
+                setHasMore(true);
+                setDesignPosts([]);
+                cache.current.clear();
+                cachePage.current.clear();
+                fetchDesigns(1, searchQuery);
+              }}
+            >
+              Try Again
+            </Button>
+          </div>
         </div>
       )}
 
@@ -615,7 +651,23 @@ export default function DesignFeed() {
         <div className="text-center py-4 text-gray-500">No more designs to load.</div>
       )}
       {!initialLoading && !loading && designPosts.length === 0 && !error && (
-        <div className="text-center py-4 text-gray-500">No designs found. Try a different search term.</div>
+        <div className="text-center py-8 space-y-4">
+          <div className="text-gray-500">No designs found. Try a different search term.</div>
+          <Button
+            onClick={() => {
+              // Clear cache and retry
+              cache.current.clear();
+              cachePage.current.clear();
+              setError(null);
+              setPage(1);
+              setHasMore(true);
+              fetchDesigns(1, searchQuery);
+            }}
+            variant="outline"
+          >
+            Refresh Results
+          </Button>
+        </div>
       )}
     </div>
   )
