@@ -133,10 +133,10 @@ class PixabayService:
                 "landscape": webformat_url,
                 "tiny": preview_url
             },
-            "alt": photo.get("tags", "Design Image"),
+            "alt": photo.get("tags", "Photo"),
             # Add fields that the frontend expects
             "image": webformat_url or preview_url,
-            "title": photo.get("tags", "Design Image"),
+            "title": photo.get("tags", "Photo"),
             "author": "",  # Empty as requested
             "likes": photo.get("likes", 0),
             "saves": photo.get("favorites", 0)

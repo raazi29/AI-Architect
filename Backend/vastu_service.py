@@ -71,11 +71,31 @@ class VastuRequest(BaseModel):
     house_facing: Optional[Direction] = None
     plot_shape: Optional[str] = "rectangular"
 
+class VastuRemedies(BaseModel):
+    """Vastu remedies for non-compliant placements"""
+    crystals: List[str]
+    plants: List[str]
+    colors: List[str]
+    mirrors: List[str]
+    symbols: List[str]
+    general_tips: List[str]
+
+class DetailedRoomAnalysis(BaseModel):
+    """Extended room analysis with remedies and detailed recommendations"""
+    basic_analysis: RoomAnalysis
+    remedies: Optional[VastuRemedies] = None
+    energy_flow_score: int  # 0-100
+    prosperity_impact: str
+    health_impact: str
+    relationship_impact: str
+    detailed_recommendations: List[Dict[str, str]]
+
 class VastuService:
     def __init__(self):
         self.elements = self._initialize_elements()
         self.room_guidelines = self._initialize_room_guidelines()
         self.directional_significance = self._initialize_directional_significance()
+        self.remedies_database = self._initialize_remedies_database()
         
     def _initialize_elements(self) -> Dict[str, VastuElement]:
         """Initialize the five elements (Panchabhutas) of Vastu"""
@@ -506,6 +526,212 @@ class VastuService:
         else:
             return {category: tips.get(category, [])}
     
+    def _initialize_remedies_database(self) -> Dict[str, VastuRemedies]:
+        """Initialize Vastu remedies for different situations"""
+        return {
+            "poor_placement": VastuRemedies(
+                crystals=[
+                    "Place clear quartz crystal in the affected area to neutralize negative energy",
+                    "Use amethyst for spiritual protection and peace",
+                    "Rose quartz for harmony in relationships",
+                    "Citrine for prosperity and abundance"
+                ],
+                plants=[
+                    "Money plant (Pothos) in north direction for wealth",
+                    "Bamboo plant in east for growth and prosperity",
+                    "Tulsi (Holy Basil) in north-east for positive energy",
+                    "Peace lily for air purification and harmony",
+                    "Snake plant for protection and good luck"
+                ],
+                colors=[
+                    "Use light colors to brighten dark corners",
+                    "Apply Vastu-compliant colors for each direction",
+                    "Avoid black and dark colors in north-east",
+                    "Use warm colors in south-west for stability"
+                ],
+                mirrors=[
+                    "Place mirrors on north or east walls to enhance positive energy",
+                    "Avoid mirrors facing bed or main entrance",
+                    "Use mirrors to reflect natural light into dark areas",
+                    "Ensure mirrors are clean and unbroken"
+                ],
+                symbols=[
+                    "Place Swastik symbol at entrance for prosperity",
+                    "Om symbol in prayer room for spiritual energy",
+                    "Ganesha idol near entrance to remove obstacles",
+                    "Pyramid yantra for energy correction"
+                ],
+                general_tips=[
+                    "Keep the area clean and clutter-free",
+                    "Ensure proper lighting and ventilation",
+                    "Use pleasant fragrances like incense or essential oils",
+                    "Play soft instrumental music to enhance positive vibrations",
+                    "Regularly clean windows and allow natural light"
+                ]
+            ),
+            "entrance_issues": VastuRemedies(
+                crystals=["Clear quartz cluster near entrance", "Black tourmaline for protection"],
+                plants=["Tulsi plant near entrance", "Money plant on either side"],
+                colors=["Bright welcoming colors", "Avoid dark colors at entrance"],
+                mirrors=["Mirror on side wall to expand space", "Never directly facing entrance"],
+                symbols=["Swastik or Om at entrance", "Ganesha idol for blessings"],
+                general_tips=[
+                    "Keep entrance well-lit at all times",
+                    "Remove any obstacles or clutter",
+                    "Use a beautiful nameplate",
+                    "Place a doormat with auspicious symbols"
+                ]
+            ),
+            "bedroom_issues": VastuRemedies(
+                crystals=["Rose quartz for love and harmony", "Amethyst for peaceful sleep"],
+                plants=["Avoid thorny plants", "Small peace lily for air quality"],
+                colors=["Soft, warm colors for walls", "Avoid red in bedroom"],
+                mirrors=["No mirrors facing bed", "Cover mirrors at night if present"],
+                symbols=["Pair of birds or swans for relationship harmony"],
+                general_tips=[
+                    "Bed should have solid headboard",
+                    "Avoid electronic devices near bed",
+                    "Use soft, warm lighting",
+                    "Keep bedroom door closed at night"
+                ]
+            ),
+            "kitchen_issues": VastuRemedies(
+                crystals=["Citrine for abundance", "Clear quartz for energy"],
+                plants=["Herbs like basil, mint in kitchen window"],
+                colors=["Red, orange, or yellow for fire element", "Avoid blue and black"],
+                mirrors=["Mirror behind stove to double prosperity"],
+                symbols=["Annapurna image for food abundance"],
+                general_tips=[
+                    "Keep kitchen clean and organized",
+                    "Ensure proper ventilation",
+                    "Store food items properly",
+                    "Face east while cooking"
+                ]
+            )
+        }
+    
+    def get_detailed_room_analysis(self, room_type: str, direction: str) -> DetailedRoomAnalysis:
+        """Get detailed Vastu analysis with remedies and impacts"""
+        # Get basic analysis
+        basic_analysis = self.analyze_room(room_type, direction)
+        
+        # Determine remedies based on status
+        remedies = None
+        if basic_analysis.status in [VastuStatus.POOR, VastuStatus.AVERAGE]:
+            # Get appropriate remedies
+            if room_type == "main_entrance":
+                remedies = self.remedies_database.get("entrance_issues")
+            elif "bedroom" in room_type:
+                remedies = self.remedies_database.get("bedroom_issues")
+            elif room_type == "kitchen":
+                remedies = self.remedies_database.get("kitchen_issues")
+            else:
+                remedies = self.remedies_database.get("poor_placement")
+        
+        # Calculate energy flow score
+        energy_flow_score = basic_analysis.score
+        
+        # Determine impacts based on room type and direction
+        prosperity_impact = self._calculate_prosperity_impact(room_type, direction, basic_analysis.status)
+        health_impact = self._calculate_health_impact(room_type, direction, basic_analysis.status)
+        relationship_impact = self._calculate_relationship_impact(room_type, direction, basic_analysis.status)
+        
+        # Generate detailed recommendations
+        detailed_recommendations = self._generate_detailed_recommendations(room_type, direction, basic_analysis.status)
+        
+        return DetailedRoomAnalysis(
+            basic_analysis=basic_analysis,
+            remedies=remedies,
+            energy_flow_score=energy_flow_score,
+            prosperity_impact=prosperity_impact,
+            health_impact=health_impact,
+            relationship_impact=relationship_impact,
+            detailed_recommendations=detailed_recommendations
+        )
+    
+    def _calculate_prosperity_impact(self, room_type: str, direction: str, status: VastuStatus) -> str:
+        """Calculate impact on prosperity"""
+        if status == VastuStatus.EXCELLENT:
+            return "Highly positive - Attracts wealth and abundance"
+        elif status == VastuStatus.GOOD:
+            return "Positive - Supports financial growth"
+        elif status == VastuStatus.AVERAGE:
+            return "Neutral - No significant impact on prosperity"
+        else:
+            return "Negative - May create financial obstacles"
+    
+    def _calculate_health_impact(self, room_type: str, direction: str, status: VastuStatus) -> str:
+        """Calculate impact on health"""
+        if status == VastuStatus.EXCELLENT:
+            return "Excellent - Promotes physical and mental well-being"
+        elif status == VastuStatus.GOOD:
+            return "Good - Supports overall health"
+        elif status == VastuStatus.AVERAGE:
+            return "Moderate - Minor health considerations"
+        else:
+            return "Concerning - May affect health negatively"
+    
+    def _calculate_relationship_impact(self, room_type: str, direction: str, status: VastuStatus) -> str:
+        """Calculate impact on relationships"""
+        if status == VastuStatus.EXCELLENT:
+            return "Harmonious - Strengthens family bonds and relationships"
+        elif status == VastuStatus.GOOD:
+            return "Positive - Supports healthy relationships"
+        elif status == VastuStatus.AVERAGE:
+            return "Neutral - No major impact on relationships"
+        else:
+            return "Challenging - May cause relationship stress"
+    
+    def _generate_detailed_recommendations(self, room_type: str, direction: str, status: VastuStatus) -> List[Dict[str, str]]:
+        """Generate detailed, actionable recommendations"""
+        recommendations = []
+        
+        if status in [VastuStatus.POOR, VastuStatus.AVERAGE]:
+            recommendations.extend([
+                {
+                    "category": "Immediate Action",
+                    "action": "Declutter and clean the space thoroughly",
+                    "benefit": "Removes stagnant energy and improves flow",
+                    "difficulty": "Easy"
+                },
+                {
+                    "category": "Lighting",
+                    "action": "Increase natural and artificial lighting",
+                    "benefit": "Enhances positive energy and reduces negativity",
+                    "difficulty": "Easy"
+                },
+                {
+                    "category": "Color Correction",
+                    "action": "Apply Vastu-compliant colors for this direction",
+                    "benefit": "Aligns space with elemental energies",
+                    "difficulty": "Medium"
+                },
+                {
+                    "category": "Energy Enhancement",
+                    "action": "Place appropriate crystals and plants",
+                    "benefit": "Neutralizes negative energy and attracts positivity",
+                    "difficulty": "Easy"
+                }
+            ])
+        
+        if status == VastuStatus.POOR:
+            recommendations.extend([
+                {
+                    "category": "Professional Consultation",
+                    "action": "Consult a certified Vastu expert",
+                    "benefit": "Get personalized remedies for your specific situation",
+                    "difficulty": "Easy"
+                },
+                {
+                    "category": "Major Correction",
+                    "action": "Consider relocating the room if structurally possible",
+                    "benefit": "Achieves optimal Vastu compliance",
+                    "difficulty": "Hard"
+                }
+            ])
+        
+        return recommendations
+
     def get_directional_guide(self) -> Dict[str, Any]:
         """Get comprehensive directional guide"""
         return {
@@ -524,6 +750,61 @@ class VastuService:
                 "usage": "Use this guide to place rooms and objects correctly"
             }
         }
+    
+    def get_vastu_score_interpretation(self, score: int) -> Dict[str, Any]:
+        """Get detailed interpretation of Vastu score"""
+        if score >= 90:
+            level = "Excellent"
+            description = "Your space has exceptional Vastu compliance. The energy flow is optimal."
+            color = "green"
+        elif score >= 75:
+            level = "Very Good"
+            description = "Your space has strong Vastu compliance with minor areas for improvement."
+            color = "lightgreen"
+        elif score >= 60:
+            level = "Good"
+            description = "Your space has decent Vastu compliance. Some improvements recommended."
+            color = "yellow"
+        elif score >= 40:
+            level = "Fair"
+            description = "Your space needs attention. Several Vastu corrections recommended."
+            color = "orange"
+        else:
+            level = "Poor"
+            description = "Your space requires significant Vastu corrections for better energy flow."
+            color = "red"
+        
+        return {
+            "score": score,
+            "level": level,
+            "description": description,
+            "color": color,
+            "next_steps": self._get_next_steps_for_score(score)
+        }
+    
+    def _get_next_steps_for_score(self, score: int) -> List[str]:
+        """Get actionable next steps based on score"""
+        if score >= 75:
+            return [
+                "Maintain current Vastu compliance",
+                "Focus on minor optimizations",
+                "Regular cleaning and decluttering"
+            ]
+        elif score >= 50:
+            return [
+                "Implement recommended remedies",
+                "Focus on critical areas first",
+                "Consider color corrections",
+                "Improve lighting and ventilation"
+            ]
+        else:
+            return [
+                "Consult a Vastu expert immediately",
+                "Prioritize major corrections",
+                "Implement all recommended remedies",
+                "Consider structural changes if possible",
+                "Use temporary remedies while planning major changes"
+            ]
 
 # Initialize the service
 vastu_service = VastuService()

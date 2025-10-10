@@ -153,10 +153,10 @@ class UnsplashService:
                 "landscape": photo.get("urls", {}).get("regular", ""),
                 "tiny": photo.get("urls", {}).get("thumb", "")
             },
-            "alt": photo.get("alt_description", "Design Image"),
+            "alt": photo.get("alt_description", "Photo"),
             # Add fields that the frontend expects
             "image": photo.get("urls", {}).get("regular", photo.get("urls", {}).get("small", "")),
-            "title": photo.get("alt_description", "Design Image"),
+            "title": photo.get("alt_description", "Photo"),
             "author": "",  # Empty as requested
             "likes": photo.get("likes", 0),
             "saves": 0     # Placeholder
