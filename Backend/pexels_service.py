@@ -108,10 +108,10 @@ class PexelsService:
             "photographer_id": 0,
             "avg_color": photo.get("avg_color", "#ffffff"),
             "src": photo.get("src", {}),
-            "alt": photo.get("alt", "Design Image"),
+            "alt": photo.get("alt", "Photo"),
             # Add fields that the frontend expects
             "image": photo.get("src", {}).get("large2x", photo.get("src", {}).get("large", "")),
-            "title": photo.get("alt", "Design Image"),
+            "title": photo.get("alt", "Photo"),
             "author": "",  # Empty as requested
             "likes": 0,    # Placeholder
             "saves": 0     # Placeholder

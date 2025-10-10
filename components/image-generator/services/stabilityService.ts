@@ -23,7 +23,7 @@ export interface GenerationResult {
 }
 
 export const generateInteriorImage = async (
-  prompt: string, 
+  prompt: string,
   options: GenerationOptions = {}
 ): Promise<GenerationResult> => {
   const response = await fetch('/api/image/generate', {
@@ -31,10 +31,10 @@ export const generateInteriorImage = async (
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       prompt,
-      style: options.style || 'modern',
-      roomType: options.roomType || 'living_room',
+      style: options.style || 'auto',
+      roomType: options.roomType || 'auto',
       width: options.width || 1024,
       height: options.height || 1024
     }),
@@ -50,8 +50,8 @@ export const generateInteriorImage = async (
 };
 
 export const editInteriorImage = async (
-  prompt: string, 
-  base64Image: string, 
+  prompt: string,
+  base64Image: string,
   mimeType: string,
   options: GenerationOptions = {}
 ): Promise<GenerationResult> => {
@@ -60,12 +60,12 @@ export const editInteriorImage = async (
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ 
-      prompt, 
-      base64Image, 
+    body: JSON.stringify({
+      prompt,
+      base64Image,
       mimeType,
-      style: options.style || 'modern',
-      roomType: options.roomType || 'living_room'
+      style: options.style || 'auto',
+      roomType: options.roomType || 'auto'
     }),
   });
 

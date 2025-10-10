@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,7 +9,13 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
-import { EMICalculator } from "@/components/shopping/EMICalculator"
+import LiveChat from "@/components/shopping/LiveChat"
+import OrderTracker from "@/components/shopping/OrderTracker"
+import PriceAlert from "@/components/shopping/PriceAlert"
+import ARPreview from "@/components/shopping/ARPreview"
+import VerifiedReviews from "@/components/shopping/VerifiedReviews"
+import RealTimeUpdates from "@/components/shopping/RealTimeUpdates"
+import PerformanceTest from "@/components/shopping/PerformanceTest"
 import {
   ShoppingBag,
   Search,
@@ -19,18 +25,23 @@ import {
   Filter,
   Camera,
   TrendingUp,
- Zap,
+  Zap,
   Eye,
   Compass as Compare,
   ExternalLink,
+  TrendingDown,
+  Package,
+  Bell,
+  Move3D,
+  CheckCircle,
 } from "lucide-react"
 
 interface Product {
-  id: number
+  id: string
   name: string
- brand: string
- price: number        // Price in INR
-  originalPrice?: number  // Original price in INR
+  brand: string
+  price: number        // Price in INR
+  originalPrice?: number // Original price in INR
   rating: number
   reviews: number
   image: string
@@ -49,14 +60,46 @@ interface Product {
   tags: string[]
   currency: string    // "INR" for Indian products
   deliveryTime?: string // Expected delivery time
-  emiAvailable?: boolean // EMI payment option
- warranty?: string   // Warranty information
- returnPolicy?: string // Return policy
+  warranty?: string   // Warranty information
+  returnPolicy?: string // Return policy
+  description?: string
+  specifications?: Record<string, string>
+  features?: string[]
+  material?: string
+  designer?: string
+  designStyle?: string
+  sustainabilityRating?: number
+  certifiedEcoFriendly?: boolean
+  stockQuantity?: number
+  availabilityStatus?: string
+  shippingCost?: number
+  estimatedDelivery?: string
+  customerRatingBreakdown?: Record<string, number>
+  verifiedReviews?: Array<{
+    id: string
+    user: string
+    rating: number
+    title: string
+    comment: string
+    verifiedPurchase: boolean
+    date: string
+    helpfulCount: number
+    images?: string[]
+  }>
+  priceHistory?: Array<{
+    date: string
+    price: number
+    change: number
+  }>
+  relatedProducts?: string[]
+  trendingScore?: number
+  personalizationScore?: number
+  lastUpdated?: string
 }
 
 const mockProducts: Product[] = [
   {
-    id: 1,
+    id: "1",
     name: "Modern Sectional Sofa",
     brand: "Urban Ladder",
     price: 12999,
@@ -72,15 +115,14 @@ const mockProducts: Product[] = [
     inStock: true,
     discount: 19,
     isWishlisted: false,
-    tags: ["bestseller", "free-shipping", "emi-available"],
+    tags: ["bestseller", "free-shipping"],
     currency: "INR",
     deliveryTime: "7-10 days",
-    emiAvailable: true,
     warranty: "2 years warranty",
     returnPolicy: "7 days return"
   },
   {
-    id: 2,
+    id: "2",
     name: "Glass Coffee Table",
     brand: "Pepperfry",
     price: 3999,
@@ -89,20 +131,19 @@ const mockProducts: Product[] = [
     image: "/modern-coffee-table.png",
     category: "Tables",
     style: "Modern",
-    colors: ["#000000", "#FFFFFF"],
+    colors: ["#00000", "#FFFFFF"],
     dimensions: { width: 120, height: 45, depth: 60 },
     retailer: "Pepperfry",
     inStock: true,
     isWishlisted: false,
-    tags: ["new-arrival", "emi-available"],
+    tags: ["new-arrival"],
     currency: "INR",
     deliveryTime: "5-7 days",
-    emiAvailable: true,
     warranty: "1 year warranty",
     returnPolicy: "7 days return"
   },
   {
-    id: 3,
+    id: "3",
     name: "LED Study Table Lamp",
     brand: "Nilkamal",
     price: 1999,
@@ -112,7 +153,7 @@ const mockProducts: Product[] = [
     image: "/modern-floor-lamp.png",
     category: "Lighting",
     style: "Modern",
-    colors: ["#000000", "#FFFFFF", "#C0C0C0"],
+    colors: ["#00", "#FFFFFF", "#C0C0C0"],
     dimensions: { width: 30, height: 160, depth: 30 },
     retailer: "Nilkamal",
     inStock: false,
@@ -121,12 +162,11 @@ const mockProducts: Product[] = [
     tags: ["eco-friendly", "energy-efficient"],
     currency: "INR",
     deliveryTime: "3-5 days",
-    emiAvailable: false,
     warranty: "1 year warranty",
     returnPolicy: "7 days return"
   },
   {
-    id: 4,
+    id: "4",
     name: "6 Shelf Bookshelf",
     brand: "Godrej Interio",
     price: 8999,
@@ -135,20 +175,19 @@ const mockProducts: Product[] = [
     image: "/modern-bookshelf.png",
     category: "Storage",
     style: "Modern",
-    colors: ["#8B4513", "#000000"],
+    colors: ["#8B4513", "#00000"],
     dimensions: { width: 80, height: 200, depth: 30 },
     retailer: "Godrej Interio",
     inStock: true,
     isWishlisted: false,
-    tags: ["premium", "handcrafted", "emi-available"],
+    tags: ["premium", "handcrafted"],
     currency: "INR",
     deliveryTime: "10-15 days",
-    emiAvailable: true,
     warranty: "3 years warranty",
     returnPolicy: "7 days return"
   },
   {
-    id: 5,
+    id: "5",
     name: "Dining Chair Set of 4",
     brand: "Wood Street",
     price: 14999,
@@ -157,20 +196,19 @@ const mockProducts: Product[] = [
     image: "/modern-dining-chair.png",
     category: "Seating",
     style: "Modern",
-    colors: ["#8B4513", "#00000", "#FFFFFF"],
+    colors: ["#8B4513", "#0000", "#FFFFFF"],
     dimensions: { width: 45, height: 85, depth: 50 },
     retailer: "Wood Street",
     inStock: true,
     isWishlisted: false,
-    tags: ["bestseller", "emi-available"],
+    tags: ["bestseller"],
     currency: "INR",
     deliveryTime: "12-15 days",
-    emiAvailable: true,
     warranty: "2 years warranty",
     returnPolicy: "14 days return"
   },
   {
-    id: 6,
+    id: "6",
     name: "Marble Side Table",
     brand: "Home Centre",
     price: 2999,
@@ -180,16 +218,15 @@ const mockProducts: Product[] = [
     image: "/modern-side-table.jpg",
     category: "Tables",
     style: "Modern",
-    colors: ["#FFFFFF", "#00000"],
+    colors: ["#FFFFFF", "#0000"],
     dimensions: { width: 50, height: 55, depth: 50 },
     retailer: "Home Centre",
     inStock: true,
     discount: 25,
     isWishlisted: false,
-    tags: ["sale", "limited-time", "emi-available"],
+    tags: ["sale", "limited-time"],
     currency: "INR",
     deliveryTime: "5-10 days",
-    emiAvailable: true,
     warranty: "1 year warranty",
     returnPolicy: "7 days return"
   },
@@ -202,89 +239,130 @@ export default function SmartShopping() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedStyle, setSelectedStyle] = useState("all")
-  const [priceRange, setPriceRange] = useState([0, 200000])
+  const [priceRange, setPriceRange] = useState([0, 500000])
   const [sortBy, setSortBy] = useState("relevance")
   const [showFilters, setShowFilters] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
   const [selectedRetailer, setSelectedRetailer] = useState("all")
-  const [compareList, setCompareList] = useState<number[]>([])
+  const [compareList, setCompareList] = useState<string[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [realTimeFeatures, setRealTimeFeatures] = useState<any>(null)
 
-  // Fetch products from backend
-  const fetchProducts = async (pageNum: number = 1) => {
+  // Fetch products - now using only mock data since backend is disabled
+  const fetchProducts = async (pageNum: number = 1, loadMore: boolean = false) => {
     try {
       setLoading(true)
       setError(null)
-      
-      // Build query parameters
-      const params = new URLSearchParams({
-        query: searchQuery,
-        page: pageNum.toString(),
-        per_page: "30"
+
+      // Simulate network delay
+      await new Promise(resolve => setTimeout(resolve, 500))
+
+      // Filter mock products based on search and filters
+      let filteredMockProducts = mockProducts.filter((product) => {
+        const matchesSearch =
+          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          product.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+
+        const matchesCategory =
+          selectedCategory === "all" || product.category.toLowerCase() === selectedCategory.toLowerCase()
+        const matchesStyle = selectedStyle === "all" || product.style.toLowerCase() === selectedStyle.toLowerCase()
+        const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1]
+        const matchesRetailer = selectedRetailer === "all" || product.retailer.toLowerCase().includes(selectedRetailer.toLowerCase())
+
+        const matchesTab =
+          activeTab === "all" ||
+          (activeTab === "sale" && product.discount) ||
+          (activeTab === "wishlist" && product.isWishlisted) ||
+          (activeTab === "in-stock" && product.inStock)
+
+        return matchesSearch && matchesCategory && matchesStyle && matchesPrice && matchesTab && matchesRetailer
       })
+
+      // Apply pagination
+      const startIndex = (pageNum - 1) * 100 // Using 100 as per_page like the original
+      const paginatedProducts = filteredMockProducts.slice(startIndex, startIndex + 100)
       
-      if (selectedCategory && selectedCategory !== "all") {
-        params.append("category", selectedCategory)
+      if (loadMore) {
+        setProducts(prev => [...prev, ...paginatedProducts])
+      } else {
+        setProducts(paginatedProducts)
       }
-      
-      if (selectedStyle && selectedStyle !== "all") {
-        params.append("style", selectedStyle)
-      }
-      
-      if (priceRange[0] > 0) {
-        params.append("price_min", priceRange[0].toString())
-      }
-      
-      if (priceRange[1] < 200000) {
-        params.append("price_max", priceRange[1].toString())
-      }
-      
-      if (selectedRetailer && selectedRetailer !== "all") {
-        params.append("retailer", selectedRetailer)
-      }
-      
-      const response = await fetch(`http://localhost:8001/india-shopping/products?${params.toString()}`)
-      
-      if (!response.ok) {
-        throw new Error("Failed to fetch products")
-      }
-      
-      const data = await response.json()
-      setProducts(data.products || [])
-      setTotalPages(data.total_pages || 1)
+
+      setTotalPages(Math.ceil(filteredMockProducts.length / 100))
       setPage(pageNum)
     } catch (err) {
-      setError("Failed to load products. Please try again later.")
-      console.error("Error fetching products:", err)
+      setError("Failed to load products. Using mock data.")
+      console.error("Error with mock products:", err)
+      setProducts(mockProducts)
     } finally {
       setLoading(false)
     }
   }
+
+  // Fetch real-time features data - disabled backend, using mock data
+  useEffect(() => {
+    // Simulate getting mock real-time features data
+    const mockRealTimeFeatures = {
+      price_comparisons: [
+        { product_name: "Modern Sectional Sofa", price: 12999, retailer: "Urban Ladder" },
+        { product_name: "Modern Sectional Sofa", price: 13499, retailer: "Pepperfry" },
+        { product_name: "Modern Sectional Sofa", price: 12799, retailer: "Nilkamal" }
+      ],
+      trending_products: [
+        { 
+          id: "1", 
+          name: "Modern Sectional Sofa", 
+          image: "/modern-sofa.png", 
+          retailer: "Urban Ladder", 
+          rating: 4.5, 
+          price: 12999,
+          trending_score: 12.5
+        },
+        { 
+          id: "2", 
+          name: "Glass Coffee Table", 
+          image: "/modern-coffee-table.png", 
+          retailer: "Pepperfry", 
+          rating: 4.2, 
+          price: 3999,
+          trending_score: 8.2
+        },
+        { 
+          id: "3", 
+          name: "LED Study Table Lamp", 
+          image: "/modern-floor-lamp.png", 
+          retailer: "Nilkamal", 
+          rating: 4.0, 
+          price: 1999,
+          trending_score: 5.7
+        }
+      ],
+      inventory_updates: [
+        { product_id: "1", retailer: "Urban Ladder", stock_status: "in_stock", stock_quantity: 15 },
+        { product_id: "2", retailer: "Pepperfry", stock_status: "in_stock", stock_quantity: 8 },
+        { product_id: "3", retailer: "Nilkamal", stock_status: "in_stock", stock_quantity: 22 },
+        { product_id: "4", retailer: "Godrej Interio", stock_status: "in_stock", stock_quantity: 5 },
+        { product_id: "5", retailer: "Wood Street", stock_status: "in_stock", stock_quantity: 12 },
+        { product_id: "6", retailer: "Home Centre", stock_status: "limited", stock_quantity: 3 }
+      ]
+    }
+    setRealTimeFeatures(mockRealTimeFeatures)
+  }, [])
 
   // Fetch products when filters change
   useEffect(() => {
     fetchProducts(1)
   }, [searchQuery, selectedCategory, selectedStyle, priceRange, selectedRetailer])
 
-  // Fetch retailers on component mount
+  // Fetch retailers on component mount - using mock data since backend is disabled
   useEffect(() => {
-    const fetchRetailers = async () => {
-      try {
-        const response = await fetch("http://localhost:8001/india-shopping/retailers")
-        if (response.ok) {
-          const data = await response.json()
-          // Retailers are now available in the backend
-        }
-      } catch (err) {
-        console.error("Error fetching retailers:", err)
-      }
-    }
-    
-    fetchRetailers()
+    // Retailers are available in the mock data, no need for additional action
+    // This useEffect is kept for potential future use if backend is re-enabled
   }, [])
 
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = useMemo(() => products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -303,9 +381,9 @@ export default function SmartShopping() {
       (activeTab === "in-stock" && product.inStock)
 
     return matchesSearch && matchesCategory && matchesStyle && matchesPrice && matchesTab && matchesRetailer
-  })
+  }), [products, searchQuery, selectedCategory, selectedStyle, priceRange, activeTab, selectedRetailer])
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
+  const sortedProducts = useMemo(() => [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
       case "price-low":
         return a.price - b.price
@@ -315,24 +393,28 @@ export default function SmartShopping() {
         return b.rating - a.rating
       case "reviews":
         return b.reviews - a.reviews
+      case "trending":
+        return (b.trendingScore || 0) - (a.trendingScore || 0)
+      case "personalized":
+        return (b.personalizationScore || 0) - (a.personalizationScore || 0)
       default:
         return 0
     }
-  })
+  }), [filteredProducts, sortBy])
 
- const toggleWishlist = (productId: number) => {
+  const toggleWishlist = (productId: string) => {
     setProducts((prev) =>
       prev.map((product) => (product.id === productId ? { ...product, isWishlisted: !product.isWishlisted } : product)),
     )
   }
 
-  const toggleCompare = (productId: number) => {
+  const toggleCompare = (productId: string) => {
     setCompareList((prev) =>
       prev.includes(productId) ? prev.filter((id) => id !== productId) : prev.length < 3 ? [...prev, productId] : prev,
     )
   }
 
- return (
+  return (
     <div className="min-h-screen bg-background">
       <Navigation />
 
@@ -343,10 +425,10 @@ export default function SmartShopping() {
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <ShoppingBag className="h-6 w-6 text-primary" />
-                  <h1 className="text-3xl font-bold text-foreground">Smart Shopping</h1>
+                  <h1 className="text-3xl font-bold text-foreground">Architect & Interior Design Marketplace</h1>
                 </div>
                 <p className="text-lg text-muted-foreground">
-                  Find and compare furniture from multiple Indian retailers with AI-powered recommendations.
+                  Real-time shopping for architects and interior designers. Compare products from multiple Indian retailers with live updates.
                 </p>
               </div>
 
@@ -368,7 +450,7 @@ export default function SmartShopping() {
               <div className="relative flex-1 max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search furniture, brands, styles..."
+                  placeholder="Search furniture, materials, fixtures, tools..."
                   className="pl-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
@@ -386,9 +468,11 @@ export default function SmartShopping() {
                     <SelectItem value="price-high">Price: High to Low</SelectItem>
                     <SelectItem value="rating">Highest Rated</SelectItem>
                     <SelectItem value="reviews">Most Reviews</SelectItem>
+                    <SelectItem value="trending">Trending</SelectItem>
+                    <SelectItem value="personalized">Personalized</SelectItem>
                   </SelectContent>
                 </Select>
-                
+
                 <Button variant="outline" onClick={() => setShowFilters(!showFilters)} className="gap-2">
                   <Filter className="h-4 w-4" />
                   Filters
@@ -407,19 +491,23 @@ export default function SmartShopping() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem value="seating">Seating</SelectItem>
-                        <SelectItem value="tables">Tables</SelectItem>
-                        <SelectItem value="storage">Storage</SelectItem>
+                        <SelectItem value="furniture">Furniture</SelectItem>
                         <SelectItem value="lighting">Lighting</SelectItem>
-                        <SelectItem value="bedroom">Bedroom</SelectItem>
+                        <SelectItem value="materials">Materials</SelectItem>
+                        <SelectItem value="fixtures">Fixtures</SelectItem>
+                        <SelectItem value="architectural">Architectural</SelectItem>
                         <SelectItem value="kitchen">Kitchen</SelectItem>
+                        <SelectItem value="bathroom">Bathroom</SelectItem>
                         <SelectItem value="outdoor">Outdoor</SelectItem>
+                        <SelectItem value="decor">Home Decor</SelectItem>
+                        <SelectItem value="tools">Tools & Equipment</SelectItem>
+                        <SelectItem value="sustainability">Sustainable Products</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-foreground mb-2 block">Style</label>
+                    <label className="text-sm font-medium text-foreground mb-2 block">Design Style</label>
                     <Select value={selectedStyle} onValueChange={setSelectedStyle}>
                       <SelectTrigger>
                         <SelectValue />
@@ -432,6 +520,9 @@ export default function SmartShopping() {
                         <SelectItem value="traditional">Traditional</SelectItem>
                         <SelectItem value="indian">Indian Traditional</SelectItem>
                         <SelectItem value="contemporary">Contemporary</SelectItem>
+                        <SelectItem value="minimalist">Minimalist</SelectItem>
+                        <SelectItem value="luxury">Luxury</SelectItem>
+                        <SelectItem value="vastu-compliant">Vastu Compliant</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -451,6 +542,17 @@ export default function SmartShopping() {
                         <SelectItem value="wood-street">Wood Street</SelectItem>
                         <SelectItem value="home-centre">Home Centre</SelectItem>
                         <SelectItem value="spaces">Spaces</SelectItem>
+                        <SelectItem value="architectural-digest">Architectural Digest Store</SelectItem>
+                        <SelectItem value="dwr">Design Within Reach</SelectItem>
+                        <SelectItem value="cortazzi">Cortazzi</SelectItem>
+                        <SelectItem value="durian">Durian</SelectItem>
+                        <SelectItem value="amazon-india">Amazon India</SelectItem>
+                        <SelectItem value="flipkart">Flipkart</SelectItem>
+                        <SelectItem value="tata-cliq">Tata CLiQ</SelectItem>
+                        <SelectItem value="myntra">Myntra</SelectItem>
+                        <SelectItem value="ajio">Ajio</SelectItem>
+                        <SelectItem value="paytm-mall">Paytm Mall</SelectItem>
+                        <SelectItem value="snapdeal">Snapdeal</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -463,7 +565,7 @@ export default function SmartShopping() {
                       value={priceRange}
                       onValueChange={setPriceRange}
                       min={0}
-                      max={200000}  // Up to ₹2,00,000
+                      max={500000}  // Up to ₹5,00,000 for high-end architect products
                       step={1000}
                       className="mt-2"
                     />
@@ -477,7 +579,7 @@ export default function SmartShopping() {
                       setSelectedCategory("all")
                       setSelectedStyle("all")
                       setSelectedRetailer("all")
-                      setPriceRange([0, 200000])
+                      setPriceRange([0, 500000])
                       setSearchQuery("")
                     }}
                   >
@@ -488,8 +590,12 @@ export default function SmartShopping() {
             )}
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full max-w-2xl grid-cols-4">
+              <TabsList className="grid w-full max-w-2xl grid-cols-5">
                 <TabsTrigger value="all">All Products</TabsTrigger>
+                <TabsTrigger value="trending" className="gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Trending
+                </TabsTrigger>
                 <TabsTrigger value="sale" className="gap-2">
                   <Zap className="h-4 w-4" />
                   On Sale
@@ -503,9 +609,28 @@ export default function SmartShopping() {
             </Tabs>
           </div>
 
+          {/* Real-time updates indicator */}
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>Live updates: {products.length} products from {new Set(products.map(p => p.retailer)).size} retailers</span>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Last updated: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {sortedProducts.map((product) => (
-              <Card key={product.id} className="group overflow-hidden hover:shadow-lg transition-all duration-300">
+              <Card key={product.id} className="group overflow-hidden hover:shadow-lg transition-all duration-300 relative">
+                <div className="absolute top-2 right-2">
+                  {product.trendingScore && product.trendingScore > 7 && (
+                    <Badge variant="default" className="bg-orange-500 text-white">
+                      Trending
+                    </Badge>
+                  )}
+                </div>
+
                 <div className="relative">
                   <img
                     src={product.image || "/placeholder.svg"}
@@ -530,15 +655,19 @@ export default function SmartShopping() {
                         Bestseller
                       </Badge>
                     )}
+                    {product.certifiedEcoFriendly && (
+                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
+                        Eco-Friendly
+                      </Badge>
+                    )}
                   </div>
 
                   <div className="absolute top-3 right-3 flex flex-col gap-2">
                     <Button
                       size="sm"
                       variant="secondary"
-                      className={`h-8 w-8 p-0 bg-white/90 hover:bg-white transition-colors ${
-                        product.isWishlisted ? "text-red-500" : ""
-                      }`}
+                      className={`h-8 w-8 p-0 bg-white/90 hover:bg-white transition-colors ${product.isWishlisted ? "text-red-500" : ""
+                        }`}
                       onClick={() => toggleWishlist(product.id)}
                     >
                       <Heart className={`h-4 w-4 ${product.isWishlisted ? "fill-current" : ""}`} />
@@ -547,9 +676,8 @@ export default function SmartShopping() {
                     <Button
                       size="sm"
                       variant="secondary"
-                      className={`h-8 w-8 p-0 bg-white/90 hover:bg-white transition-colors ${
-                        compareList.includes(product.id) ? "text-primary" : ""
-                      }`}
+                      className={`h-8 w-8 p-0 bg-white/90 hover:bg-white transition-colors ${compareList.includes(product.id) ? "text-primary" : ""
+                        }`}
                       onClick={() => toggleCompare(product.id)}
                       disabled={!compareList.includes(product.id) && compareList.length >= 3}
                     >
@@ -568,7 +696,7 @@ export default function SmartShopping() {
 
                   <div className="flex items-center gap-2 mb-3">
                     <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                      <Star className="h-3 w-3 fill-yellow-40 text-yellow-400" />
                       <span className="text-xs font-medium">{product.rating}</span>
                     </div>
                     <span className="text-xs text-muted-foreground">({product.reviews})</span>
@@ -589,53 +717,28 @@ export default function SmartShopping() {
                     </Badge>
                   </div>
 
-                  {/* Indian-specific features */}
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {product.emiAvailable && (
-                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
-                        EMI Available
-                      </Badge>
-                    )}
-                    {product.deliveryTime && (
-                      <Badge variant="secondary" className="text-xs">
-                        {product.deliveryTime}
-                      </Badge>
-                    )}
-                  </div>
 
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {product.tags.slice(0, 2).map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag.replace("-", " ")}
-                      </Badge>
-                    ))}
-                  </div>
 
-                  {/* Warranty and return policy */}
-                  {product.warranty && (
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {product.warranty}
-                    </div>
-                  )}
-                  
-                  {/* EMI Calculator for products that support EMI */}
-                  {product.emiAvailable && (
-                    <div className="mt-2 pt-2 border-t border-gray-200">
-                      <EMICalculator price={product.price} />
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-3">
                     <Button size="sm" className="flex-1" disabled={!product.inStock}>
                       <ShoppingCart className="h-4 w-4 mr-1" />
                       {product.inStock ? "Add to Cart" : "Notify Me"}
                     </Button>
-                    <Button size="sm" variant="outline">
-                      <Eye className="h-4 w-4" />
+                    <Button size="sm" variant="outline" onClick={() => {
+                      // Open AR preview modal
+                      console.log("Opening AR preview for", product.id);
+                    }}>
+                      <Move3D className="h-4 w-4" />
                     </Button>
                     <Button size="sm" variant="outline">
                       <ExternalLink className="h-4 w-4" />
                     </Button>
+                  </div>
+
+                  {/* Real-time inventory indicator */}
+                  <div className="mt-2 text-xs text-muted-foreground flex justify-between">
+                    <span>Stock: {product.stockQuantity || 'N/A'}</span>
+                    <span>{product.availabilityStatus || 'In Stock'}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -647,26 +750,162 @@ export default function SmartShopping() {
               Showing {sortedProducts.length} of {products.length} products
               {activeTab !== "all" && ` in ${activeTab}`}
             </p>
-            <Button variant="outline" size="lg">
+            <Button variant="outline" size="lg" onClick={() => fetchProducts(page + 1, true)} disabled={loading || page >= totalPages}>
               Load More Products
             </Button>
           </div>
 
-          <div className="mt-16 border-t border-border pt-12">
-            <h2 className="text-2xl font-bold text-foreground mb-6">Top Indian Furniture Retailers</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {["Urban Ladder", "Pepperfry", "Nilkamal", "Godrej Interio", "Wood Street", "Home Centre"].map((retailer) => (
-                <Card key={retailer} className="p-4 text-center hover:shadow-md transition-shadow cursor-pointer">
-                  <div className="h-12 bg-muted rounded-lg flex items-center justify-center mb-2">
-                    <span className="font-semibold text-sm">{retailer}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Shop Collection</p>
-                </Card>
-              ))}
+          {/* Real-time features section */}
+          {realTimeFeatures && (
+            <div className="mt-16 border-t border-border pt-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Price comparison section */}
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground mb-6">Real-time Price Comparison</h2>
+                  <Card className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{realTimeFeatures.price_comparisons[0].product_name}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-muted-foreground">Lowest: ₹{realTimeFeatures.price_comparisons[0].price.toLocaleString('en-IN')}</span>
+                          <Badge variant="secondary">{realTimeFeatures.price_comparisons[0].retailer}</Badge>
+                        </div>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full"
+                          style={{ width: `${(realTimeFeatures.price_comparisons[0].price / realTimeFeatures.price_comparisons[1].price) * 100}%` }}
+                        ></div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        {realTimeFeatures.price_comparisons.slice(0, 3).map((comparison: any) => (
+                          <div key={comparison.retailer} className="text-center">
+                            <div className="font-medium">₹{comparison.price.toLocaleString('en-IN')}</div>
+                            <div className="text-muted-foreground">{comparison.retailer}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+                {/* Trending products section */}
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground mb-6">Trending in Architecture & Design</h2>
+                  <Card className="p-4">
+                    <div className="space-y-4">
+                      {realTimeFeatures.trending_products.map((product: any) => (
+                        <div key={product.id} className="flex items-center gap-3">
+                          <div className="bg-muted rounded-lg w-16 h-16 flex-shrink-0">
+                            <img src={product.image} alt={product.name} className="w-full h-full object-cover rounded-lg" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium">{product.name}</div>
+                            <div className="text-xs text-muted-foreground">From {product.retailer}</div>
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className="flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-yellow-40 text-yellow-400" />
+                                <span className="text-xs">{product.rating}</span>
+                              </div>
+                              <span className="text-xs">₹{product.price.toLocaleString('en-IN')}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs text-green-500">+{product.trending_score.toFixed(1)}%</div>
+                            <div className="text-xs">vs last week</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Live inventory updates */}
+              <div className="mt-8">
+                <h2 className="text-2xl font-bold text-foreground mb-6">Live Inventory Updates</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                  {realTimeFeatures.inventory_updates.slice(0, 6).map((update: any) => (
+                    <Card key={update.product_id} className="p-3 text-center hover:shadow-md transition-shadow cursor-pointer">
+                      <div className="h-8 bg-muted rounded-lg flex items-center justify-center mb-1">
+                        <span className="text-xs font-semibold">{update.retailer.split(' ')[0]}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">{update.stock_status}</div>
+                      <div className="text-xs mt-1">
+                        <span className={`h-2 w-2 rounded-full inline-block mr-1 ${update.stock_status === 'in_stock' ? 'bg-green-500' : 'bg-red-500'}`}></span>
+                        <span>{update.stock_quantity} left</span>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Real-time updates section */}
+              <div className="mt-8">
+                <h2 className="text-2xl font-bold text-foreground mb-6">Real-time Updates</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Price alerts */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Bell className="h-5 w-5 text-primary" />
+                        <h3 className="font-semibold">Price Alerts</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Get notified when prices drop below your target
+                      </p>
+                      <Button size="sm" className="w-full">
+                        Set Price Alert
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* Verified reviews */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <CheckCircle className="h-5 w-5 text-primary" />
+                        <h3 className="font-semibold">Verified Reviews</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Read authentic reviews from verified purchasers
+                      </p>
+                      <Button size="sm" className="w-full">
+                        View Reviews
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  {/* AR Preview */}
+                  <Card>
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <Move3D className="h-5 w-5 text-primary" />
+                        <h3 className="font-semibold">AR Preview</h3>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Visualize products in your space using augmented reality
+                      </p>
+                      <Button size="sm" className="w-full">
+                        Try AR Preview
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
+
+      {/* Live Chat Component */}
+      <LiveChat />
+
+      {/* Order Tracker Component */}
+      <OrderTracker />
+
+      {/* Real-time Updates Component */}
+      <RealTimeUpdates />
     </div>
   )
 }

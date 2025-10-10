@@ -43,6 +43,8 @@ export default function DesignFeed() {
   const [error, setError] = useState<string | null>(null);
   const [scrolled, setScrolled] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [newContentAvailable, setNewContentAvailable] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [roomType, setRoomType] = useState<string>("");
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
@@ -74,6 +76,8 @@ export default function DesignFeed() {
     }
     return a;
   }, []);
+
+
 
   // Debounce search query to reduce API calls
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -135,12 +139,17 @@ export default function DesignFeed() {
       // Build query parameters
       const params = new URLSearchParams();
       params.append('page', pageNumber.toString());
-      params.append('per_page', '30'); // Request 30 photos for better infinite scroll
+      params.append('per_page', '60'); // Request 30 photos for better infinite scroll
 
-      // Add query if it exists
+      // Enhance query with design-related terms, but keep original intent
+      let searchQuery = query || "interior design architecture";
       if (query) {
-        params.append('query', query);
+        // Enhance user query with design-related terms but keep original intent
+        searchQuery = `${query} interior design architecture`;
       }
+
+      // Add the enhanced query
+      params.append('query', searchQuery);
 
       // Add style if it's not 'all'
       if (selectedStyle !== 'all') {
@@ -159,9 +168,11 @@ export default function DesignFeed() {
       // Set per_page to 30 for better infinite scroll
       params.set('per_page', '30');
       console.log('Fetching with params:', Object.fromEntries(params.entries())); // Debug log
+      console.log('Making request to:', `http://localhost:8001/${endpoint}?${params.toString()}`);
       const res = await fetchWithRetry(`http://localhost:8001/${endpoint}?${params.toString()}`);
 
       if (!res.ok) {
+        console.error('API request failed:', res.status, await res.text());
         if (res.status === 429) {
           throw new Error("Rate limit exceeded. Please wait a moment before trying again.");
         } else if (res.status >= 500) {
@@ -172,41 +183,73 @@ export default function DesignFeed() {
       }
 
       const data = await res.json();
-      console.log('Received data:', data); // Debug log
-      if (!Array.isArray(data)) {
-        console.error('Invalid response format:', data);
+      console.log('API response:', data);
+      
+      // Handle both array and object response formats
+      let results: DesignPost[] = [];
+      let hasMoreResults = true;
+      
+      if (Array.isArray(data)) {
+        // Legacy format: plain array
+        results = data;
+        hasMoreResults = data.length === 30;
+      } else if (data && typeof data === 'object' && Array.isArray(data.results)) {
+        // New format: object with results array
+        results = data.results;
+        hasMoreResults = data.has_more ?? (results.length === 30);
+      } else {
         throw new Error("Invalid response format");
       }
 
-      if (data.length === 0) {
+      if (results.length === 0) {
         console.log('No data returned from API');
         setHasMore(false);
       } else {
-        // Deduplicate images
-        const filtered = data.filter((item: DesignPost) => {
-          // Create a more robust image key
-          const imageKey = `${item.id}-${item.image || item.src?.original || item.url}`;
+        // Deduplicate images more effectively
+        const filtered = results.filter((item: DesignPost) => {
+          // Create a more robust and unique image key based on ID primarily
+          const imageKey = item.id ? `id_${item.id}` : 
+                          item.image ? `img_${item.image}` : 
+                          item.url ? `url_${item.url}` : 
+                          `src_${item.src?.original || item.src?.large || item.src?.medium || 'unknown'}`;
+          
           if (seenImageIds.has(imageKey)) return false;
           seenImageIds.add(imageKey);
           return true;
         });
 
-        console.log(`Filtered ${filtered.length} unique images from ${data.length} total`);
+        console.log(`Filtered ${filtered.length} unique images from ${results.length} total`);
 
         if (filtered.length === 0) {
-          console.log('All images were duplicates, trying to fetch more...');
-          setHasMore(false);
+          console.log('All images were duplicates, fetching next page automatically');
+          // If all images were duplicates, automatically try the next page
+          if (pageNumber < 10) { // Prevent infinite loops
+            setTimeout(() => {
+              setPage(prevPage => prevPage + 1);
+            }, 100);
+          }
         } else {
           const randomized = shuffle(filtered);
           setDesignPosts((prevPosts) => pageNumber === 1 ? randomized : [...prevPosts, ...randomized]);
-          const newSeenImageIds = new Set([...seenImageIds, ...filtered.map(item => `${item.id}-${item.image || item.src?.original || item.url}`)]);
+          
+          // Update seen images with better keys
+          const newSeenImageIds = new Set(seenImageIds);
+          filtered.forEach(item => {
+            const imageKey = item.id ? `id_${item.id}` : 
+                            item.image ? `img_${item.image}` : 
+                            item.url ? `url_${item.url}` : 
+                            `src_${item.src?.original || item.src?.large || item.src?.medium || 'unknown'}`;
+            newSeenImageIds.add(imageKey);
+          });
           setSeenImageIds(newSeenImageIds);
+          
           // Save seen image IDs to localStorage
           try {
             localStorage.setItem('designFeedSeenImages', JSON.stringify(Array.from(newSeenImageIds)));
           } catch (e) {
             console.warn('Failed to save seen image IDs to localStorage:', e);
           }
+          
           // Cache the data for page 1
           if (pageNumber === 1) {
             cache.current.set(cacheKey, {
@@ -215,12 +258,21 @@ export default function DesignFeed() {
             });
             cachePage.current.set(cacheKey, 1);
           }
+          
+          // With unlimited design service, always set hasMore to true for infinite scrolling
+          setHasMore(true);
+          
+          // Log successful fetch
+          console.log(`Successfully fetched ${filtered.length} new designs for page ${pageNumber}`);
         }
       }
     } catch (error) {
       console.error("Failed to fetch designs:", error);
       setError(error instanceof Error ? error.message : "An unknown error occurred");
-      setHasMore(false);
+      setHasMore(false); // Stop loading more if there's an error
+
+      // Clear error after a short delay
+      setTimeout(() => setError(null), 3000);
 
       // If this is the first page and we got an error, try to clear cache and retry
       if (pageNumber === 1) {
@@ -237,9 +289,15 @@ export default function DesignFeed() {
     }
   }, [activeTab, selectedStyle, roomType, layoutType, paletteMode, lighting, selectedColors, selectedMaterials]);
 
-  // Handle search with debounce
+  // Handle search with debounce - Architecture/Interior Design focused
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
+    // Enhance query to be design-focused if needed
+    let enhancedQuery = query.trim();
+    
+    // If query doesn't contain design-related terms, keep it as is
+    // The backend will handle enhancement
+    
+    setSearchQuery(enhancedQuery);
     // Reset pagination
     setPage(1);
     setHasMore(true);
@@ -261,16 +319,30 @@ export default function DesignFeed() {
       clearTimeout(debounceTimeout.current);
     }
     
-    // Set new timeout
+    // Set new timeout (reduced to 150ms for faster response)
     debounceTimeout.current = setTimeout(() => {
-      fetchDesigns(1, query);
-    }, 300); // 300ms debounce
+      console.log(`🔍 Searching for: "${enhancedQuery}"`);
+      fetchDesigns(1, enhancedQuery);
+    }, 150); // Reduced debounce time for faster response
   };
 
   // Fetch on style/filters change
   useEffect(() => {
     setPage(1);
     setHasMore(true);
+    setDesignPosts([]); // Clear existing posts
+    const newSeenImageIds = new Set<string>();
+    setSeenImageIds(newSeenImageIds);
+    // Clear seen images from localStorage
+    try {
+      localStorage.setItem('designFeedSeenImages', JSON.stringify(Array.from(newSeenImageIds)));
+    } catch (e) {
+      console.warn('Failed to clear seen image IDs from localStorage:', e);
+    }
+    // Clear cache when filters change
+    cache.current.clear();
+    cachePage.current.clear();
+    // Always ensure design-related content is fetched
     fetchDesigns(1, searchQuery);
   }, [selectedStyle, searchQuery, roomType, layoutType, paletteMode, lighting, selectedColors, selectedMaterials, fetchDesigns]);
 
@@ -287,14 +359,16 @@ export default function DesignFeed() {
     if (observer.current) observer.current.disconnect();
     observer.current = new IntersectionObserver(
       entries => {
-        if (entries[0].isIntersecting && hasMore) {
+        if (entries[0].isIntersecting) {
+          // Always load more content when reaching the end - unlimited scrolling
+          console.log('Reached end of current content, loading more...');
           setPage(prevPage => prevPage + 1);
         }
       },
-      { root: null, rootMargin: '1000px 0px', threshold: 0.1 }
+      { root: null, rootMargin: '2000px 0px', threshold: 0.1 } // Increased margin for earlier loading
     );
     if (node) observer.current.observe(node);
-  }, [loading, hasMore]);
+  }, [loading]);
 
   // Animate floating bar on scroll
   useEffect(() => {
@@ -313,34 +387,73 @@ export default function DesignFeed() {
     };
   }, []);
 
-  // Periodic lightweight refresh: if more content is available, auto-advance page occasionally
+  // Real-time updates: periodically check for new content (less frequent for unlimited scrolling)
   useEffect(() => {
-    const id = setInterval(() => {
-      if (!loading && hasMore) {
-        setPage(prev => prev + 1);
+    const id = setInterval(async () => {
+      if (!loading && designPosts.length < 50) { // Only add new content if we don't have too many posts
+        try {
+          // Fetch a small amount of new content
+          const newContent = await fetchWithRetry(
+            `http://localhost:8001/feed?page=1&per_page=5&query=${encodeURIComponent(searchQuery)}&style=${selectedStyle}${roomType ? `&room_type=${roomType}` : ''}`,
+            { headers: { "Content-Type": "application/json" } }
+          );
+          
+          if (!newContent.ok) throw new Error(`HTTP error! status: ${newContent.status}`);
+          const newData = await newContent.json();
+          
+          let newResults: DesignPost[] = [];
+          if (Array.isArray(newData)) {
+            newResults = newData;
+          } else if (newData && typeof newData === 'object' && Array.isArray(newData.results)) {
+            newResults = newData.results;
+          }
+          
+          if (newResults.length > 0) {
+            // Filter out images that are already seen
+            const newUniqueImages = newResults.filter((item: DesignPost) => {
+              const imageKey = `${item.id}-${item.image || item.src?.original || item.url}`;
+              return !seenImageIds.has(imageKey);
+            });
+            
+            if (newUniqueImages.length > 0) {
+              // Add new unique images to the end of the feed to maintain scroll position
+              setDesignPosts(prev => [...prev, ...newUniqueImages]);
+              
+              // Update seen images
+              const newSeenImageIdsUpdated = new Set(seenImageIds);
+              newUniqueImages.forEach(item => {
+                const imageKey = `${item.id}-${item.image || item.src?.original || item.url}`;
+                newSeenImageIdsUpdated.add(imageKey);
+              });
+              setSeenImageIds(newSeenImageIdsUpdated);
+              
+              try {
+                localStorage.setItem('designFeedSeenImages', JSON.stringify(Array.from(newSeenImageIdsUpdated)));
+              } catch (e) {
+                console.warn('Failed to save seen image IDs to localStorage:', e);
+              }
+              
+              console.log(`Added ${newUniqueImages.length} new images to feed via real-time update`);
+            }
+          }
+        } catch (e) {
+          console.error("Error fetching new content for real-time updates:", e);
+        }
       }
-    }, 30000); // every 30s
+    }, 30000); // Check every 30 seconds (less frequent)
+    
     return () => clearInterval(id);
-  }, [loading, hasMore]);
+  }, [loading, searchQuery, selectedStyle, roomType, designPosts.length, seenImageIds, fetchWithRetry]);
 
-  // Periodic full refresh to get new content (every 5 minutes)
+  // Periodic full refresh to get completely fresh content (every 10 minutes - less frequent for unlimited scrolling)
   useEffect(() => {
     const id = setInterval(() => {
-      // Clear cache and seen images to get fresh content
+      console.log("Performing periodic refresh of design feed");
+      // Only clear cache, keep seen images to prevent duplicates
       cache.current.clear();
       cachePage.current.clear();
-      const newSeenImageIds = new Set<string>();
-      setSeenImageIds(newSeenImageIds);
-      try {
-        localStorage.setItem('designFeedSeenImages', JSON.stringify(Array.from(newSeenImageIds)));
-      } catch (e) {
-        console.warn('Failed to clear seen image IDs from localStorage:', e);
-      }
-      // Reset to first page
-      setPage(1);
-      setHasMore(true);
-      setDesignPosts([]);
-    }, 5 * 60 * 1000); // every 5 minutes
+      // Don't reset page or posts - just refresh cache for new content
+    }, 10 * 60 * 1000); // every 10 minutes (less frequent)
     return () => clearInterval(id);
   }, []);
 
@@ -351,9 +464,9 @@ export default function DesignFeed() {
         const stored = localStorage.getItem('designFeedSeenImages');
         if (stored) {
           const seenImages = JSON.parse(stored);
-          // Keep only the last 1000 seen images
-          if (seenImages.length > 1000) {
-            const trimmed = seenImages.slice(-1000);
+          // Keep only the last 500 seen images to optimize performance
+          if (seenImages.length > 500) {
+            const trimmed = seenImages.slice(-500);
             localStorage.setItem('designFeedSeenImages', JSON.stringify(trimmed));
             // Update the state as well
             setSeenImageIds(new Set(trimmed));
@@ -362,7 +475,7 @@ export default function DesignFeed() {
       } catch (e) {
         console.warn('Failed to cleanup seen images from localStorage:', e);
       }
-    }, 10 * 60 * 1000); // every 10 minutes
+    }, 5 * 60 * 1000); // every 5 minutes (more frequent cleanup)
     return () => clearInterval(cleanup);
   }, []);
 
@@ -650,6 +763,14 @@ export default function DesignFeed() {
       {!hasMore && designPosts.length > 0 && (
         <div className="text-center py-4 text-gray-500">No more designs to load.</div>
       )}
+      {newContentAvailable && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-center">
+          <p className="text-blue-700 font-medium">
+            🎉 {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - New design inspirations added to your feed!
+          </p>
+        </div>
+      )}
+      
       {!initialLoading && !loading && designPosts.length === 0 && !error && (
         <div className="text-center py-8 space-y-4">
           <div className="text-gray-500">No designs found. Try a different search term.</div>

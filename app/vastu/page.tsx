@@ -76,10 +76,12 @@ const VastuPage = () => {
   const [roomType, setRoomType] = useState('');
   const [direction, setDirection] = useState('');
   const [analysis, setAnalysis] = useState<RoomAnalysis | null>(null);
+  const [detailedAnalysis, setDetailedAnalysis] = useState<any | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [directions, setDirections] = useState<Direction[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRemedies, setShowRemedies] = useState(false);
 
   // Load data on component mount
   useEffect(() => {
@@ -90,20 +92,51 @@ const VastuPage = () => {
   const fetchRoomTypes = async () => {
     try {
       const response = await fetch('http://localhost:8001/vastu/room-types');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
-      setRoomTypes(data.room_types);
+      setRoomTypes(data.room_types || []);
     } catch (error) {
       console.error('Error fetching room types:', error);
+      // Set default room types as fallback
+      setRoomTypes([
+        {"value": "main_entrance", "label": "Main Entrance"},
+        {"value": "living_room", "label": "Living Room"},
+        {"value": "master_bedroom", "label": "Master Bedroom"},
+        {"value": "kitchen", "label": "Kitchen"},
+        {"value": "bathroom", "label": "Bathroom"},
+        {"value": "study_room", "label": "Study Room"},
+        {"value": "dining_room", "label": "Dining Room"},
+        {"value": "guest_room", "label": "Guest Room"},
+        {"value": "pooja_room", "label": "Pooja Room"},
+        {"value": "staircase", "label": "Staircase"}
+      ]);
     }
   };
 
   const fetchDirections = async () => {
     try {
       const response = await fetch('http://localhost:8001/vastu/directions');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
-      setDirections(data.directions);
+      setDirections(data.directions || []);
     } catch (error) {
       console.error('Error fetching directions:', error);
+      // Set default directions as fallback
+      setDirections([
+        {"value": "north", "label": "North"},
+        {"value": "north-east", "label": "North-East"},
+        {"value": "east", "label": "East"},
+        {"value": "south-east", "label": "South-East"},
+        {"value": "south", "label": "South"},
+        {"value": "south-west", "label": "South-West"},
+        {"value": "west", "label": "West"},
+        {"value": "north-west", "label": "North-West"},
+        {"value": "center", "label": "Center"}
+      ]);
     }
   };
 
@@ -112,8 +145,10 @@ const VastuPage = () => {
     
     setLoading(true);
     setError(null);
+    setShowRemedies(false);
     
     try {
+      // Get basic analysis
       const response = await fetch('http://localhost:8001/vastu/analyze-room', {
         method: 'POST',
         headers: {
@@ -131,6 +166,23 @@ const VastuPage = () => {
       
       const data = await response.json();
       setAnalysis(data);
+      
+      // Get detailed analysis with remedies
+      try {
+        const detailedResponse = await fetch(
+          `http://localhost:8001/vastu/analyze-room-detailed?room_type=${roomType}&direction=${direction}`,
+          { method: 'POST' }
+        );
+        
+        if (detailedResponse.ok) {
+          const detailedData = await detailedResponse.json();
+          setDetailedAnalysis(detailedData);
+          setShowRemedies(detailedData.remedies !== null);
+        }
+      } catch (detailError) {
+        console.log('Detailed analysis not available:', detailError);
+        // Continue with basic analysis
+      }
     } catch (error) {
       setError('Failed to analyze room. Please try again.');
       console.error('Error analyzing room:', error);
@@ -331,11 +383,13 @@ const VastuPage = () => {
                       <SelectValue placeholder="Select room type" />
                     </SelectTrigger>
                     <SelectContent>
-                      {roomTypes.map((room) => (
+                      {roomTypes && roomTypes.length > 0 ? roomTypes.map((room) => (
                         <SelectItem key={room.value} value={room.value}>
                           {room.label}
                         </SelectItem>
-                      ))}
+                      )) : (
+                        <SelectItem value="loading" disabled>Loading room types...</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -346,11 +400,13 @@ const VastuPage = () => {
                       <SelectValue placeholder="Select direction" />
                     </SelectTrigger>
                     <SelectContent>
-                      {directions.map((dir) => (
+                      {directions && directions.length > 0 ? directions.map((dir) => (
                         <SelectItem key={dir.value} value={dir.value}>
                           {dir.label}
                         </SelectItem>
-                      ))}
+                      )) : (
+                        <SelectItem value="loading" disabled>Loading directions...</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
@@ -396,7 +452,7 @@ const VastuPage = () => {
                       </div>
                     </div>
                     
-                    {analysis.recommendations.length > 0 && (
+                    {analysis.recommendations && analysis.recommendations.length > 0 && (
                       <div className="mb-4">
                         <h4 className="font-medium mb-2">Recommendations:</h4>
                         <ul className="space-y-1">
@@ -410,7 +466,7 @@ const VastuPage = () => {
                       </div>
                     )}
                     
-                    {analysis.benefits.length > 0 && (
+                    {analysis.benefits && analysis.benefits.length > 0 && (
                       <div className="mb-4">
                         <h4 className="font-medium mb-2">Benefits:</h4>
                         <ul className="space-y-1">

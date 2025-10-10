@@ -123,7 +123,7 @@ class PicsumService:
             },
             "alt": f"Photo {pid}",
             "image": regular,
-            "title": f"Design Image {pid}",
+            "title": f"Photo {pid}",
             "author": "",
             "likes": 0,
             "saves": 0,

@@ -94,6 +94,29 @@ async def cache_images(provider: str, query: str, page: int, data: List[Dict[str
         print(f"Error caching images: {e}")
         return False
 
+async def cache_images_batch(caches: List[Dict[str, any]]) -> bool:
+    """Cache multiple image sets in the database at once"""
+    try:
+        import json
+        async with aiosqlite.connect(DATABASE_PATH) as db:
+            for cache in caches:
+                await db.execute("""
+                    INSERT OR REPLACE INTO image_cache
+                    (provider, query, page, data, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (
+                    cache['provider'], 
+                    cache['query'], 
+                    cache['page'], 
+                    json.dumps(cache['data']), 
+                    datetime.now()
+                ))
+            await db.commit()
+        return True
+    except Exception as e:
+        print(f"Error caching images batch: {e}")
+        return False
+
 async def get_cached_images(provider: str, query: str, page: int, max_age_hours: int = 24) -> List[Dict[str, Any]] | None:
     """Retrieve cached images from the database"""
     try:
@@ -137,6 +160,33 @@ async def get_cached_images_multi_provider(query: str, page: int, max_age_hours:
     except Exception as e:
         print(f"Error retrieving cached images: {e}")
         return None
+
+async def get_cached_images_multi_provider_extended(query: str, page_range: tuple = (1, 5), max_age_hours: int = 24) -> Dict[int, List[Dict[str, Any]]]:
+    """Retrieve cached images for a range of pages to support infinite scrolling"""
+    try:
+        import json
+        results = {}
+        async with aiosqlite.connect(DATABASE_PATH) as db:
+            # Calculate the expiration time
+            expiration_time = datetime.now() - timedelta(hours=max_age_hours)
+            
+            # Get all pages within the requested range
+            for page in range(page_range[0], page_range[1] + 1):
+                async with db.execute("""
+                    SELECT data FROM image_cache
+                    WHERE query = ? AND page = ? AND created_at > ?
+                    ORDER BY created_at DESC
+                    LIMIT 1
+                """, (query, page, expiration_time)) as cursor:
+                    row = await cursor.fetchone()
+                    if row:
+                        results[page] = json.loads(row[0])
+                    else:
+                        results[page] = []
+        return results
+    except Exception as e:
+        print(f"Error retrieving cached images for multiple pages: {e}")
+        return {}
 
 async def cleanup_old_cache(max_age_hours: int = 168) -> bool:
     """Remove cache entries older than max_age_hours"""

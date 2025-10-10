@@ -56,7 +56,7 @@ export default function DesignPostCard({ post, viewMode, priority = false }: Des
   const [isSaved, setIsSaved] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  // Load counts from Supabase if available
+  // Load counts from local storage (in case Supabase is not available)
   useEffect(() => {
     let active = true;
     const loadCounts = async () => {
@@ -68,51 +68,64 @@ export default function DesignPostCard({ post, viewMode, priority = false }: Des
         if (localSaves[imageId]) setIsSaved(true);
       } catch {}
 
-      if (!supabase) return;
-      const { data, error } = await supabase
-        .from("design_interactions")
-        .select("likes,saves")
-        .eq("image_id", imageId)
-        .maybeSingle();
-      if (!active) return;
-      if (!error && data) {
-        setLikes(typeof data.likes === "number" ? data.likes : 0);
-        setSaves(typeof data.saves === "number" ? data.saves : 0);
+      // If Supabase is available, try to load from there too
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from("design_interactions")
+            .select("likes,saves")
+            .eq("image_id", imageId)
+            .maybeSingle();
+          if (!active) return;
+          if (!error && data) {
+            setLikes(typeof data.likes === "number" ? data.likes : 0);
+            setSaves(typeof data.saves === "number" ? data.saves : 0);
+          }
+        } catch (err) {
+          console.log("Supabase not available or error, using local storage counts");
+        }
       }
     };
     loadCounts();
     return () => {
       active = false;
     };
-  }, [imageId]);
+  }, [imageId, supabase]);
 
   const handleLike = async () => {
-    if (!supabase || pending) return;
+    if (pending) return; // Remove supabase check to allow functionality without authentication
+    
     setPending(true);
     const prev = likes;
     const newLikedState = !isLiked;
     setIsLiked(newLikedState);
-    setLikes(prev + (newLikedState ? 1 : -1)); // optimistic
+    setLikes(prev + (newLikedState ? 1 : -1)); // optimistic update
+    
     try {
-      const { data } = await supabase
-        .from("design_interactions")
-        .select("likes,saves")
-        .eq("image_id", imageId)
-        .maybeSingle();
-      const newLikes = (data?.likes ?? prev) + (newLikedState ? 1 : -1);
-      const currSaves = data?.saves ?? saves;
-      const { error } = await supabase
-        .from("design_interactions")
-        .upsert({ image_id: imageId, likes: newLikes, saves: currSaves }, { onConflict: "image_id" });
-      if (error) throw error;
-      setLikes(newLikes);
-      // Update local storage
+      // Try Supabase if available, otherwise use local storage only
+      if (supabase) {
+        const { data } = await supabase
+          .from("design_interactions")
+          .select("likes,saves")
+          .eq("image_id", imageId)
+          .maybeSingle();
+        const newLikes = (data?.likes ?? prev) + (newLikedState ? 1 : -1);
+        const currSaves = data?.saves ?? saves;
+        const { error } = await supabase
+          .from("design_interactions")
+          .upsert({ image_id: imageId, likes: newLikes, saves: currSaves }, { onConflict: "image_id" });
+        if (error) throw error;
+        setLikes(newLikes);
+      }
+      
+      // Update local storage regardless of Supabase availability
       const localLikes = JSON.parse(localStorage.getItem('user_likes') || '{}');
       if (newLikedState) localLikes[imageId] = true;
       else delete localLikes[imageId];
       localStorage.setItem('user_likes', JSON.stringify(localLikes));
     } catch (e) {
-      setLikes(prev); // revert
+      // Revert if Supabase failed
+      setLikes(prev);
       setIsLiked(!newLikedState);
     } finally {
       setPending(false);
@@ -120,32 +133,39 @@ export default function DesignPostCard({ post, viewMode, priority = false }: Des
   };
 
   const handleSave = async () => {
-    if (!supabase || pending) return;
+    if (pending) return; // Remove supabase check to allow functionality without authentication
+    
     setPending(true);
     const prev = saves;
     const newSavedState = !isSaved;
     setIsSaved(newSavedState);
     setSaves(prev + (newSavedState ? 1 : -1));
+    
     try {
-      const { data } = await supabase
-        .from("design_interactions")
-        .select("likes,saves")
-        .eq("image_id", imageId)
-        .single();
-      const currLikes = data?.likes ?? likes;
-      const newSaves = (data?.saves ?? prev) + (newSavedState ? 1 : -1);
-      const { error } = await supabase
-        .from("design_interactions")
-        .upsert({ image_id: imageId, likes: currLikes, saves: newSaves }, { onConflict: "image_id" });
-      if (error) throw error;
-      setSaves(newSaves);
-      // Update local storage
+      // Try Supabase if available, otherwise use local storage only
+      if (supabase) {
+        const { data } = await supabase
+          .from("design_interactions")
+          .select("likes,saves")
+          .eq("image_id", imageId)
+          .single();
+        const currLikes = data?.likes ?? likes;
+        const newSaves = (data?.saves ?? prev) + (newSavedState ? 1 : -1);
+        const { error } = await supabase
+          .from("design_interactions")
+          .upsert({ image_id: imageId, likes: currLikes, saves: newSaves }, { onConflict: "image_id" });
+        if (error) throw error;
+        setSaves(newSaves);
+      }
+      
+      // Update local storage regardless of Supabase availability
       const localSaves = JSON.parse(localStorage.getItem('user_saves') || '{}');
       if (newSavedState) localSaves[imageId] = true;
       else delete localSaves[imageId];
       localStorage.setItem('user_saves', JSON.stringify(localSaves));
     } catch (e) {
-      setSaves(prev); // revert
+      // Revert if Supabase failed
+      setSaves(prev);
       setIsSaved(!newSavedState);
     } finally {
       setPending(false);
@@ -194,12 +214,12 @@ export default function DesignPostCard({ post, viewMode, priority = false }: Des
         {/* Removed photographer information as requested */}
         <div className="card-actions justify-end items-center mt-auto">
           <div className="flex items-center space-x-2">
-            <button onClick={handleLike} disabled={!supabase || pending} title={!supabase ? 'Enable Supabase to like' : 'Like'}>
-              <Heart className={`h-4 w-4 ${!supabase ? 'text-gray-400' : 'text-red-500'}`} fill={isLiked ? 'currentColor' : 'none'} />
+            <button onClick={handleLike} disabled={pending} title="Like">
+              <Heart className={`h-4 w-4 ${isLiked ? 'text-red-500' : 'text-gray-400'}`} fill={isLiked ? 'currentColor' : 'none'} />
             </button>
             <span className="text-sm">{likes}</span>
-            <button onClick={handleSave} disabled={!supabase || pending} title={!supabase ? 'Enable Supabase to save' : 'Save'}>
-              <Bookmark className={`h-4 w-4 ${!supabase ? 'text-gray-400' : 'text-blue-500'}`} fill={isSaved ? 'currentColor' : 'none'} />
+            <button onClick={handleSave} disabled={pending} title="Save">
+              <Bookmark className={`h-4 w-4 ${isSaved ? 'text-blue-500' : 'text-gray-400'}`} fill={isSaved ? 'currentColor' : 'none'} />
             </button>
             <span className="text-sm">{saves}</span>
           </div>

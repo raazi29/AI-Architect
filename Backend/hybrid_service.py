@@ -9,6 +9,10 @@ from openverse_service import OpenverseService
 from wikimedia_service import WikimediaService
 from rawpixel_service import RawpixelService
 from ambientcg_service import AmbientCGService
+from web_scraping_service import web_scraping_service
+
+# Import the image categorization service
+from image_categorization_service import image_categorization_service
 
 from database import cache_images, get_cached_images, get_cached_images_multi_provider
 from fastapi import HTTPException
@@ -23,6 +27,7 @@ class HybridImageService:
         self.wikimedia = WikimediaService()
         self.rawpixel = RawpixelService()
         self.ambientcg = AmbientCGService()
+        self.web_scraping = web_scraping_service  # New web scraping service
         
         # Start with free services first to ensure we always get results
         self.providers = []
@@ -34,6 +39,9 @@ class HybridImageService:
             self.providers.append(("unsplash", self.unsplash))
         if getattr(self.pixabay, "enabled", False):
             self.providers.append(("pixabay", self.pixabay))
+        
+        # Add web scraping service (provides Pinterest-like content from alternative sources)
+        self.providers.append(("web_scraping", self.web_scraping))
         
         # Free services that support search (add these next)
         self.providers.append(("rawpixel", self.rawpixel))
@@ -48,7 +56,7 @@ class HybridImageService:
         # Print debug information about initialized providers
         print("Initialized providers:")
         for name, provider in self.providers:
-            enabled_attr = getattr(provider, "enabled", "N/A")
+            enabled_attr = getattr(provider, "enabled", "N/A") if hasattr(provider, "enabled") else "N/A"
             print(f"  {name}: enabled={enabled_attr}")
         
         # Track last provider used for each query to rotate providers
@@ -79,13 +87,22 @@ class HybridImageService:
         try:
             # Try to fetch from the selected provider
             print(f"Fetching from {provider_name} for query '{query}', page {page}, per_page {per_page}")
-            raw_data = await provider.search_photos(query, page, per_page)
+            
+            # Handle web scraping service differently since it has a different interface
+            if provider_name == "web_scraping":
+                raw_data = await provider.search_all_sources(query, page, per_page)
+            else:
+                raw_data = await provider.search_photos(query, page, per_page)
+            
             print(f"Raw data from {provider_name}: {type(raw_data)}")
             
             # Handle different response formats
             if isinstance(raw_data, list):
-                # Service returned [...] format directly (Picsum, etc.)
+                # Service returned [...] format directly (Picsum, web_scraping, etc.)
                 formatted_data = raw_data
+            elif provider_name == "web_scraping":
+                # Web scraping service already returns properly formatted data
+                formatted_data = raw_data if isinstance(raw_data, list) else []
             elif isinstance(raw_data, dict) and "results" in raw_data:
                 # Service returned {results: [...]} format (Unsplash, Pexels, etc.)
                 formatted_data = provider.format_photos_response(raw_data)
@@ -103,10 +120,25 @@ class HybridImageService:
                 print(f"Raw data: {raw_data}")
                 return await self.search_photos_fallback(query, page, per_page, provider_name)
             
-            # Cache the results
-            await cache_images(provider_name, query, page, formatted_data)
+            # Ensure formatted_data is a list before returning
+            if not isinstance(formatted_data, list):
+                print(f"Provider {provider_name} returned non-list data: {type(formatted_data)}")
+                formatted_data = []  # Fallback to empty list if not a list
             
-            return formatted_data
+            # Filter results to only include valid design images with early exit
+            filtered_data = []
+            target_count = per_page * 2  # Get extra to compensate for filtering
+            for result in formatted_data:
+                if image_categorization_service.is_valid_design_image(result):
+                    filtered_data.append(result)
+                    # Early exit if we have enough results
+                    if len(filtered_data) >= target_count:
+                        break
+            
+            # Cache the results
+            await cache_images(provider_name, query, page, filtered_data)
+            
+            return filtered_data[:per_page]  # Return only requested amount
         except HTTPException as e:
             print(f"HTTPException from {provider_name}: {e}")
             if e.status_code in (401, 403, 429):  # Unauthorized/Forbidden/Rate limited
@@ -118,6 +150,197 @@ class HybridImageService:
             print(f"Exception from {provider_name}: {e}")
             # Try another provider
             return await self.search_photos_fallback(query, page, per_page, provider_name)
+
+    async def search_photos_aggregated(
+        self,
+        query: str,
+        page: int = 1,
+        per_page: int = 20,
+        max_pages: int = 5  # Increase max_pages to ensure we have enough results
+    ) -> List[Dict[str, Any]]:
+        """Search for photos from multiple providers and aggregate results to support unlimited scrolling"""
+        print(f"Aggregating photos with query: '{query}', page: {page}, per_page: {per_page}, max_pages: {max_pages}")
+        
+        all_results = []
+        processed_urls = set()  # To avoid duplicates
+        
+        # Always prioritize web scraping as it's faster and avoids rate limits
+        web_scraping_provider = None
+        other_providers = []
+        picsum_provider = None
+        
+        for provider_name, provider in self.providers:
+            if provider_name == "web_scraping":
+                web_scraping_provider = (provider_name, provider)
+            elif provider_name == "picsum":
+                picsum_provider = (provider_name, provider)
+            else:
+                other_providers.append((provider_name, provider))
+        
+        # Try Picsum which is fast and doesn't have rate limits
+        if picsum_provider and len(all_results) < per_page * page:
+            provider_name, provider = picsum_provider
+            try:
+                print(f"Fetching from {provider_name} for additional results")
+                raw_data = await provider.search_photos(query, page, per_page)
+                
+                if isinstance(raw_data, list):
+                    formatted_data = raw_data
+                else:
+                    formatted_data = provider.format_photos_response({"results": raw_data})
+                
+                # Ensure formatted_data is a list before processing
+                if not isinstance(formatted_data, list):
+                    print(f"Picsum provider returned non-list data: {type(formatted_data)}")
+                    formatted_data = []
+                
+                if formatted_data:
+                    for item in formatted_data:
+                        image_url = item.get("image", "")
+                        # Use the unique ID as primary key, fallback to URL
+                        item_id = item.get("id", image_url)  # Use ID if available, else URL
+                        if item_id and item_id not in processed_urls:
+                            # Only add if it's a valid design image
+                            if image_categorization_service.is_valid_design_image(item):
+                                all_results.append(item)
+                                processed_urls.add(item_id)  # Store the item_id to prevent duplicates
+                    
+                    if len(all_results) >= per_page * page:
+                        print(f"Got sufficient results including from Picsum: {len(all_results)}")
+                    else:
+                        print(f"Got {len(all_results)} results including from Picsum, continuing with other providers")
+            except Exception as e:
+                print(f"Error fetching from {provider_name}: {e}")
+        
+        # Then try other rate-limited providers only if we still need more results
+        for provider_name, provider in other_providers:
+            if len(all_results) >= per_page * page:
+                break  # Stop if we have enough results
+                
+            try:
+                for page_num in range(1, min(max_pages, 2) if len(all_results) > 0 else max_pages + 1):  # Limit API calls when we already have some results
+                    if len(all_results) >= per_page * page:
+                        break  # Stop if we have enough results
+                        
+                    print(f"Fetching from {provider_name}, page {page_num}")
+                    raw_data = await provider.search_photos(query, page_num, per_page)
+                    
+                    # Handle different response formats
+                    if isinstance(raw_data, list):
+                        # Service returned [...] format directly (Picsum, etc.)
+                        formatted_data = raw_data
+                    elif isinstance(raw_data, dict) and "results" in raw_data:
+                        # Service returned {results: [...]} format (Unsplash, Pexels, etc.)
+                        formatted_data = provider.format_photos_response(raw_data)
+                    elif isinstance(raw_data, dict) and "foundAssets" in raw_data:
+                        # AmbientCG format
+                        formatted_data = provider.format_photos_response(raw_data)
+                    else:
+                        # Fallback - treat as results format
+                        formatted_data = provider.format_photos_response({"results": raw_data})
+                    
+                    # Ensure formatted_data is a list before processing
+                    if not isinstance(formatted_data, list):
+                        print(f"Provider {provider_name} returned non-list data: {type(formatted_data)} for page {page_num}")
+                        formatted_data = []  # Fallback to empty list if not a list
+                    
+                    if formatted_data:
+                        # Filter out duplicates based on item ID and ensure valid design images
+                        for item in formatted_data:
+                            image_url = item.get("image", "")
+                            # Use the unique ID as primary key, fallback to URL
+                            item_id = item.get("id", image_url)  # Use ID if available, else URL
+                            if item_id and item_id not in processed_urls:
+                                # Only add if it's a valid design image
+                                if image_categorization_service.is_valid_design_image(item):
+                                    all_results.append(item)
+                                    processed_urls.add(item_id)  # Store the item_id to prevent duplicates
+                                
+                    # Early exit if we have enough results
+                    if len(all_results) >= per_page * page:
+                        break
+                        
+            except Exception as e:
+                print(f"Error fetching from {provider_name}: {e}")
+                continue  # Continue with other providers
+        
+        # If we don't have enough results, try Picsum as a last resort
+        if len(all_results) < per_page and "picsum" in [name for name, _ in self.providers]:
+            try:
+                picsum_provider = next(provider for name, provider in self.providers if name == "picsum")
+                raw_data = await picsum_provider.search_photos(query, 1, per_page)
+                
+                if isinstance(raw_data, list):
+                    formatted_data = raw_data
+                else:
+                    formatted_data = picsum_provider.format_photos_response({"results": raw_data})
+                
+                # Ensure formatted_data is a list before processing
+                if not isinstance(formatted_data, list):
+                    print(f"Picsum provider returned non-list data: {type(formatted_data)}")
+                    formatted_data = []
+                
+                for item in formatted_data:
+                    image_url = item.get("image", "")
+                    # Use the unique ID as primary key, fallback to URL
+                    item_id = item.get("id", image_url)  # Use ID if available, else URL
+                    if item_id and item_id not in processed_urls:
+                        # Only add if it's a valid design image
+                        if image_categorization_service.is_valid_design_image(item):
+                            all_results.append(item)
+                            processed_urls.add(item_id)  # Store the item_id to prevent duplicates
+            except Exception as e:
+                print(f"Error fetching from Picsum: {e}")
+        
+        # If we don't have enough results, try Picsum as a last resort
+        if len(all_results) < per_page and "picsum" in [name for name, _ in self.providers]:
+            try:
+                picsum_provider_obj = next(provider for name, provider in self.providers if name == "picsum")
+                raw_data = await picsum_provider_obj.search_photos(query, 1, per_page)
+                
+                if isinstance(raw_data, list):
+                    formatted_data = raw_data
+                else:
+                    formatted_data = picsum_provider_obj.format_photos_response({"results": raw_data})
+                
+                # Ensure formatted_data is a list before processing
+                if not isinstance(formatted_data, list):
+                    print(f"Picsum provider returned non-list data: {type(formatted_data)}")
+                    formatted_data = []
+                
+                for item in formatted_data:
+                    image_url = item.get("image", "")
+                    # Use the unique ID as primary key, fallback to URL
+                    item_id = item.get("id", image_url)  # Use ID if available, else URL
+                    if item_id and item_id not in processed_urls:
+                        # Only add if it's a valid design image
+                        if image_categorization_service.is_valid_design_image(item):
+                            all_results.append(item)
+                            processed_urls.add(item_id)  # Store the item_id to prevent duplicates
+            except Exception as e:
+                print(f"Error fetching from Picsum: {e}")
+        
+        # Return the slice for the requested page
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        paginated_results = all_results[start_idx:end_idx] if all_results else []
+        
+        # If we don't have any results for this page, try to get results from unlimited design service
+        if not paginated_results:
+            try:
+                # Try to get results using the unlimited design service
+                from unlimited_design_service import unlimited_design_service
+                fallback_results = await unlimited_design_service.search_images(query, page, per_page)
+                if fallback_results:
+                    return fallback_results
+            except Exception as e:
+                print(f"Unlimited design service fallback failed: {e}")
+        
+        # Cache the results with a special key for aggregated results
+        await cache_images("aggregated", f"{query}_aggregated", page, paginated_results)
+        
+        print(f"Returning {len(paginated_results)} results for page {page}")
+        return paginated_results
     
     async def get_trending_photos(
         self,
@@ -160,10 +383,16 @@ class HybridImageService:
                 print(f"Raw data: {raw_data}")
                 return await self.get_trending_photos_fallback(page, per_page, provider_name)
             
-            # Cache the results
-            await cache_images(provider_name, "", page, formatted_data)
+            # Filter results to only include valid design images
+            filtered_data = []
+            for result in formatted_data:
+                if image_categorization_service.is_valid_design_image(result):
+                    filtered_data.append(result)
             
-            return formatted_data
+            # Cache the results
+            await cache_images(provider_name, "", page, filtered_data)
+            
+            return filtered_data
         except HTTPException as e:
             if e.status_code in (401, 403, 429):  # Unauthorized/Forbidden/Rate limited
                 # Try another provider
@@ -244,20 +473,39 @@ class HybridImageService:
                 continue  # Skip the provider that just failed
             
             try:
-                raw_data = await provider.search_photos(query, page, per_page)
-                
-                # Handle different response formats
-                if isinstance(raw_data, dict) and "results" in raw_data:
-                    formatted_data = provider.format_photos_response(raw_data)
-                elif isinstance(raw_data, list):
-                    formatted_data = raw_data
+                # Handle web scraping service differently since it has a different interface
+                if provider_name == "web_scraping":
+                    raw_data = await provider.search_all_sources(query, page, per_page)
+                    # Web scraping service already returns properly formatted data
+                    if isinstance(raw_data, list):
+                        formatted_data = raw_data
+                    else:
+                        formatted_data = []
                 else:
-                    formatted_data = provider.format_photos_response({"results": raw_data})
+                    raw_data = await provider.search_photos(query, page, per_page)
+                    
+                    # Handle different response formats
+                    if isinstance(raw_data, dict) and "results" in raw_data:
+                        formatted_data = provider.format_photos_response(raw_data)
+                    elif isinstance(raw_data, list):
+                        formatted_data = raw_data
+                    else:
+                        formatted_data = provider.format_photos_response({"results": raw_data})
+                
+                # Filter results to only include valid design images with early exit
+                filtered_data = []
+                target_count = per_page * 2  # Get extra to compensate for filtering
+                for result in formatted_data:
+                    if image_categorization_service.is_valid_design_image(result):
+                        filtered_data.append(result)
+                        # Early exit if we have enough results
+                        if len(filtered_data) >= target_count:
+                            break
                 
                 # Cache the results
-                await cache_images(provider_name, query, page, formatted_data)
+                await cache_images(provider_name, query, page, filtered_data)
                 
-                return formatted_data
+                return filtered_data[:per_page]  # Return only requested amount
             except Exception:
                 continue  # Try the next provider
         
@@ -294,16 +542,176 @@ class HybridImageService:
                 else:
                     formatted_data = provider.format_photos_response({"results": raw_data})
                 
-                # Cache the results
-                await cache_images(provider_name, "", page, formatted_data)
+                # Filter results to only include valid design images
+                filtered_data = []
+                for result in formatted_data:
+                    if image_categorization_service.is_valid_design_image(result):
+                        filtered_data.append(result)
                 
-                return formatted_data
+                # Cache the results
+                await cache_images(provider_name, "", page, filtered_data)
+                
+                return filtered_data
             except Exception:
                 continue  # Try the next provider
         
         # If all providers fail, raise an error
         raise HTTPException(status_code=502, detail="All image providers are temporarily unavailable. Please try again later.")
     
+    async def cache_next_pages(self, query: str, current_page: int, per_page: int, num_pages_to_cache: int = 3):
+        """Cache the next few pages in the background to improve loading performance"""
+        print(f"Caching {num_pages_to_cache} additional pages for query: {query}, starting from page {current_page + 1}")
+        
+        import asyncio
+        from database import cache_images_batch
+        
+        # Prepare cache entries for the next few pages
+        cache_batches = []
+        
+        for page_offset in range(1, num_pages_to_cache + 1):
+            page_num = current_page + page_offset
+            try:
+                # Prioritize fast providers (web scraping, Picsum) first to avoid rate limits
+                fast_providers = []
+                rate_limited_providers = []
+                
+                for provider_name, provider in self.providers:
+                    if provider_name == "web_scraping":
+                        fast_providers.insert(0, (provider_name, provider))  # Priority
+                    elif provider_name == "picsum":
+                        fast_providers.append((provider_name, provider))  # Fast, no rate limits
+                    else:
+                        rate_limited_providers.append((provider_name, provider))
+                
+                # Try fast providers first
+                for provider_name, provider in fast_providers:
+                    try:
+                        if provider_name == "web_scraping":
+                            # For web scraping, just get data since it aggregates from multiple sources
+                            try:
+                                raw_data = await provider.search_all_sources(query, page_num, per_page)
+                                # Web scraping service already returns properly formatted data
+                                if isinstance(raw_data, list):
+                                    formatted_data = raw_data
+                                else:
+                                    formatted_data = []
+                            except Exception as e:
+                                print(f"Error in web scraping service cache prefetch: {e}")
+                                formatted_data = []
+                        elif provider_name == "picsum":
+                            # Get Picsum results for the specific page
+                            raw_data = await provider.search_photos(query, page_num, per_page)
+                            if isinstance(raw_data, list):
+                                formatted_data = raw_data
+                            else:
+                                formatted_data = provider.format_photos_response({"results": raw_data})
+                        else:
+                            raw_data = await provider.search_photos(query, page_num, per_page)
+                            
+                            # Handle different response formats
+                            if isinstance(raw_data, list):
+                                formatted_data = raw_data
+                            elif isinstance(raw_data, dict) and "results" in raw_data:
+                                formatted_data = provider.format_photos_response(raw_data)
+                            elif isinstance(raw_data, dict) and "foundAssets" in raw_data:
+                                formatted_data = provider.format_photos_response(raw_data)
+                            else:
+                                formatted_data = provider.format_photos_response({"results": raw_data})
+                        
+                        if formatted_data:
+                            # Filter results to only include valid design images
+                            filtered_data = []
+                            for result in formatted_data:
+                                if image_categorization_service.is_valid_design_image(result):
+                                    filtered_data.append(result)
+                            
+                            cache_entry = {
+                                "provider": provider_name,
+                                "query": f"{query}_prefetch",
+                                "page": page_num,
+                                "data": filtered_data
+                            }
+                            cache_batches.append(cache_entry)
+                            break  # Move to next page after first successful provider
+                            
+                    except Exception as e:
+                        print(f"Error prefetching page {page_num} from {provider_name}: {e}")
+                        continue  # Try next provider
+                
+                # Only try rate-limited providers if fast providers didn't work
+                if not cache_batches or len([cb for cb in cache_batches if cb["page"] == page_num]) == 0:
+                    for provider_name, provider in rate_limited_providers:
+                        try:
+                            raw_data = await provider.search_photos(query, page_num, per_page)
+                            
+                            # Handle different response formats
+                            if isinstance(raw_data, list):
+                                formatted_data = raw_data
+                            elif isinstance(raw_data, dict) and "results" in raw_data:
+                                formatted_data = provider.format_photos_response(raw_data)
+                            elif isinstance(raw_data, dict) and "foundAssets" in raw_data:
+                                formatted_data = provider.format_photos_response(raw_data)
+                            else:
+                                formatted_data = provider.format_photos_response({"results": raw_data})
+                            
+                            if formatted_data:
+                                # Filter results to only include valid design images
+                                filtered_data = []
+                                for result in formatted_data:
+                                    if image_categorization_service.is_valid_design_image(result):
+                                        filtered_data.append(result)
+                                
+                                cache_entry = {
+                                    "provider": provider_name,
+                                    "query": f"{query}_prefetch",
+                                    "page": page_num,
+                                    "data": filtered_data
+                                }
+                                cache_batches.append(cache_entry)
+                                break  # Move to next page after first successful provider
+                                
+                        except Exception as e:
+                            print(f"Error prefetching page {page_num} from {provider_name}: {e}")
+                            continue  # Try next provider
+                        
+            except Exception as e:
+                print(f"Error in prefetching loop: {e}")
+                continue
+        
+        # Cache all collected batches
+        if cache_batches:
+            await cache_images_batch(cache_batches)
+            print(f"Cached {len(cache_batches)} pages for query: {query}")
+
+    async def get_extended_cached_results(self, query: str, start_page: int, end_page: int, per_page: int) -> List[Dict[str, Any]]:
+        """Get cached results across multiple pages to support unlimited scrolling"""
+        from database import get_cached_images_multi_provider_extended
+        import json
+        
+        # Get cached results for the page range
+        cached_results = await get_cached_images_multi_provider_extended(query, (start_page, end_page))
+        
+        # Combine all results in order
+        all_results = []
+        processed_urls = set()  # To avoid duplicates
+        
+        for page_num in range(start_page, end_page + 1):
+            if page_num in cached_results and cached_results[page_num]:
+                for item in cached_results[page_num]:
+                    image_url = item.get("image", "")
+                    # Use the unique ID as primary key, fallback to URL
+                    item_id = item.get("id", image_url)  # Use ID if available, else URL
+                    if item_id and item_id not in processed_urls:
+                        # Only add if it's a valid design image
+                        if image_categorization_service.is_valid_design_image(item):
+                            all_results.append(item)
+                            processed_urls.add(item_id)  # Store the item_id to prevent duplicates
+        
+        # Return results for the requested range
+        start_idx = (start_page - 1) * per_page
+        end_idx = start_idx + (end_page - start_page + 1) * per_page
+        return all_results[start_idx:end_idx]
+
     async def close(self):
         """Close all provider clients"""
         await self.pexels.close()

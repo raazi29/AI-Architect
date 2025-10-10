@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, style = 'modern', roomType = 'living_room', width = 1024, height = 1024 } = await req.json();
+    const { prompt, style = 'auto', roomType = 'auto', width = 1024, height = 1024 } = await req.json();
     
     if (!prompt) {
       return new Response(JSON.stringify({ error: 'Prompt is required' }), {
@@ -33,7 +33,22 @@ export async function POST(req: NextRequest) {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Backend error:', errorText);
-      return new Response(JSON.stringify({ error: `Backend error: ${response.status}` }), {
+      
+      // Provide user-friendly error messages
+      let userMessage = `Backend error: ${response.status}`;
+      if (response.status === 503) {
+        userMessage = "AI image generation services are currently overloaded due to high demand. Please try again in a few minutes.";
+      } else if (response.status === 429) {
+        userMessage = "Rate limit reached. Please wait a moment before generating another image.";
+      } else if (response.status === 500) {
+        userMessage = "AI service temporarily unavailable. This often happens when free AI services are overloaded. Please try again later.";
+      }
+      
+      return new Response(JSON.stringify({ 
+        error: userMessage,
+        technical_details: errorText,
+        status: response.status 
+      }), {
         status: response.status,
         headers: { 'Content-Type': 'application/json' }
       });

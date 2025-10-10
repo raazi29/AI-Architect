@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt, base64Image, mimeType, style = 'modern', roomType = 'living_room' } = await req.json();
+    const { prompt, base64Image, mimeType, style = 'auto', roomType = 'auto' } = await req.json();
     
     if (!prompt) {
       return new Response(JSON.stringify({ error: 'Prompt is required' }), {

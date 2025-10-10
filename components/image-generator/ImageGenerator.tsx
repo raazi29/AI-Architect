@@ -1,31 +1,23 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { 
-  generateInteriorImage, 
-  editInteriorImage, 
-  downloadImage, 
-  getAvailableStyles, 
-  getAvailableRoomTypes,
-  GenerationResult 
+import React, { useState, useCallback } from 'react';
+import {
+  generateInteriorImage,
+  editInteriorImage,
+  downloadImage,
+ GenerationResult
 } from './services/stabilityService';
-import { DesignStyle } from './types';
-import { DESIGN_STYLES } from './constants';
 import { FileUpload } from './shared/FileUpload';
 import { Spinner } from './shared/Spinner';
 import { Button } from '@/components/ui/button';
-import { Download, Share2, RefreshCw } from 'lucide-react';
+import { Download, Share2, RefreshCw, Maximize2 } from 'lucide-react';
 
 export const ImageGenerator: React.FC = () => {
     const [prompt, setPrompt] = useState<string>('');
-    const [style, setStyle] = useState<DesignStyle | 'auto'>('auto');
-    const [roomType, setRoomType] = useState<string>('auto');
     const [uploadedFile, setUploadedFile] = useState<File | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [generationResult, setGenerationResult] = useState<GenerationResult | null>(null);
-    const [availableStyles, setAvailableStyles] = useState<string[]>([]);
-    const [availableRoomTypes, setAvailableRoomTypes] = useState<string[]>([]);
 
     const fileToGenerativePart = async (file: File) => {
         const base64EncodedDataPromise = new Promise<string>((resolve) => {
@@ -39,23 +31,6 @@ export const ImageGenerator: React.FC = () => {
         };
     };
 
-    // Load available options on component mount
-    useEffect(() => {
-        const loadOptions = async () => {
-            try {
-                const [styles, roomTypes] = await Promise.all([
-                    getAvailableStyles(),
-                    getAvailableRoomTypes()
-                ]);
-                setAvailableStyles(styles);
-                setAvailableRoomTypes(roomTypes);
-            } catch (error) {
-                console.warn('Could not load options from backend');
-            }
-        };
-        loadOptions();
-    }, []);
-
     const handleGenerate = useCallback(async () => {
         if (!prompt) {
             setError('Please enter a description for your design.');
@@ -67,11 +42,8 @@ export const ImageGenerator: React.FC = () => {
 
         try {
             let result: GenerationResult;
-            // Prepare options, using defaults for 'auto' selections
-            const options = {
-                style: style === 'auto' ? 'modern' : style.toLowerCase() as any,
-                roomType: roomType === 'auto' ? 'living_room' : roomType as any
-            };
+            // Pass empty options object since we're relying purely on user prompt
+            const options = {};
 
             if (uploadedFile) {
                 const { base64, mimeType } = await fileToGenerativePart(uploadedFile);
@@ -90,153 +62,176 @@ export const ImageGenerator: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [prompt, style, roomType, uploadedFile]);
+    }, [prompt, uploadedFile]);
 
     const handleDownload = () => {
         if (generationResult?.downloadUrl) {
             downloadImage(generationResult.downloadUrl, `${prompt.slice(0, 30)}-${Date.now()}.png`);
         }
     };
+
+    const handlePreview = (imageUrl: string) => {
+        if (!imageUrl) {
+            return;
+        }
+
+        const previewWindow = window.open('', '_blank', 'noopener,noreferrer');
+        if (!previewWindow) {
+            console.warn('Browser blocked preview window');
+            return;
+        }
+
+        previewWindow.document.write(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" />
+            <title>AI Interior Preview</title>
+            <style>
+                body { margin: 0; background: #0f172a; display:flex; align-items:center; justify-content:center; height:100vh; }
+                img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; box-shadow: 0 20px 45px rgba(15,23,42,0.45); }
+            </style>
+        </head><body><img src="${imageUrl}" alt="AI Interior Preview" /></body></html>`);
+        previewWindow.document.close();
+    };
     
     return (
-        <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Controls Column */}
-                <div className="flex flex-col space-y-6">
-                    <div>
-                        <label htmlFor="style" className="block text-sm font-medium text-gray-700 mb-2">
-                            1. Design Style <span className="text-sm text-gray-500 font-normal">(Optional)</span>
-                        </label>
-                        <select id="style" value={style} onChange={e => setStyle(e.target.value as DesignStyle | 'auto')} className="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition">
-                            <option value="auto">🎨 Auto-detect from description</option>
-                            {DESIGN_STYLES.map(s => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label htmlFor="roomType" className="block text-sm font-medium text-gray-700 mb-2">
-                            2. Room Type <span className="text-sm text-gray-500 font-normal">(Optional)</span>
-                        </label>
-                        <select id="roomType" value={roomType} onChange={e => setRoomType(e.target.value)} className="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition">
-                            <option value="auto">🏠 Auto-detect from description</option>
-                            {availableRoomTypes.map(rt => (
-                                <option key={rt} value={rt}>
-                                    {rt.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div>
-                        <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-2">
-                            3. Describe Your Vision <span className="text-red-500">*</span>
-                        </label>
-                        <textarea 
-                            id="prompt" 
-                            value={prompt} 
-                            onChange={e => setPrompt(e.target.value)} 
-                            rows={4} 
-                            placeholder="e.g., a spacious living room with a stone fireplace and large windows overlooking a forest" 
-                            className="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition" 
-                        />
-                        <p className="text-xs text-gray-500 mt-1">
-                            💡 Tip: Be specific about style and room type in your description if you want precise results
-                        </p>
-                    </div>
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">4. Upload a Reference Image (Optional)</label>
-                        <FileUpload onFileSelect={setUploadedFile} />
-                    </div>
-                    <Button onClick={handleGenerate} disabled={isLoading || !prompt} className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-3 px-4 rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center">
-                        {isLoading ? (
-                            <>
-                                <Spinner />
-                                <span className="ml-2">Generating...</span>
-                            </>
-                        ) : (
-                            <>
-                                <RefreshCw className="mr-2 h-4 w-4" />
-                                Generate with Stability AI
-                            </>
-                        )}
-                    </Button>
+        <div className="w-full max-w-7xl mx-auto p-4 space-y-6">
+            {/* Controls Section */}
+            <div className="bg-white rounded-xl shadow-lg p-6">
+                <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Upload Reference (Optional)</label>
+                    <FileUpload onFileSelect={setUploadedFile} />
                 </div>
                 
-                {/* Result Column */}
-                <div className="bg-gray-100 rounded-lg p-4 flex flex-col min-h-[300px] md:min-h-full">
-                    {isLoading && (
-                         <div className="flex-1 flex items-center justify-center text-center text-gray-500">
-                            <div>
-                                <Spinner />
-                                <p className="mt-2 font-medium">Generating with Stability AI...</p>
-                                <p className="text-sm text-gray-400">This may take 30-60 seconds</p>
-                            </div>
-                         </div>
-                    )}
-                    {error && (
-                        <div className="flex-1 flex items-center justify-center">
-                            <div className="text-center">
-                                <div className="text-red-500 mb-2">⚠️</div>
-                                <p className="text-red-500 text-center">{error}</p>
-                            </div>
-                        </div>
-                    )}
-                    {generationResult && !isLoading && (
-                        <div className="flex-1 flex flex-col">
-                            <div className="flex-1 mb-4">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img 
-                                    src={generationResult.imageUrl} 
-                                    alt="Generated interior design" 
-                                    className="rounded-md w-full h-full object-cover shadow-lg" 
-                                />
-                            </div>
-                            
-                            {/* Action Buttons */}
-                            <div className="flex gap-2">
-                                <Button 
-                                    onClick={handleDownload}
-                                    className="flex-1 bg-green-500 hover:bg-green-600 text-white"
-                                >
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Download
-                                </Button>
-                                <Button 
-                                    onClick={() => navigator.share?.({ 
-                                        title: 'AI Generated Interior Design',
-                                        text: generationResult.metadata.prompt,
-                                        url: generationResult.imageUrl 
-                                    })}
-                                    variant="outline"
-                                    className="flex-1"
-                                >
-                                    <Share2 className="mr-2 h-4 w-4" />
-                                    Share
-                                </Button>
-                            </div>
-                            
-                            {/* Metadata */}
-                            <div className="mt-3 p-3 bg-white rounded-lg text-sm">
-                                <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                                    <div><strong>Style:</strong> {generationResult.metadata.style}</div>
-                                    <div><strong>Room:</strong> {generationResult.metadata.roomType.replace('_', ' ')}</div>
-                                    <div><strong>Size:</strong> {generationResult.metadata.dimensions}</div>
-                                    <div><strong>Generated:</strong> {new Date(generationResult.metadata.generatedAt).toLocaleTimeString()}</div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                    {!isLoading && !generationResult && !error && (
-                        <div className="flex-1 flex items-center justify-center text-center text-gray-500">
-                            <div>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <p className="mt-2 font-medium">Your AI-generated design will appear here</p>
-                                <p className="text-sm text-gray-400">Powered by Stability AI</p>
-                            </div>
-                        </div>
-                    )}
+                {/* Prompt Section */}
+                <div className="mt-6">
+                    <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-2">
+                        Describe Your Vision <span className="text-red-500">*</span>
+                    </label>
+                    <textarea 
+                        id="prompt" 
+                        value={prompt} 
+                        onChange={e => setPrompt(e.target.value)} 
+                        rows={3} 
+                        placeholder="e.g., a spacious living room with a stone fireplace and large windows overlooking a forest" 
+                        className="w-full p-4 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition resize-none" 
+                    />
+                    <div className="flex justify-between items-center mt-3">
+                        <p className="text-xs text-gray-500">
+                            💡 Be as specific as possible in your description for best results
+                        </p>
+                        <Button 
+                            onClick={handleGenerate} 
+                            disabled={isLoading || !prompt} 
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-60 hover:to-pink-600 text-white font-semibold py-2 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        >
+                            {isLoading ? (
+                                <>
+                                    <Spinner />
+                                    <span className="ml-2">Generating...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    Generate Image
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </div>
             </div>
+
+            {/* Results Section */}
+            {isLoading && (
+                <div className="bg-white rounded-xl shadow-lg p-8">
+                    <div className="flex flex-col items-center justify-center text-center text-gray-500 py-12">
+                        <Spinner />
+                        <p className="mt-4 text-lg font-medium">Generating your design...</p>
+                        <p className="text-sm text-gray-400">This may take 30-60 seconds</p>
+                    </div>
+                </div>
+            )}
+
+            {error && (
+                <div className="bg-white rounded-xl shadow-lg p-8">
+                    <div className="flex flex-col items-center justify-center text-center py-12">
+                        <div className="text-red-500 mb-4 text-4xl">⚠️</div>
+                        <p className="text-red-600 text-lg font-medium mb-2">Generation Failed</p>
+                        <p className="text-red-500 text-center max-w-md">{error}</p>
+                    </div>
+                </div>
+            )}
+
+            {generationResult && !isLoading && (
+                <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+                    {/* Image Display */}
+                    <div className="relative group">
+                        <img 
+                            src={generationResult.imageUrl} 
+                            alt="Generated interior design" 
+                            className="w-full h-auto max-h-[600px] object-contain bg-gray-100 cursor-zoom-in transition-transform group-hover:scale-[1.01]" 
+                            onClick={() => handlePreview(generationResult.imageUrl)}
+                        />
+                        
+                        {/* Overlay with Preview Button */}
+                        <div className="absolute inset-0 bg-transparent transition-all duration-300 flex items-center justify-center pointer-events-none group-hover:bg-black/40">
+                            <Button 
+                                onClick={() => handlePreview(generationResult.imageUrl)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity bg-white text-gray-800 hover:bg-gray-100 pointer-events-auto"
+                            >
+                                <Maximize2 className="mr-2 h-4 w-4" />
+                                Full Preview
+                            </Button>
+                        </div>
+                    </div>
+                    
+                    {/* Action Buttons */}
+                    <div className="p-6 border-t bg-gray-50">
+                        <div className="flex gap-3 justify-center">
+                            <Button 
+                                onClick={handleDownload}
+                                className="bg-green-500 hover:bg-green-60 text-white px-6"
+                            >
+                                <Download className="mr-2 h-4 w-4" />
+                                Download
+                            </Button>
+                            <Button 
+                                onClick={() => handlePreview(generationResult.imageUrl)}
+                                variant="outline"
+                                className="px-6"
+                            >
+                                <Maximize2 className="mr-2 h-4 w-4" />
+                                Preview
+                            </Button>
+                            <Button
+                                onClick={() => {
+                                    if (navigator.share) {
+                                        navigator.share({
+                                            title: 'AI Generated Interior Design',
+                                            text: generationResult.metadata?.prompt || 'Generated image',
+                                            url: generationResult.imageUrl
+                                        });
+                                    }
+                                }}
+                                variant="outline"
+                                className="px-6"
+                            >
+                                <Share2 className="mr-2 h-4 w-4" />
+                                Share
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {!isLoading && !generationResult && !error && (
+                <div className="bg-white rounded-xl shadow-lg p-8">
+                    <div className="flex flex-col items-center justify-center text-center text-gray-500 py-12">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <p className="text-lg font-medium mb-2">Ready to Generate</p>
+                        <p className="text-sm text-gray-400">Describe your vision above and click Generate Image</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

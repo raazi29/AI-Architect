@@ -38,7 +38,7 @@ const features = [
   },
   {
     title: "Smart Shopping",
-    description: "Find and compare furniture from multiple retailers",
+    description: "Temporarily unavailable - coming back soon!",
     icon: ShoppingBag,
     href: "/shopping",
     color: "text-accent",
@@ -86,7 +86,7 @@ export default function Dashboard() {
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl">
             Transform your space with AI-powered interior design, augmented reality visualization, and smart shopping
-            integration. Create beautiful rooms with professional-grade tools.
+            integration. Create beautiful rooms with professional-grade tools. (Smart Shopping temporarily unavailable)
           </p>
         </div>
 

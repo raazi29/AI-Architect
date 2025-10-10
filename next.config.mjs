@@ -8,6 +8,7 @@ const nextConfig = {
   },
   reactStrictMode: false,
   images: {
+    dangerouslyAllowSVG: true,
     remotePatterns: [
       {
         protocol: 'https',
@@ -27,7 +28,7 @@ const nextConfig = {
       },
       {
         protocol: 'https',
-        hostname: 'api.openverse.engineering',
+        hostname: 'api.openverse.org',
       },
       {
         protocol: 'https',
@@ -36,7 +37,15 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'upload.wikimedia.org',
-      }
+      },
+      {
+        protocol: 'https',
+        hostname: 'www.rawpixel.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+      },
     ],
   },
 }

@@ -83,9 +83,16 @@ class IndianEcommerceService:
                 'Accept-Language': 'en-US,en;q=0.5',
                 'Accept-Encoding': 'gzip, deflate',
                 'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Cache-Control': 'max-age=0',
             }
             
-            async with self.session.get(search_url, headers=headers) as response:
+            # Add timeout and handle connection issues
+            timeout = aiohttp.ClientTimeout(total=10)
+            async with self.session.get(search_url, headers=headers, timeout=timeout) as response:
                 if response.status == 200:
                     html = await response.text()
                     products = await self._parse_retailer_html(retailer, html, query)
@@ -100,18 +107,32 @@ class IndianEcommerceService:
                     for product in products:
                         product["retailer"] = retailer["name"]
                         product["currency"] = "INR"
-                        product["emiAvailable"] = random.choice([True, False])
                         product["deliveryTime"] = f"{random.randint(3, 15)} days"
                         product["warranty"] = f"{random.randint(1, 5)} year warranty"
                         product["returnPolicy"] = f"{random.randint(7, 30)} days return"
                     
                     return products
+                elif response.status == 403:
+                    print(f"Access forbidden for {retailer['name']}: HTTP {response.status}")
+                    # Return mock products when blocked
+                    return await self._generate_mock_products(retailer, query)
+                elif response.status == 404:
+                    print(f"Page not found for {retailer['name']}: HTTP {response.status}")
+                    # Return mock products when page doesn't exist
+                    return await self._generate_mock_products(retailer, query)
                 else:
                     print(f"Failed to fetch data from {retailer['name']}: HTTP {response.status}")
-                    return []
+                    # Return mock products when other error occurs
+                    return await self._generate_mock_products(retailer, query)
+        except asyncio.TimeoutError:
+            print(f"Timeout error fetching products from {retailer['name']}: Request timed out")
+            return await self._generate_mock_products(retailer, query)
+        except aiohttp.ClientConnectorError as e:
+            print(f"Connection error fetching products from {retailer['name']}: {e}")
+            return await self._generate_mock_products(retailer, query)
         except Exception as e:
             print(f"Error fetching products from {retailer['name']}: {e}")
-            return []
+            return await self._generate_mock_products(retailer, query)
     
     async def _construct_search_url(self, retailer: Dict, query: str) -> str:
         """Construct search URL for a retailer"""
@@ -353,7 +374,6 @@ class IndianEcommerceService:
         # For now, return a mock product
         return {
             "id": product_id,
-            "name": f"Real {retailer} Product",
             "brand": retailer,
             "price": random.randint(5000, 50000),
             "originalPrice": random.randint(6000, 60000),
@@ -419,3 +439,41 @@ class IndianEcommerceService:
             })
         
         return featured_products
+    
+    async def _generate_mock_products(self, retailer: Dict, query: str) -> List[Dict[str, Any]]:
+        """Generate mock products when retailer is unreachable"""
+        mock_products = []
+        for i in range(3):  # Generate 3 mock products
+            product = {
+                "id": f"mock_{retailer['name'].replace(' ', '_')}_{query}_{i+1}",
+                "name": f"{query.title()} - Mock Product {i+1}",
+                "brand": retailer["name"],
+                "price": random.randint(5000, 50000),
+                "originalPrice": random.randint(6000, 60000),
+                "rating": round(random.uniform(3.5, 5.0), 1),
+                "reviews": random.randint(10, 500),
+                "image": f"/placeholder-{i+1}.jpg",
+                "category": self._get_category_from_query(query),
+                "style": random.choice(["Modern", "Traditional", "Contemporary", "Industrial"]),
+                "colors": ["#8B4513", "#2F4F4F", "#696969", "#FFFFFF", "#00000"],
+                "dimensions": {
+                    "width": random.randint(50, 200),
+                    "height": random.randint(50, 200),
+                    "depth": random.randint(30, 100)
+                },
+                "inStock": random.choice([True, False]),
+                "discount": random.randint(5, 30),
+                "isWishlisted": False,
+                "tags": ["bestseller", "premium"] if random.choice([True, False]) else ["new-arrival"],
+                "currency": "INR",
+                "deliveryTime": f"{random.randint(3, 15)} days",
+                "warranty": f"{random.randint(1, 5)} year warranty",
+                "returnPolicy": f"{random.randint(7, 30)} days return"
+            }
+            
+            if product["originalPrice"] > product["price"]:
+                product["discount"] = int(((product["originalPrice"] - product["price"]) / product["originalPrice"]) * 100)
+            
+            mock_products.append(product)
+        
+        return mock_products
