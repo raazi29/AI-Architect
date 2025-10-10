@@ -36,5 +36,5 @@ __pycache__/
 
 
 # Environment files
-.env
-Backend/.env
+#.env
+#Backend/.env
