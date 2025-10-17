@@ -16,14 +16,27 @@ class UnsplashService:
         self.access_key = UNSPLASH_ACCESS_KEY
         self.secret_key = UNSPLASH_SECRET_KEY
         self.base_url = UNSPLASH_API_URL
-        self.headers = {"Authorization": f"Client-ID {self.access_key}"} if self.access_key and self.access_key != "your_unsplash_access_key_here" else {}
-        self.client = httpx.AsyncClient(timeout=15.0)
+        # Check for placeholder/demo API keys that should be treated as disabled
+        placeholder_access_keys = [
+            "your_unsplash_access_key_here",
+            "7GgIy-50AGkL5vzuEWjOd__qZT9gtEEH2yanI71mnlI",  # Demo key
+            None,
+            ""
+        ]
+        placeholder_secret_keys = [
+            "your_unsplash_secret_key_here",
+            "XbvYUrh1yLQZWzOqnDgE7pPwEBCm9E_Q-22YGAo4L3I",  # Demo key
+            None,
+            ""
+        ]
         self.enabled = bool(self.access_key and self.secret_key and
-                          self.access_key != "your_unsplash_access_key_here" and
-                          self.secret_key != "your_unsplash_secret_key_here")
+                          self.access_key not in placeholder_access_keys and
+                          self.secret_key not in placeholder_secret_keys)
+        self.headers = {"Authorization": f"Client-ID {self.access_key}"} if self.enabled else {}
+        self.client = httpx.AsyncClient(timeout=15.0)
         print(f"Unsplash service enabled: {self.enabled}")
-        print(f"Unsplash access key: {self.access_key}")
-        print(f"Unsplash secret key: {self.secret_key}")
+        if not self.enabled:
+            print(f"Unsplash disabled - using placeholder/demo API keys")
     
     async def search_photos(
         self,

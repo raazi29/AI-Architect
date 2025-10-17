@@ -37,16 +37,35 @@ export default function RealTimeUpdates({ productId }: RealTimeUpdatesProps) {
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Simulate fetching real-time updates
+  // Fetch real-time updates from backend
   useEffect(() => {
     const fetchRealTimeUpdates = async () => {
       setLoading(true);
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      // Mock real-time updates data
-      const mockUpdates: RealTimeUpdate[] = [
+      try {
+        // Call real backend API for real-time updates
+        const response = await fetch('http://localhost:8001/shopping/realtime-updates', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            product_id: productId
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setUpdates(data.updates || []);
+        setLastUpdated(new Date());
+      } catch (error) {
+        console.error('Error fetching real-time updates:', error);
+        
+        // Fallback to mock data only if API fails
+        const mockUpdates: RealTimeUpdate[] = [
         {
           id: '1',
           type: 'inventory',
@@ -106,15 +125,15 @@ export default function RealTimeUpdates({ productId }: RealTimeUpdatesProps) {
       
       setUpdates(mockUpdates);
       setLastUpdated(new Date());
+      }
+      
       setLoading(false);
     };
-    
+
     fetchRealTimeUpdates();
     
-    // Simulate periodic updates
-    const interval = setInterval(() => {
-      fetchRealTimeUpdates();
-    }, 30000); // Update every 30 seconds
+    // Set up polling for real-time updates every 30 seconds
+    const interval = setInterval(fetchRealTimeUpdates, 30000);
     
     return () => clearInterval(interval);
   }, [productId]);
@@ -208,7 +227,7 @@ export default function RealTimeUpdates({ productId }: RealTimeUpdatesProps) {
                       <div className="flex flex-col items-end gap-1">
                         {getPriorityBadge(update.priority)}
                         <span className="text-xs text-muted-foreground">
-                          {update.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(update.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
                     </div>

@@ -216,18 +216,42 @@ class ImageCategorizationService:
         self.keyword_pattern = re.compile(r'\b(' + self.valid_keywords_pattern + r')\b', re.IGNORECASE)
         
         # Precompile non-design terms pattern for faster matching
+        # STRICT filtering - reject anything that's not architecture/interior design
         self.non_design_terms = [
+            # People
             "people", "person", "face", "portrait", "selfie", "human", "individual", 
-            "portrait", "people", "man", "woman", "child", "kid", "baby", "family",
+            "man", "woman", "child", "kid", "baby", "family", "crowd", "group",
+            "headshot", "smile", "smiling", "model", "fashion model",
+            # Vehicles
             "car", "vehicle", "automotive", "truck", "bike", "motorcycle", "airplane",
-            "food", "meal", "dinner", "lunch", "breakfast", "restaurant food", "cuisine",
+            "boat", "ship", "train", "bus", "taxi", "scooter",
+            # Food
+            "food", "meal", "dinner", "lunch", "breakfast", "cuisine", "dish",
+            "recipe", "cooking", "baking", "chef", "plate", "menu",
+            # Animals
             "animal", "dog", "cat", "pet", "wildlife", "bird", "fish", "mammal",
+            "horse", "cow", "chicken", "lion", "tiger", "elephant",
+            # Sports & Activities
             "sports", "football", "basketball", "soccer", "tennis", "athlete", "game",
+            "fitness", "gym", "yoga", "exercise", "workout", "running",
+            # Events
             "event", "concert", "party", "wedding", "ceremony", "celebration",
-            "nature", "mountain", "beach", "landscape", "outdoor scenery", "sky", "cloud", "tree",
-            "product", "electronics", "gadget", "mobile", "phone", "computer", "laptop",
+            "festival", "conference", "meeting", "gathering",
+            # Nature (non-architectural)
+            "mountain", "beach", "landscape", "outdoor scenery", "sky", "cloud",
+            "tree", "forest", "jungle", "desert", "ocean", "sea", "river",
+            "sunset", "sunrise", "weather", "rain", "snow",
+            # Products (non-furniture)
+            "electronics", "gadget", "mobile", "phone", "computer", "laptop",
+            "tablet", "camera", "watch", "jewelry", "accessory",
+            # Fashion
             "fashion", "clothing", "clothes", "fashionable", "outfit", "dress", "shirt",
-            "portrait", "headshot", "selfie", "person", "face", "smile", "smiling"
+            "shoes", "bag", "handbag", "model",
+            # Abstract/Random
+            "abstract", "pattern", "texture", "wallpaper", "background",
+            "graffiti", "street art", "mural",
+            # Body parts
+            "hand", "hands", "feet", "leg", "arm", "finger"
         ]
         self.non_design_pattern = r'|'.join(re.escape(term) for term in self.non_design_terms)
         self.non_design_regex = re.compile(self.non_design_pattern, re.IGNORECASE)

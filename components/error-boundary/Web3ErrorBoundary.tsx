@@ -3,7 +3,8 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
+import { supabase } from '@/lib/supabaseClient';
 
 interface Props {
   children: ReactNode;
@@ -13,12 +14,13 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: ErrorInfo | null;
+  errorId: string | null;
 }
 
 class Web3ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null, errorInfo: null, errorId: null };
   }
 
   static getDerivedStateFromError(error: Error): State {
@@ -39,6 +41,12 @@ class Web3ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Generate unique error ID
+    const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Log error to Supabase if available
+    this.logErrorToSupabase(error, errorInfo, errorId);
+    
     // Only catch Web3-related errors
     const isWeb3Error = 
       error.message.includes('MetaMask') ||
@@ -51,7 +59,8 @@ class Web3ErrorBoundary extends Component<Props, State> {
       console.warn('Web3 Error caught by boundary:', error, errorInfo);
       this.setState({
         error,
-        errorInfo
+        errorInfo,
+        errorId
       });
     } else {
       // Re-throw non-Web3 errors
@@ -59,8 +68,47 @@ class Web3ErrorBoundary extends Component<Props, State> {
     }
   }
 
+  logErrorToSupabase = async (error: Error, errorInfo: ErrorInfo, errorId: string) => {
+    if (!supabase) return;
+
+    try {
+      await supabase.from('error_logs').insert({
+        error_id: errorId,
+        error_message: error.message,
+        error_stack: error.stack,
+        component_stack: errorInfo.componentStack,
+        user_agent: navigator.userAgent,
+        url: window.location.href,
+        timestamp: new Date().toISOString(),
+        error_type: 'web3_boundary'
+      });
+    } catch (logError) {
+      console.error('Failed to log error to Supabase:', logError);
+    }
+  };
+
   handleReset = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+    this.setState({ hasError: false, error: null, errorInfo: null, errorId: null });
+  };
+
+  handleGoHome = () => {
+    window.location.href = '/';
+  };
+
+  handleReportBug = () => {
+    const errorDetails = {
+      errorId: this.state.errorId,
+      message: this.state.error?.message,
+      stack: this.state.error?.stack,
+      componentStack: this.state.errorInfo?.componentStack,
+      url: window.location.href,
+      userAgent: navigator.userAgent
+    };
+    
+    // Open email client with error details
+    const subject = encodeURIComponent(`Bug Report - Error ID: ${this.state.errorId}`);
+    const body = encodeURIComponent(`Error Details:\n\n${JSON.stringify(errorDetails, null, 2)}`);
+    window.open(`mailto:support@archi.com?subject=${subject}&body=${body}`);
   };
 
   render() {
@@ -81,14 +129,40 @@ class Web3ErrorBoundary extends Component<Props, State> {
                   </div>
                   
                   <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={this.handleReset}
+                        className="flex-1"
+                        variant="outline"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Continue
+                      </Button>
+                      <Button 
+                        onClick={this.handleGoHome}
+                        className="flex-1"
+                        variant="outline"
+                      >
+                        <Home className="h-4 w-4 mr-2" />
+                        Go Home
+                      </Button>
+                    </div>
+                    
                     <Button 
-                      onClick={this.handleReset}
+                      onClick={this.handleReportBug}
                       className="w-full"
-                      variant="outline"
+                      variant="ghost"
+                      size="sm"
                     >
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Continue to Application
+                      <Bug className="h-4 w-4 mr-2" />
+                      Report Bug
                     </Button>
+                    
+                    {this.state.errorId && (
+                      <p className="text-xs text-yellow-600 text-center">
+                        Error ID: {this.state.errorId}
+                      </p>
+                    )}
                     
                     <details className="text-xs">
                       <summary className="cursor-pointer text-yellow-700 hover:text-yellow-800">

@@ -20,7 +20,9 @@ import {
   Layout,
   Sparkles,
   IndianRupee,
+  Sun,
 } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { cn } from "@/lib/utils"
 
 const navigation = [
@@ -39,6 +41,7 @@ const navigation = [
   { name: "AI Assistant", href: "/assistant", icon: MessageCircle },
   { name: "Collaborate", href: "/collaborate", icon: Users },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
+  { name: "Theme Test", href: "/theme-test", icon: Sun },
 ]
 
 export function Navigation() {
@@ -84,7 +87,11 @@ export function Navigation() {
           </div>
         </div>
 
-        <div className="border-t border-sidebar-border p-2">
+        <div className="border-t border-sidebar-border p-2 space-y-2">
+          <div className="flex items-center justify-between px-2">
+            <span className="text-xs text-muted-foreground">Theme</span>
+            <ThemeToggle />
+          </div>
           <Button variant="ghost" className="w-full justify-start gap-3">
             <User className="h-4 w-4" />
             <span className="text-sm">Sign in with Google</span>

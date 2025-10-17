@@ -15,9 +15,17 @@ class PexelsService:
         # Make Pexels optional and controlled by an enabled flag
         self.api_key = PEXELS_API_KEY
         self.base_url = PEXELS_API_URL
-        self.enabled = bool(self.api_key and self.api_key != "your_pexels_api_key_here")
+        # Check for placeholder/demo API keys that should be treated as disabled
+        placeholder_keys = [
+            "your_pexels_api_key_here",
+            "rXEdhkisXHdUMcohUxq5Qy2YXRXzzN5fVgEBOXMoBAVPaPbOrFdHrD38",  # Demo key
+            None,
+            ""
+        ]
+        self.enabled = bool(self.api_key and self.api_key not in placeholder_keys)
         print(f"Pexels service enabled: {self.enabled}")
-        print(f"Pexels API key: {self.api_key}")
+        if not self.enabled:
+            print(f"Pexels disabled - using placeholder/demo API key")
         self.headers = {"Authorization": self.api_key} if self.enabled else {}
         # Create a shared client for better performance
         self.client = httpx.AsyncClient(timeout=15.0)

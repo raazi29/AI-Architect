@@ -1,6 +1,7 @@
 import httpx
 from fastapi import HTTPException
 from typing import Dict, List, Any
+from architecture_design_service import architecture_design_service
 
 PICSUM_LIST_URL = "https://picsum.photos/v2/list"
 
@@ -102,6 +103,12 @@ class PicsumService:
         small = f"{base}/{small_w}/{h_for(small_w)}"
         thumb_w = 200
         thumb = f"{base}/{thumb_w}/{h_for(thumb_w)}"
+        
+        # Use architecture design service for professional, varied titles
+        seed_value = int(pid) if str(pid).isdigit() else hash(pid)
+        title = architecture_design_service.generate_design_title(seed_value)
+        alt_text = architecture_design_service.generate_alt_text(seed_value)
+        
         return {
             "id": int(pid) if str(pid).isdigit() else pid,
             "width": width,
@@ -121,9 +128,9 @@ class PicsumService:
                 "landscape": regular,
                 "tiny": thumb
             },
-            "alt": f"Photo {pid}",
+            "alt": alt_text,
             "image": regular,
-            "title": f"Photo {pid}",
+            "title": title,
             "author": "",
             "likes": 0,
             "saves": 0,

@@ -63,12 +63,21 @@ def generate_floor_plan(prompt: str, model_name: str = "default"):
             api_url = f"https://api-inference.huggingface.co/models/{attempt_model}"
             logger.info(f"Trying model: {attempt_model}")
 
-            # Adjust prompt based on model type
+            # Enhanced architectural floor plan prompts
             test_payload = payload.copy()
             if "floorplan" in attempt_model.lower() or "maria26" in attempt_model:
-                test_payload["inputs"] = f"Create a floor plan: {prompt}"
+                test_payload["inputs"] = f"Professional architectural floor plan: {prompt}, technical drawing, architectural standards, accurate dimensions, proper scale, clear room labels, door and window symbols, furniture layout, traffic flow, building code compliance"
             elif "stable-diffusion" in attempt_model:
-                test_payload["inputs"] = f"Professional architectural floor plan diagram: {prompt}, clean lines, black and white, technical drawing style"
+                test_payload["inputs"] = f"Professional architectural floor plan diagram: {prompt}, clean architectural lines, black and white technical drawing, accurate room proportions, proper door and window placement, furniture symbols, dimension lines, architectural annotations, professional CAD style, building standards compliance"
+            
+            # Add enhanced parameters for better quality
+            test_payload["parameters"] = {
+                "num_inference_steps": 50,
+                "guidance_scale": 9.0,
+                "width": 1024,
+                "height": 1024,
+                "negative_prompt": "blurry, low quality, distorted, wrong proportions, unrealistic dimensions, poor architectural standards, messy lines, unprofessional, cartoon style, colored, decorative elements, furniture details, textures, shadows, 3D perspective, perspective view, isometric view"
+            }
 
             response = requests.post(api_url, headers=headers, json=test_payload, timeout=60)
             logger.info(f"Model {attempt_model}: HTTP {response.status_code}")

@@ -55,14 +55,14 @@ class MultiAIService:
         }
         
         self.style_contexts = {
-            "modern": "modern contemporary interior design, clean lines, minimalist aesthetic, neutral colors",
-            "traditional": "traditional classic interior design, warm colors, rich textures, elegant furniture",
-            "scandinavian": "scandinavian interior design, light wood, white walls, cozy atmosphere, hygge style",
-            "industrial": "industrial interior design, exposed brick, metal fixtures, concrete floors, urban loft",
-            "luxury": "luxury high-end interior design, premium materials, sophisticated lighting, elegant furniture",
-            "minimalist": "minimalist interior design, clean simple lines, neutral palette, uncluttered space",
-            "bohemian": "bohemian eclectic interior design, vibrant colors, mixed patterns, artistic elements",
-            "rustic": "rustic country interior design, natural wood, stone elements, cozy farmhouse style"
+            "modern": "modern contemporary interior design, clean architectural lines, minimalist furniture, neutral color palette, natural lighting, professional photography, high-end materials, geometric forms, open space concept",
+            "traditional": "traditional classic interior design, ornate architectural details, classic furniture pieces, warm color tones, elegant fixtures, sophisticated ambiance, rich textures, timeless elegance",
+            "scandinavian": "scandinavian interior design, light wood elements, white walls, cozy atmosphere, hygge style, natural materials, functional furniture, soft lighting, minimalist aesthetic",
+            "industrial": "industrial interior design, exposed brick walls, metal fixtures, concrete floors, urban loft style, raw materials, high ceilings, large windows, architectural elements",
+            "luxury": "luxury high-end interior design, premium materials, sophisticated lighting design, elegant furniture, opulent details, marble surfaces, gold accents, designer pieces",
+            "minimalist": "minimalist interior design, clean simple lines, neutral palette, uncluttered space, zen atmosphere, functional furniture, natural light, architectural simplicity",
+            "bohemian": "bohemian eclectic interior design, vibrant colors, mixed patterns, artistic elements, creative atmosphere, vintage pieces, global influences, layered textures",
+            "rustic": "rustic country interior design, natural wood elements, stone features, cozy farmhouse style, warm atmosphere, vintage furniture, natural textures, country charm"
         }
 
         # Regional styling cues for cultural fidelity
@@ -72,11 +72,23 @@ class MultiAIService:
     
     def _create_enhanced_prompt(self, user_prompt: str, style: str = "auto", room_type: str = "auto") -> str:
         """
-        Create enhanced prompt with STRICT user input priority
-        CRITICAL: User's exact words and requirements must be preserved and prioritized
+        Create enhanced prompt with professional architectural accuracy
+        Prioritizes user input while adding architectural quality enhancements
         """
         # Start with user's exact prompt - this is the foundation
         enhanced_prompt = user_prompt.strip()
+        
+        # Professional architectural prompt templates by style
+        style_templates = {
+            "modern": "modern contemporary interior design, clean architectural lines, minimalist furniture, neutral color palette, natural lighting, professional photography, high-end materials, geometric forms, open space concept",
+            "traditional": "traditional classic interior design, ornate architectural details, classic furniture pieces, warm color tones, elegant fixtures, sophisticated ambiance, rich textures, timeless elegance",
+            "scandinavian": "scandinavian interior design, light wood elements, white walls, cozy atmosphere, hygge style, natural materials, functional furniture, soft lighting, minimalist aesthetic",
+            "industrial": "industrial interior design, exposed brick walls, metal fixtures, concrete floors, urban loft style, raw materials, high ceilings, large windows, architectural elements",
+            "luxury": "luxury high-end interior design, premium materials, sophisticated lighting design, elegant furniture, opulent details, marble surfaces, gold accents, designer pieces",
+            "minimalist": "minimalist interior design, clean simple lines, neutral palette, uncluttered space, zen atmosphere, functional furniture, natural light, architectural simplicity",
+            "bohemian": "bohemian eclectic interior design, vibrant colors, mixed patterns, artistic elements, creative atmosphere, vintage pieces, global influences, layered textures",
+            "rustic": "rustic country interior design, natural wood elements, stone features, cozy farmhouse style, warm atmosphere, vintage furniture, natural textures, country charm"
+        }
         
         # Auto-detect room type from user prompt if "auto" is specified
         detected_room_type = None
@@ -285,6 +297,8 @@ class MultiAIService:
             "detailed textures, accurate proportions, high resolution, 8k quality, "
             "natural lighting, professional staging, architecturally accurate, "
             "sharp focus on details, precise object placement, accurate colors, "
+            "professional architectural rendering, photorealistic, studio lighting, "
+            "architectural precision, material realism, proper scale and perspective"
             "physically-based rendering, global illumination, realistic materials, "
             "proper shadows and reflections, photorealistic quality"
         )
@@ -307,12 +321,16 @@ class MultiAIService:
     
     def _create_negative_prompt(self, room_type: str) -> str:
         """
-        Create negative prompt to avoid wrong room types and ensure accuracy
+        Create professional negative prompt to ensure architectural accuracy
         """
         base_negative = (
             "blurry, low quality, distorted, ugly, bad anatomy, bad proportions, grainy, overexposed, underexposed, "
             "washed out colors, cartoon, illustration, CGI, rendered, fake lighting, watermark, logo, text, floating objects, "
-            "impractical fixtures, unsafe lighting, exposed wiring, impossible structures, exaggerated proportions"
+            "impractical fixtures, unsafe lighting, exposed wiring, impossible structures, exaggerated proportions, "
+            "unrealistic materials, poor lighting, cluttered, messy, unprofessional, amateur, low resolution, "
+            "distorted perspective, wrong scale, floating furniture, impossible architecture, bad composition, "
+            "oversaturated colors, artificial lighting, poor shadows, unrealistic reflections, bad textures, "
+            "inconsistent style, mixed architectural periods, non-functional design, unsafe elements"
         )
         # Add specific room exclusions to prevent wrong room types (skip for auto)
         if room_type.lower() == "auto":
@@ -352,13 +370,15 @@ class MultiAIService:
             try:
                 url = f"{self.providers['huggingface']['base_url']}/{model}"
                 
-                # Model-specific parameters
+                # Enhanced quality parameters for professional results
                 parameters = {
-                    "num_inference_steps": kwargs.get("steps", 50),
-                    "guidance_scale": kwargs.get("guidance_scale", 7.5),
+                    "num_inference_steps": kwargs.get("steps", 50),  # Higher steps for better quality
+                    "guidance_scale": kwargs.get("guidance_scale", 9.0),  # Higher guidance for better prompt adherence
                     "width": kwargs.get("width", 1024),
                     "height": kwargs.get("height", 1024),
-                    "negative_prompt": negative_prompt
+                    "negative_prompt": negative_prompt,
+                    "scheduler": "DPMSolverMultistepScheduler",  # Better scheduler for quality
+                    "num_images_per_prompt": 1
                 }
                 
                 # Adjust parameters for specific models

@@ -143,7 +143,7 @@ export default function PerformanceTest() {
                   <div className="flex flex-col items-end">
                     {getStatusBadge(result.status)}
                     <span className="text-xs text-muted-foreground mt-1">
-                      {result.timestamp.toLocaleTimeString()}
+                      {new Date(result.timestamp * 1000).toLocaleTimeString()}
                     </span>
                   </div>
                 </div>

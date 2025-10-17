@@ -33,11 +33,11 @@ class IndianEcommerceService:
         if self.session:
             await self.session.close()
     
-    async def search_products(self, query: str, category: str = None, price_min: int = None, price_max: int = None) -> List[Dict[str, Any]]:
+    async def search_products(self, query: str, category: str = None, price_min: int = None, price_max: int = None, room_type: str = None, style: str = None, budget_range: str = None) -> List[Dict[str, Any]]:
         """Search products across all Indian retailers"""
         tasks = []
         for retailer in self.retailers:
-            tasks.append(self._search_retailer(retailer, query, category, price_min, price_max))
+            tasks.append(self._search_retailer(retailer, query, category, price_min, price_max, room_type, style, budget_range))
         
         results = await asyncio.gather(*tasks, return_exceptions=True)
         
@@ -52,19 +52,19 @@ class IndianEcommerceService:
         
         return all_products
     
-    async def _search_retailer(self, retailer: Dict, query: str, category: str = None, price_min: int = None, price_max: int = None) -> List[Dict[str, Any]]:
+    async def _search_retailer(self, retailer: Dict, query: str, category: str = None, price_min: int = None, price_max: int = None, room_type: str = None, style: str = None, budget_range: str = None) -> List[Dict[str, Any]]:
         """Search a specific retailer"""
         try:
             # For now, we'll fetch real data from retailers using web scraping
             # In a real implementation, we would use the retailer's API if available
             # or scrape their website for actual product data
-            return await self._fetch_real_retailer_products(retailer, query, category, price_min, price_max)
+            return await self._fetch_real_retailer_products(retailer, query, category, price_min, price_max, room_type, style, budget_range)
         except Exception as e:
             print(f"Error searching {retailer['name']}: {e}")
             # Return empty list if real data fetch fails
             return []
     
-    async def _fetch_real_retailer_products(self, retailer: Dict, query: str, category: str, price_min: int, price_max: int) -> List[Dict[str, Any]]:
+    async def _fetch_real_retailer_products(self, retailer: Dict, query: str, category: str, price_min: int, price_max: int, room_type: str = None, style: str = None, budget_range: str = None) -> List[Dict[str, Any]]:
         """Fetch real products from retailer using web scraping or API"""
         if not self.session:
             return []

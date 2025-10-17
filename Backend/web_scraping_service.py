@@ -11,7 +11,7 @@ import re
 
 # Import the image categorization service
 from image_categorization_service import image_categorization_service
-from fast_cache_service import fast_cache_service
+# Removed unused import: from fast_cache_service import fast_cache_service
 
 
 class WebScrapingService:

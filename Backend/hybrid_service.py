@@ -29,29 +29,28 @@ class HybridImageService:
         self.ambientcg = AmbientCGService()
         self.web_scraping = web_scraping_service  # New web scraping service
         
-        # Start with free services first to ensure we always get results
+        # Start with web scraping first, fallback to APIs/free services
         self.providers = []
         
-        # Add paid services first if enabled (they support search better)
+        # PRIORITY 1: Web scraping service (PRIMARY - provides real design content without API keys)
+        self.providers.append(("web_scraping", self.web_scraping))
+        
+        # PRIORITY 2: Picsum (FIRST FALLBACK - no rate limits, always available)
+        self.providers.append(("picsum", self.picsum))
+        
+        # PRIORITY 3: Free services that support search (SECOND FALLBACK)
+        self.providers.append(("rawpixel", self.rawpixel))
+        self.providers.append(("openverse", self.openverse))
+        self.providers.append(("wikimedia", self.wikimedia))
+        self.providers.append(("ambientcg", self.ambientcg))
+        
+        # PRIORITY 4: API services (FINAL FALLBACK - only if enabled, subject to rate limits)
         if getattr(self.pexels, "enabled", False):
             self.providers.append(("pexels", self.pexels))
         if getattr(self.unsplash, "enabled", False):
             self.providers.append(("unsplash", self.unsplash))
         if getattr(self.pixabay, "enabled", False):
             self.providers.append(("pixabay", self.pixabay))
-        
-        # Add web scraping service (provides Pinterest-like content from alternative sources)
-        self.providers.append(("web_scraping", self.web_scraping))
-        
-        # Free services that support search (add these next)
-        self.providers.append(("rawpixel", self.rawpixel))
-        self.providers.append(("openverse", self.openverse))
-        self.providers.append(("wikimedia", self.wikimedia))
-        self.providers.append(("ambientcg", self.ambientcg))
-        
-        # Picsum last (doesn't support search well and may return random images)
-        # Only use Picsum if specifically requested or as a last resort
-        self.providers.append(("picsum", self.picsum))
         
         # Print debug information about initialized providers
         print("Initialized providers:")
