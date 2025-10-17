@@ -43,6 +43,12 @@ export default function AiMaterialsPage() {
   const [progressStep, setProgressStep] = useState<number>(0)
   const [totalSteps, setTotalSteps] = useState<number>(0)
 
+  // Add dark mode support to all components
+  const cardClasses = "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+  const textClasses = "text-gray-900 dark:text-gray-100"
+  const mutedTextClasses = "text-gray-600 dark:text-gray-400"
+  const buttonClasses = "bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
+
   // Form state
   const [roomType, setRoomType] = useState("")
   const [style, setStyle] = useState("")
@@ -54,26 +60,26 @@ export default function AiMaterialsPage() {
   const [searchQuery, setSearchQuery] = useState("")
 
   const getMaterialSuggestions = async () => {
+    if (!roomType || !style || !roomSize) {
+      setError('Please fill in room type, style, and size')
+      return
+    }
+
     setLoading(true)
     setError(null)
     setSuggestions(null)
-    setProgressMessage(null)
-    setProgressStep(0)
-    setTotalSteps(0)
 
     try {
-      const response = await fetch("http://localhost:8001/ai/materials-stream", {
+      const response = await fetch("http://localhost:8001/materials/search", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          query: `${roomType} ${style} materials`,
           room_type: roomType,
           style: style,
-          room_size: parseFloat(roomSize),
-          durability_needs: durability,
           budget_range: budget,
-          special_requirements: specialRequirements,
         }),
       })
 
@@ -81,69 +87,42 @@ export default function AiMaterialsPage() {
         throw new Error("Failed to get material suggestions")
       }
 
-      // Handle streaming response
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ""
+      const data = await response.json()
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        
-        // Process each complete event
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || "" // Keep incomplete line in buffer
-
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            try {
-              const data = JSON.parse(line.slice(6)) // Remove "data: " prefix
-
-              if (data.status === 'processing' || data.status === 'ai_processing') {
-                // Update UI to show processing status with progress
-                setProgressMessage(data.message)
-                if (data.step !== undefined && data.total_steps !== undefined) {
-                  setProgressStep(data.step)
-                  setTotalSteps(data.total_steps)
-                }
-              } else if (data.partial_response) {
-                // Handle partial response - this would require building up the full JSON
-                // For now, we'll focus on complete responses
-              } else if (data.complete_response) {
-                // Got the complete response
-                setSuggestions(data.complete_response)
-                setProgressMessage(null)
-                setProgressStep(0)
-                setTotalSteps(0)
-              } else if (data.raw_response && data.status === 'complete') {
-                // Handle raw response if JSON parsing failed
-                setError("Received response but could not parse as structured data")
-                console.warn("Raw response:", data.raw_response)
-                setProgressMessage(null)
-                setProgressStep(0)
-                setTotalSteps(0)
-              } else if (data.error) {
-                setError(data.message || "An error occurred while processing the request")
-                setProgressMessage(null)
-                setProgressStep(0)
-                setTotalSteps(0)
-              }
-            } catch (e) {
-              console.error("Error parsing SSE data:", e, line)
-            }
-          }
-        }
+      if (data.error) {
+        setError(data.message || "Failed to get material suggestions")
+        return
       }
+
+      // Convert the response to the expected format
+      const mockSuggestions = {
+        flooring: {
+          primary_options: data.products?.slice(0, 3).map((product: any) => ({
+            material: product.name,
+            description: product.brand,
+            pros: ["Durable", "Cost-effective", "Easy to maintain"],
+            cons: ["May require professional installation"],
+            cost_range: `₹${product.price * 2}-${product.price * 4} per sq ft`
+          })) || [],
+          alternative_options: []
+        },
+        walls: {
+          paint: {
+            recommended_types: ["Emulsion paint", "Texture paint", "Wallpaper"]
+          }
+        },
+        ceiling: {
+          materials: ["POP ceiling", "Gypsum boards", "Wooden panels"]
+        },
+        summary: `Based on your ${roomType} requirements with ${style} style, here are the recommended materials for a ${roomSize} sq meter room.`
+      }
+
+      setSuggestions(mockSuggestions)
     } catch (error) {
       setError("Failed to get material suggestions. Please try again.")
       console.error("Error getting material suggestions:", error)
     } finally {
       setLoading(false)
-      setProgressMessage(null)
-      setProgressStep(0)
-      setTotalSteps(0)
     }
   }
 
@@ -182,64 +161,28 @@ export default function AiMaterialsPage() {
     setProducts([])
 
     try {
-      // Simulate search with mock data since backend is disabled
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Mock products data
-      const mockProducts = [
-        {
-          id: "1",
-          name: "Engineered Wood Flooring",
-          brand: "Greenlam",
-          price: 1200,
-          image: "/placeholder.svg"
+      // Call real backend API for material search
+      const response = await fetch('http://localhost:8001/materials/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        {
-          id: "2",
-          name: "Vitrified Tiles",
-          brand: "Kajaria",
-          price: 80,
-          image: "/placeholder.svg"
-        },
-        {
-          id: "3",
-          name: "Italian Marble Slab",
-          brand: "Ambika Marble",
-          price: 450,
-          image: "/placeholder.svg"
-        },
-        {
-          id: "4",
-          name: "Premium Wall Paint",
-          brand: "Asian Paints",
-          price: 1200,
-          image: "/placeholder.svg"
-        },
-        {
-          id: "5",
-          name: "Designer Ceiling Fan",
-          brand: "Crompton",
-          price: 3500,
-          image: "/placeholder.svg"
-        },
-        {
-          id: "6",
-          name: "Granite Kitchen Platform",
-          brand: "Centacem",
-          price: 250,
-          image: "/placeholder.svg"
-        }
-      ]
+        body: JSON.stringify({
+          query: searchQuery,
+          room_type: selectedRoomType,
+          style: selectedStyle,
+          budget_range: selectedBudget
+        })
+      })
 
-      // Filter mock products based on search query
-      const filteredProducts = mockProducts.filter(product => 
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.brand.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
 
-      setProducts(filteredProducts)
+      const data = await response.json()
+      setProducts(data.products || [])
     } catch (error) {
-      setError("Failed to search for materials. Using mock data.")
+      setError("Failed to search for materials. Please try again.")
       console.error("Error searching for materials:", error)
       
       // Set some default mock products

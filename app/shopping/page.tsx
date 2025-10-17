@@ -255,47 +255,44 @@ export default function SmartShopping() {
       setLoading(true)
       setError(null)
 
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // Filter mock products based on search and filters
-      let filteredMockProducts = mockProducts.filter((product) => {
-        const matchesSearch =
-          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-
-        const matchesCategory =
-          selectedCategory === "all" || product.category.toLowerCase() === selectedCategory.toLowerCase()
-        const matchesStyle = selectedStyle === "all" || product.style.toLowerCase() === selectedStyle.toLowerCase()
-        const matchesPrice = product.price >= priceRange[0] && product.price <= priceRange[1]
-        const matchesRetailer = selectedRetailer === "all" || product.retailer.toLowerCase().includes(selectedRetailer.toLowerCase())
-
-        const matchesTab =
-          activeTab === "all" ||
-          (activeTab === "sale" && product.discount) ||
-          (activeTab === "wishlist" && product.isWishlisted) ||
-          (activeTab === "in-stock" && product.inStock)
-
-        return matchesSearch && matchesCategory && matchesStyle && matchesPrice && matchesTab && matchesRetailer
+      // Call real backend API
+      const response = await fetch('http://localhost:8001/shopping/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          page: pageNum,
+          per_page: 20,
+          category: selectedCategory,
+          price_range: priceRange,
+          sort_by: sortBy
+        })
       })
 
-      // Apply pagination
-      const startIndex = (pageNum - 1) * 100 // Using 100 as per_page like the original
-      const paginatedProducts = filteredMockProducts.slice(startIndex, startIndex + 100)
-      
-      if (loadMore) {
-        setProducts(prev => [...prev, ...paginatedProducts])
-      } else {
-        setProducts(paginatedProducts)
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      setTotalPages(Math.ceil(filteredMockProducts.length / 100))
+      const data = await response.json()
+      
+      if (loadMore) {
+        setProducts(prev => [...prev, ...data.products])
+      } else {
+        setProducts(data.products)
+      }
+      
       setPage(pageNum)
     } catch (err) {
-      setError("Failed to load products. Using mock data.")
-      console.error("Error with mock products:", err)
-      setProducts(mockProducts)
+      setError("Failed to load products. Please try again.")
+      console.error("Error loading products:", err)
+      
+      // Fallback to mock data only if API fails
+      if (loadMore) {
+        setProducts(prev => [...prev, ...mockProducts])
+      } else {
+        setProducts(mockProducts)
+      }
     } finally {
       setLoading(false)
     }
@@ -415,7 +412,7 @@ export default function SmartShopping() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navigation />
 
       <main className="ml-64 p-8">

@@ -5,8 +5,18 @@ import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ImageGenerator } from "@/components/image-generator/ImageGenerator"
-import { VideoGenerator } from "@/components/image-generator/VideoGenerator"
+import dynamic from "next/dynamic"
+
+// Lazy load heavy components for better performance
+const ImageGenerator = dynamic(() => import("@/components/image-generator/ImageGenerator").then(mod => ({ default: mod.ImageGenerator })), {
+  loading: () => <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+  ssr: false
+})
+
+const VideoGenerator = dynamic(() => import("@/components/image-generator/VideoGenerator").then(mod => ({ default: mod.VideoGenerator })), {
+  loading: () => <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+  ssr: false
+})
 import type { GeneratorMode } from "@/components/image-generator/types"
 import { Sparkles, Video } from "lucide-react"
 
@@ -14,7 +24,7 @@ export default function AIGenerator() {
   const [generationType, setGenerationType] = useState<GeneratorMode>("image")
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <Navigation />
 
       <main className="ml-64 p-8">

@@ -232,27 +232,27 @@ const AIColorsPage = () => {
   };
 
   const ColorCard = ({ color, title, size = 'large' }: { color: ColorInfo, title: string, size?: 'large' | 'small' }) => (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className="hover:shadow-md dark:hover:shadow-lg transition-shadow bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
       <CardContent className="p-4">
-        <div 
-          className={`w-full ${size === 'large' ? 'h-24' : 'h-16'} rounded-lg mb-3 border-2 border-gray-200`}
+        <div
+          className={`w-full ${size === 'large' ? 'h-24' : 'h-16'} rounded-lg mb-3 border-2 border-gray-200 dark:border-gray-600`}
           style={{ backgroundColor: color.hex }}
         />
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <h4 className="font-semibold">{color.name}</h4>
-            <Badge variant="outline" className="text-xs">{title}</Badge>
+            <h4 className="font-semibold text-gray-900 dark:text-gray-100">{color.name}</h4>
+            <Badge variant="outline" className="text-xs border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300">{title}</Badge>
           </div>
-          
+
           <div className="space-y-1 text-sm">
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">HEX:</span>
+              <span className="text-gray-600 dark:text-gray-400">HEX:</span>
               <div className="flex items-center gap-2">
-                <code className="bg-gray-100 px-2 py-1 rounded text-xs">{color.hex}</code>
+                <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs text-gray-800 dark:text-gray-200">{color.hex}</code>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 w-6 p-0"
+                  className="h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                   onClick={() => copyToClipboard(color.hex, 'hex')}
                 >
                   {copiedColor === `hex-${color.hex}` ? (
@@ -263,15 +263,15 @@ const AIColorsPage = () => {
                 </Button>
               </div>
             </div>
-            
+
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">RGB:</span>
+              <span className="text-gray-600 dark:text-gray-400">RGB:</span>
               <div className="flex items-center gap-2">
-                <code className="bg-gray-100 px-2 py-1 rounded text-xs">{color.rgb}</code>
+                <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs text-gray-800 dark:text-gray-200">{color.rgb}</code>
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-6 w-6 p-0"
+                  className="h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
                   onClick={() => copyToClipboard(color.rgb, 'rgb')}
                 >
                   {copiedColor === `rgb-${color.rgb}` ? (
@@ -283,10 +283,10 @@ const AIColorsPage = () => {
               </div>
             </div>
           </div>
-          
-          <div className="pt-2 border-t">
-            <p className="text-xs text-muted-foreground mb-1">Usage: {color.usage}</p>
-            <p className="text-xs text-muted-foreground">Psychology: {color.psychology}</p>
+
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Usage: {color.usage}</p>
+            <p className="text-xs text-gray-600 dark:text-gray-400">Psychology: {color.psychology}</p>
           </div>
         </div>
       </CardContent>
@@ -294,19 +294,19 @@ const AIColorsPage = () => {
   );
 
   const SimpleColorCard = ({ color, theme }: { color: { name: string; hex: string }, theme: string }) => (
-    <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-      <div 
-        className="w-12 h-12 rounded-lg border-2 border-gray-200 flex-shrink-0"
+    <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+      <div
+        className="w-12 h-12 rounded-lg border-2 border-gray-200 dark:border-gray-600 flex-shrink-0"
         style={{ backgroundColor: color.hex }}
       />
       <div className="flex-1">
-        <p className="font-medium text-sm">{color.name}</p>
+        <p className="font-medium text-sm text-gray-900 dark:text-gray-100">{color.name}</p>
         <div className="flex items-center gap-2">
-          <code className="bg-gray-100 px-2 py-1 rounded text-xs">{color.hex}</code>
+          <code className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs text-gray-800 dark:text-gray-200">{color.hex}</code>
           <Button
             size="sm"
             variant="ghost"
-            className="h-6 w-6 p-0"
+            className="h-6 w-6 p-0 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
             onClick={() => copyToClipboard(color.hex, `${theme}-${color.name}`)}
           >
             {copiedColor === `${theme}-${color.name}` ? (
@@ -321,14 +321,14 @@ const AIColorsPage = () => {
   );
 
   return (
-    <div className="flex-1 space-y-6 p-8 pt-6 bg-gradient-to-br from-purple-50 to-pink-50 min-h-screen">
+    <div className="flex-1 space-y-6 p-8 pt-6 bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
             AI Color Palette Generator
           </h1>
-          <p className="text-lg text-muted-foreground mt-2">
+          <p className="text-lg text-gray-600 dark:text-gray-400 mt-2">
             Generate harmonious color palettes based on room style, lighting, and mood preferences
           </p>
         </div>
@@ -345,13 +345,13 @@ const AIColorsPage = () => {
       </div>
 
       {/* Input Form */}
-      <Card className="border-0 shadow-lg">
+      <Card className="border-0 shadow-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
             <Palette className="h-5 w-5 text-purple-500" />
             Color Preferences
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-gray-600 dark:text-gray-400">
             Tell us about your space and desired mood to generate perfect color combinations
           </CardDescription>
         </CardHeader>
@@ -531,13 +531,13 @@ const AIColorsPage = () => {
 
               {/* Color Analysis */}
               {palette.color_analysis && (
-                <Card className="border-0 shadow-lg">
+                <Card className="border-0 shadow-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                       <Eye className="h-5 w-5 text-indigo-500" />
                       Color Analysis & Accessibility
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-gray-600 dark:text-gray-400">
                       Technical analysis of your color palette
                     </CardDescription>
                   </CardHeader>
@@ -787,13 +787,13 @@ const AIColorsPage = () => {
 
               {/* Primary Palette */}
               {palette.primary_palette && (
-                <Card className="border-0 shadow-lg">
+                <Card className="border-0 shadow-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                   <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-gray-900 dark:text-gray-100">
                       <Palette className="h-5 w-5 text-purple-500" />
                       Primary Color Palette
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-gray-600 dark:text-gray-400">
                       Your main color scheme following the 60-30-10 rule
                     </CardDescription>
                   </CardHeader>

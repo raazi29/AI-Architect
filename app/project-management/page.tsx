@@ -39,7 +39,6 @@ import {
   MapPin,
   Phone,
   Mail,
-  IndianFlag,
   Factory,
   LandPlot,
   HardHat,
@@ -687,7 +686,7 @@ export default function ProjectManagementPage() {
             <CardTitle className="flex items-center gap-2 text-blue-800">
               <Building className="h-6 w-6" />
               <div className="flex items-center gap-2">
-                <IndianFlag className="h-5 w-5 text-red-500" />
+                <MapPin className="h-5 w-5 text-red-500" />
                 <span>Project Overview</span>
               </div>
             </CardTitle>
@@ -1739,7 +1738,7 @@ export default function ProjectManagementPage() {
                     
                     <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                       <h4 className="font-semibold text-yellow-800 flex items-center gap-1">
-                        <IndianFlag className="h-4 w-4" />
+                        <MapPin className="h-4 w-4" />
                         Indian Tax Compliance
                       </h4>
                       <p className="text-sm text-yellow-700">
@@ -1838,11 +1837,6 @@ export default function ProjectManagementPage() {
               </CardFooter>
             </Card>
           </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  );
-}
         </Tabs>
       </div>
     </div>

@@ -161,7 +161,7 @@ const AILayoutPage = () => {
 
   const fetchRoomTypes = async () => {
     try {
-      const response = await fetch('http://localhost:8002/ai/room-types');
+      const response = await fetch('http://localhost:8001/ai/room-types');
       const data = await response.json();
       setRoomTypes(data.room_types);
     } catch (error) {
@@ -193,7 +193,7 @@ const AILayoutPage = () => {
 
     try {
       if (outputMode === 'text') {
-        const response = await fetch('http://localhost:8002/ai/layout', {
+        const response = await fetch('http://localhost:8001/ai/layout', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -219,7 +219,7 @@ const AILayoutPage = () => {
         setOptimization(data);
       } else {
         // Image-based layout generation
-        const response = await fetch('http://localhost:8002/ai/layout-image', {
+        const response = await fetch('http://localhost:8001/ai/layout-image', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

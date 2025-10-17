@@ -6,6 +6,8 @@ import { Analytics } from "@vercel/analytics/next"
 import { Suspense } from "react"
 import { AuthProvider } from "@/contexts/AuthContext"
 import Web3ErrorBoundary from "@/components/error-boundary/Web3ErrorBoundary"
+import { ThemeProvider } from "@/components/theme-provider"
+import { ToastProvider } from "@/components/ui/toast-provider"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -21,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Performance: preconnect and dns-prefetch for image CDNs */}
         <link rel="preconnect" href="https://images.pexels.com" crossOrigin="anonymous" />
@@ -33,12 +35,15 @@ export default function RootLayout({
         <link rel="preconnect" href="https://picsum.photos" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="//picsum.photos" />
       </head>
-      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`} suppressHydrationWarning={true}>
-        <Web3ErrorBoundary>
-          <AuthProvider>
-            <Suspense fallback={null}>{children}</Suspense>
-          </AuthProvider>
-        </Web3ErrorBoundary>
+      <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
+        <ThemeProvider>
+          <Web3ErrorBoundary>
+            <AuthProvider>
+              <Suspense fallback={null}>{children}</Suspense>
+            </AuthProvider>
+          </Web3ErrorBoundary>
+        </ThemeProvider>
+        <ToastProvider />
         <Analytics />
       </body>
     </html>

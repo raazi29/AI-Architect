@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import dynamic from "next/dynamic"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -9,7 +10,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Slider } from "@/components/ui/slider"
-import EnhancedARScene from "@/components/ar/enhanced-ar-scene"
+
+// Lazy load heavy AR components
+const EnhancedARScene = dynamic(() => import("@/components/ar/enhanced-ar-scene").then(mod => ({ default: mod.EnhancedARScene || mod.default })), {
+  loading: () => <div className="flex items-center justify-center h-96"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>,
+  ssr: false
+})
 import { modelService, DEFAULT_FURNITURE_MODELS, ModelInfo } from "@/components/ar/model-service"
 import {
   Cable as Cube,

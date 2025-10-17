@@ -39,7 +39,8 @@ export default function DesignPostCard({ post, viewMode, priority = false }: Des
     'https://picsum.photos',
     'https://api.rawpixel.com',
     'https://images.rawpixel.com',
-    'https://cdn.rawpixel.com'
+    'https://cdn.rawpixel.com',
+    'https://placehold.co'
   ];
   const useDirect = TRUSTED.some(prefix => imageUrl.startsWith(prefix));
   const displayUrl = useDirect ? imageUrl : `/api/image?src=${encodeURIComponent(imageUrl)}`;
