@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { ImageAnalysisDisplay } from "@/components/image-analysis-display"
-import { analyzeImage, chatWithAI } from "@/lib/api"
+import { analyzeImage, chatWithAI, API_BASE_URL } from "@/lib/api"
 import {
   MessageCircle,
   Send,
@@ -108,7 +108,8 @@ export default function AIAssistant() {
 
   const loadChatSessions = async () => {
     try {
-      const response = await fetch("http://localhost:8001/chat-sessions")
+      const response = await fetch(`${API_BASE_URL}/chat-sessions`)
+
       if (response.ok) {
         const data = await response.json()
         const sessions = data.sessions.map((session: any) => ({
@@ -127,7 +128,7 @@ export default function AIAssistant() {
 
   const saveChatHistory = async () => {
     try {
-      const response = await fetch("http://localhost:8001/save-chat", {
+      const response = await fetch(`${API_BASE_URL}/save-chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -138,7 +139,7 @@ export default function AIAssistant() {
           messages: messages,
         }),
       })
-      
+
       if (response.ok) {
         // Refresh session list
         loadChatSessions()
@@ -170,7 +171,8 @@ export default function AIAssistant() {
 
     setIsLoadingHistory(true)
     try {
-      const response = await fetch(`http://localhost:8001/chat-history/${sessionId}`)
+      const response = await fetch(`${API_BASE_URL}/chat-history/${sessionId}`)
+
       if (response.ok) {
         const data = await response.json()
         const loadedMessages = data.messages.map((msg: any) => ({

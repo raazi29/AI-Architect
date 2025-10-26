@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -76,6 +77,7 @@ const VastuPage = () => {
   const [roomType, setRoomType] = useState('');
   const [direction, setDirection] = useState('');
   const [analysis, setAnalysis] = useState<RoomAnalysis | null>(null);
+  const [textSummary, setTextSummary] = useState<string | null>(null);
   const [detailedAnalysis, setDetailedAnalysis] = useState<any | null>(null);
   const [roomTypes, setRoomTypes] = useState<RoomType[]>([]);
   const [directions, setDirections] = useState<Direction[]>([]);
@@ -87,11 +89,14 @@ const VastuPage = () => {
   useEffect(() => {
     fetchRoomTypes();
     fetchDirections();
+    fetchVastuElements();
+    fetchRoomGuidelines();
+    fetchVastuTips();
   }, []);
 
   const fetchRoomTypes = async () => {
     try {
-      const response = await fetch('http://localhost:8001/vastu/room-types');
+      const response = await fetch(`${API_BASE_URL}/vastu/room-types`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -99,25 +104,13 @@ const VastuPage = () => {
       setRoomTypes(data.room_types || []);
     } catch (error) {
       console.error('Error fetching room types:', error);
-      // Set default room types as fallback
-      setRoomTypes([
-        {"value": "main_entrance", "label": "Main Entrance"},
-        {"value": "living_room", "label": "Living Room"},
-        {"value": "master_bedroom", "label": "Master Bedroom"},
-        {"value": "kitchen", "label": "Kitchen"},
-        {"value": "bathroom", "label": "Bathroom"},
-        {"value": "study_room", "label": "Study Room"},
-        {"value": "dining_room", "label": "Dining Room"},
-        {"value": "guest_room", "label": "Guest Room"},
-        {"value": "pooja_room", "label": "Pooja Room"},
-        {"value": "staircase", "label": "Staircase"}
-      ]);
+      setError('Failed to load room types. Please refresh the page.');
     }
   };
 
   const fetchDirections = async () => {
     try {
-      const response = await fetch('http://localhost:8001/vastu/directions');
+      const response = await fetch(`${API_BASE_URL}/vastu/directions`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -125,18 +118,46 @@ const VastuPage = () => {
       setDirections(data.directions || []);
     } catch (error) {
       console.error('Error fetching directions:', error);
-      // Set default directions as fallback
-      setDirections([
-        {"value": "north", "label": "North"},
-        {"value": "north-east", "label": "North-East"},
-        {"value": "east", "label": "East"},
-        {"value": "south-east", "label": "South-East"},
-        {"value": "south", "label": "South"},
-        {"value": "south-west", "label": "South-West"},
-        {"value": "west", "label": "West"},
-        {"value": "north-west", "label": "North-West"},
-        {"value": "center", "label": "Center"}
-      ]);
+      setError('Failed to load directions. Please refresh the page.');
+    }
+  };
+
+  const fetchVastuElements = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vastu/elements`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setVastuElements(data.elements || []);
+    } catch (error) {
+      console.error('Error fetching vastu elements:', error);
+    }
+  };
+
+  const fetchRoomGuidelines = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vastu/room-guidelines`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setRoomGuidelines(data.guidelines || []);
+    } catch (error) {
+      console.error('Error fetching room guidelines:', error);
+    }
+  };
+
+  const fetchVastuTips = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vastu/tips`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setVastuTipsData(data.tips || []);
+    } catch (error) {
+      console.error('Error fetching vastu tips:', error);
     }
   };
 
@@ -148,8 +169,7 @@ const VastuPage = () => {
     setShowRemedies(false);
     
     try {
-      // Get basic analysis
-      const response = await fetch('http://localhost:8001/vastu/analyze-room', {
+      const response = await fetch(`${API_BASE_URL}/vastu/analyze-room-text`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -165,26 +185,16 @@ const VastuPage = () => {
       }
       
       const data = await response.json();
-      setAnalysis(data);
+      setAnalysis(data.analysis);
+      setTextSummary(data.text_summary || null);
       
-      // Get detailed analysis with remedies
-      try {
-        const detailedResponse = await fetch(
-          `http://localhost:8001/vastu/analyze-room-detailed?room_type=${roomType}&direction=${direction}`,
-          { method: 'POST' }
-        );
-        
-        if (detailedResponse.ok) {
-          const detailedData = await detailedResponse.json();
-          setDetailedAnalysis(detailedData);
-          setShowRemedies(detailedData.remedies !== null);
-        }
-      } catch (detailError) {
-        console.log('Detailed analysis not available:', detailError);
-        // Continue with basic analysis
+      // Set remedies flag if remedies are available
+      if (data.remedies && data.remedies.length > 0) {
+        setShowRemedies(true);
       }
     } catch (error) {
       setError('Failed to analyze room. Please try again.');
+      setTextSummary(null);
       console.error('Error analyzing room:', error);
     } finally {
       setLoading(false);
@@ -213,127 +223,10 @@ const VastuPage = () => {
     }
   };
 
-  // Vastu elements data
-  const vastuElements = [
-    {
-      name: 'Earth (Prithvi)',
-      icon: Mountain,
-      color: 'text-yellow-600',
-      direction: 'South-West',
-      properties: 'Stability, strength, support',
-      tips: 'Place heavy furniture and storage in SW direction'
-    },
-    {
-      name: 'Water (Jal)',
-      icon: Droplets,
-      color: 'text-blue-600',
-      direction: 'North-East',
-      properties: 'Flow, purification, life',
-      tips: 'Water features, bathrooms in NE bring prosperity'
-    },
-    {
-      name: 'Fire (Agni)',
-      icon: Flame,
-      color: 'text-red-600',
-      direction: 'South-East',
-      properties: 'Energy, transformation, power',
-      tips: 'Kitchen, electrical appliances in SE direction'
-    },
-    {
-      name: 'Air (Vayu)',
-      icon: Wind,
-      color: 'text-green-600',
-      direction: 'North-West',
-      properties: 'Movement, circulation, freshness',
-      tips: 'Windows, ventilation in NW for good airflow'
-    },
-    {
-      name: 'Space (Akash)',
-      icon: Star,
-      color: 'text-purple-600',
-      direction: 'Center',
-      properties: 'Openness, freedom, expansion',
-      tips: 'Keep center area open and clutter-free'
-    }
-  ];
-
-  const roomGuidelines = [
-    {
-      room: 'Main Entrance',
-      bestDirection: 'North, East, North-East',
-      avoid: 'South-West corner',
-      tips: 'Well-lit, obstacle-free, beautiful door',
-      status: 'excellent'
-    },
-    {
-      room: 'Living Room',
-      bestDirection: 'North, East, North-East',
-      avoid: 'South-West for seating',
-      tips: 'Light colors, good ventilation, east-facing seating',
-      status: 'good'
-    },
-    {
-      room: 'Master Bedroom',
-      bestDirection: 'South-West',
-      avoid: 'North-East corner',
-      tips: 'Bed in SW corner, head towards south/east',
-      status: 'excellent'
-    },
-    {
-      room: 'Kitchen',
-      bestDirection: 'South-East',
-      avoid: 'North-East, North-West',
-      tips: 'Cook facing east, sink in NE corner',
-      status: 'good'
-    },
-    {
-      room: 'Bathroom',
-      bestDirection: 'North-West, South-East',
-      avoid: 'North-East, South-West',
-      tips: 'Exhaust fan in east/north wall',
-      status: 'warning'
-    },
-    {
-      room: 'Study Room',
-      bestDirection: 'North-East, West',
-      avoid: 'Under staircase',
-      tips: 'Face east/north while studying',
-      status: 'excellent'
-    }
-  ];
-
-  const vastuTipsData = [
-    {
-      category: 'Colors',
-      icon: Palette,
-      tips: [
-        'Use light colors in north and east walls',
-        'Avoid dark colors in north-east',
-        'Yellow and orange in south-west bring stability',
-        'Blue and green in north enhance prosperity'
-      ]
-    },
-    {
-      category: 'Lighting',
-      icon: Lightbulb,
-      tips: [
-        'Maximum natural light from north and east',
-        'Avoid heavy curtains on north/east windows',
-        'Use bright lights in dark corners',
-        'Place lamps in south-east corner'
-      ]
-    },
-    {
-      category: 'Furniture Placement',
-      icon: Home,
-      tips: [
-        'Heavy furniture in south and west',
-        'Keep north-east corner light and airy',
-        'Avoid furniture in center of room',
-        'Bed should not face north direction'
-      ]
-    }
-  ];
+  // These will be loaded from API
+  const [vastuElements, setVastuElements] = useState<any[]>([]);
+  const [roomGuidelines, setRoomGuidelines] = useState<any[]>([]);
+  const [vastuTipsData, setVastuTipsData] = useState<any[]>([]);
 
 
   return (
@@ -489,6 +382,13 @@ const VastuPage = () => {
                         <p className="text-sm text-muted-foreground">{analysis.element.properties}</p>
                       </div>
                     )}
+
+                    {textSummary && (
+                      <div className="mt-4 p-4 rounded-lg bg-white border">
+                        <h4 className="font-medium mb-2">Summary</h4>
+                        <p className="text-sm leading-6 text-gray-700">{textSummary}</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
@@ -510,11 +410,13 @@ const VastuPage = () => {
             </CardHeader>
             <CardContent>
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {vastuElements.map((element) => (
+                {vastuElements.length > 0 ? vastuElements.map((element) => (
                   <Card key={element.name} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-3 mb-4">
-                        <element.icon className={`h-8 w-8 ${element.color}`} />
+                        <div className={`h-8 w-8 ${element.color} rounded-full flex items-center justify-center`}>
+                          <Star className="h-5 w-5 text-white" />
+                        </div>
                         <div>
                           <h3 className="font-semibold text-lg">{element.name}</h3>
                           <p className="text-sm text-muted-foreground">{element.direction}</p>
@@ -526,7 +428,11 @@ const VastuPage = () => {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                )) : (
+                  <div className="col-span-full text-center py-8">
+                    <p className="text-muted-foreground">Loading Vastu elements...</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -546,7 +452,7 @@ const VastuPage = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {roomGuidelines.map((guideline) => (
+                {roomGuidelines.length > 0 ? roomGuidelines.map((guideline) => (
                   <Card key={guideline.room} className="hover:shadow-md transition-shadow">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between mb-3">
@@ -574,7 +480,11 @@ const VastuPage = () => {
                       </div>
                     </CardContent>
                   </Card>
-                ))}
+                )) : (
+                  <div className="text-center py-8">
+                    <p className="text-muted-foreground">Loading room guidelines...</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -583,11 +493,11 @@ const VastuPage = () => {
         <TabsContent value="tips" className="space-y-6">
           {/* Vastu Tips */}
           <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
-            {vastuTipsData.map((category: any) => (
+            {vastuTipsData.length > 0 ? vastuTipsData.map((category: any) => (
               <Card key={category.category} className="border-0 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <category.icon className="h-5 w-5 text-orange-500" />
+                    <Lightbulb className="h-5 w-5 text-orange-500" />
                     {category.category}
                   </CardTitle>
                 </CardHeader>
@@ -602,7 +512,11 @@ const VastuPage = () => {
                   </ul>
                 </CardContent>
               </Card>
-            ))}
+            )) : (
+              <div className="col-span-full text-center py-8">
+                <p className="text-muted-foreground">Loading Vastu tips...</p>
+              </div>
+            )}
           </div>
 
           {/* Vastu Compass */}

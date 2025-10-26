@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,116 +63,13 @@ interface VastuComplianceCheck {
 }
 
 export default function EnhancedVastuPage() {
-  const [houseDirection, setHouseDirection] = useState<string>('east');
-  const [houseType, setHouseType] = useState<string>('residential');
-  const [rooms, setRooms] = useState<VastuRoom[]>([
-    {
-      id: '1',
-      name: 'Living Room',
-      idealDirection: 'Northeast',
-      actualDirection: 'Northeast',
-      compatibility: 'excellent',
-      benefits: ['Enhances family bonding', 'Promotes positive energy'],
-      issues: []
-    },
-    {
-      id: '2',
-      name: 'Kitchen',
-      idealDirection: 'Southeast',
-      actualDirection: 'Southeast',
-      compatibility: 'excellent',
-      benefits: ['Improves health', 'Brings prosperity'],
-      issues: []
-    },
-    {
-      id: '3',
-      name: 'Master Bedroom',
-      idealDirection: 'Southwest',
-      actualDirection: 'Southwest',
-      compatibility: 'excellent',
-      benefits: ['Promotes stability', 'Ensures good sleep'],
-      issues: []
-    },
-    {
-      id: '4',
-      name: 'Study Room',
-      idealDirection: 'Northwest',
-      actualDirection: 'Northeast',
-      compatibility: 'good',
-      benefits: ['Enhances concentration', 'Improves memory'],
-      issues: ['Not in ideal direction', 'May affect focus']
-    }
-  ]);
-
-  const [elements, setElements] = useState<VastuElement[]>([
-    {
-      id: '1',
-      name: 'Main Entrance',
-      direction: 'Northeast',
-      element: 'Air',
-      compatibility: 'excellent',
-      notes: 'Welcomes positive energy'
-    },
-    {
-      id: '2',
-      name: 'Pooja Room',
-      direction: 'Northeast',
-      element: 'Space',
-      compatibility: 'excellent',
-      notes: 'Ideal for spiritual activities'
-    },
-    {
-      id: '3',
-      name: 'Water Storage',
-      direction: 'Northeast',
-      element: 'Water',
-      compatibility: 'excellent',
-      notes: 'Brings prosperity'
-    },
-    {
-      id: '4',
-      name: 'Heavy Furniture',
-      direction: 'Southwest',
-      element: 'Earth',
-      compatibility: 'excellent',
-      notes: 'Creates stability'
-    }
-  ]);
-
-  const [complianceChecks, setComplianceChecks] = useState<VastuComplianceCheck[]>([
-    {
-      id: '1',
-      title: 'Main Entrance Direction',
-      description: 'Main entrance should face North, East, or Northeast for positive energy',
-      status: 'compliant',
-      severity: 'high',
-      recommendations: ['Ensure entrance is well-lit', 'Keep entrance clean and clutter-free']
-    },
-    {
-      id: '2',
-      title: 'Kitchen Placement',
-      description: 'Kitchen should be in Southeast direction representing fire element',
-      status: 'compliant',
-      severity: 'high',
-      recommendations: ['Cook facing East for positive energy', 'Avoid placing kitchen in Northeast']
-    },
-    {
-      id: '3',
-      title: 'Master Bedroom Placement',
-      description: 'Master bedroom should be in Southwest for stability',
-      status: 'compliant',
-      severity: 'high',
-      recommendations: ['Bed should be placed in Southwest corner', 'Avoid placing bed under beams']
-    },
-    {
-      id: '4',
-      title: 'Water Tank Placement',
-      description: 'Water storage should be in North, East, or Northeast',
-      status: 'partial',
-      severity: 'medium',
-      recommendations: ['Move water storage to Northeast if possible', 'Avoid Southwest placement']
-    }
-  ]);
+  const [houseDirection, setHouseDirection] = useState<string>('');
+  const [houseType, setHouseType] = useState<string>('');
+  const [rooms, setRooms] = useState<VastuRoom[]>([]);
+  const [elements, setElements] = useState<VastuElement[]>([]);
+  const [complianceChecks, setComplianceChecks] = useState<VastuComplianceCheck[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const directions = [
     { value: 'north', label: 'North', icon: <Compass className="h-4 w-4" /> },
@@ -204,6 +102,43 @@ export default function EnhancedVastuPage() {
     high: 'bg-red-100 text-red-800'
   };
 
+  // Load data on component mount
+  useEffect(() => {
+    fetchVastuData();
+  }, []);
+
+  const fetchVastuData = async () => {
+    setLoading(true);
+    try {
+      // Fetch all Vastu data from API
+      const [roomsRes, elementsRes, complianceRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/vastu/rooms`),
+        fetch(`${API_BASE_URL}/vastu/elements`),
+        fetch(`${API_BASE_URL}/vastu/compliance-checks`)
+      ]);
+
+      if (roomsRes.ok) {
+        const roomsData = await roomsRes.json();
+        setRooms(roomsData.rooms || []);
+      }
+
+      if (elementsRes.ok) {
+        const elementsData = await elementsRes.json();
+        setElements(elementsData.elements || []);
+      }
+
+      if (complianceRes.ok) {
+        const complianceData = await complianceRes.json();
+        setComplianceChecks(complianceData.checks || []);
+      }
+    } catch (error) {
+      console.error('Error fetching Vastu data:', error);
+      setError('Failed to load Vastu data. Please refresh the page.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const updateRoomDirection = (id: string, direction: string) => {
     setRooms(rooms.map(room => 
       room.id === id ? { ...room, actualDirection: direction } : room
@@ -211,6 +146,7 @@ export default function EnhancedVastuPage() {
   };
 
   const calculateComplianceScore = () => {
+    if (complianceChecks.length === 0) return 0;
     const compliant = complianceChecks.filter(check => check.status === 'compliant').length;
     return Math.round((compliant / complianceChecks.length) * 100);
   };
@@ -390,7 +326,7 @@ export default function EnhancedVastuPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {rooms.map((room) => (
+                    {rooms.length > 0 ? rooms.map((room) => (
                       <TableRow key={room.id}>
                         <TableCell className="font-medium">{room.name}</TableCell>
                         <TableCell>
@@ -439,7 +375,13 @@ export default function EnhancedVastuPage() {
                           )}
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )) : (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8">
+                          {loading ? 'Loading rooms...' : 'No rooms data available'}
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>

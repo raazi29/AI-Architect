@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BrickWall, Search, Sparkles } from "lucide-react"
+import { API_BASE_URL } from "@/lib/api"
 
 interface MaterialSuggestions {
   flooring: {
@@ -70,7 +71,7 @@ export default function AiMaterialsPage() {
     setSuggestions(null)
 
     try {
-      const response = await fetch("http://localhost:8001/materials/search", {
+      const response = await fetch(`${API_BASE_URL}/materials/search`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -95,7 +96,7 @@ export default function AiMaterialsPage() {
       }
 
       // Convert the response to the expected format
-      const mockSuggestions = {
+      const mockSuggestions: MaterialSuggestions = {
         flooring: {
           primary_options: data.products?.slice(0, 3).map((product: any) => ({
             material: product.name,
@@ -114,6 +115,9 @@ export default function AiMaterialsPage() {
         ceiling: {
           materials: ["POP ceiling", "Gypsum boards", "Wooden panels"]
         },
+        fixtures: {},
+        sustainability: {},
+        indian_context: {},
         summary: `Based on your ${roomType} requirements with ${style} style, here are the recommended materials for a ${roomSize} sq meter room.`
       }
 
@@ -132,7 +136,7 @@ export default function AiMaterialsPage() {
     setTexture(null)
 
     try {
-      const response = await fetch("http://localhost:8001/ai/texture-generation", {
+      const response = await fetch(`${API_BASE_URL}/ai/texture-generation`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -162,16 +166,16 @@ export default function AiMaterialsPage() {
 
     try {
       // Call real backend API for material search
-      const response = await fetch('http://localhost:8001/materials/search', {
+      const response = await fetch(`${API_BASE_URL}/materials/search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           query: searchQuery,
-          room_type: selectedRoomType,
-          style: selectedStyle,
-          budget_range: selectedBudget
+          room_type: roomType,
+          style: style,
+          budget_range: budget
         })
       })
 
@@ -192,7 +196,8 @@ export default function AiMaterialsPage() {
           name: "Sample Material",
           brand: "Mock Brand",
           price: 1000,
-          image: "/placeholder.svg"
+          image: "/placeholder.svg",
+          retailer: "Mock Retailer"
         }
       ])
     } finally {

@@ -3,6 +3,8 @@
 import type React from "react"
 import { useState, useMemo } from "react"
 import { Navigation } from "@/components/navigation"
+import { API_BASE_URL } from "@/lib/api"
+
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Textarea } from "@/components/ui/textarea"
@@ -103,7 +105,7 @@ export default function FloorPlanGenerator() {
     const timeoutId = setTimeout(() => controller.abort(), 90000) // 90 second timeout
 
     try {
-      const response = await fetch("http://localhost:8001/floor-plan", {
+      const response = await fetch(`${API_BASE_URL}/floor-plan`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

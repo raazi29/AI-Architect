@@ -3,6 +3,8 @@
 import { useState, useEffect, useMemo } from "react"
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
+import { API_BASE_URL } from "@/lib/api"
+
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -256,7 +258,7 @@ export default function SmartShopping() {
       setError(null)
 
       // Call real backend API
-      const response = await fetch('http://localhost:8001/shopping/products', {
+      const response = await fetch(`${API_BASE_URL}/shopping/products`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

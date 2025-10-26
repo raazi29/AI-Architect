@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { API_BASE_URL } from '@/lib/api';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,7 +46,7 @@ export default function RealTimeUpdates({ productId }: RealTimeUpdatesProps) {
       
       try {
         // Call real backend API for real-time updates
-        const response = await fetch('http://localhost:8001/shopping/realtime-updates', {
+        const response = await fetch(`${API_BASE_URL}/shopping/realtime-updates`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
