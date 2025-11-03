@@ -1,186 +1,66 @@
 'use client';
 
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RefreshCw, Home, Bug } from 'lucide-react';
-import { supabase } from '@/lib/supabaseClient';
+import React from 'react';
 
 interface Props {
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
 interface State {
   hasError: boolean;
-  error: Error | null;
-  errorInfo: ErrorInfo | null;
-  errorId: string | null;
+  error?: Error;
 }
 
-class Web3ErrorBoundary extends Component<Props, State> {
+class Web3ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null, errorId: null };
+    this.state = { hasError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    // Check if this is a Web3/MetaMask related error
-    const isWeb3Error = 
-      error.message.includes('MetaMask') ||
-      error.message.includes('ethereum') ||
-      error.message.includes('web3') ||
-      error.message.includes('Failed to connect') ||
-      error.stack?.includes('chrome-extension');
-
-    if (isWeb3Error) {
-      return { hasError: true, error, errorInfo: null };
-    }
-    
-    // For non-Web3 errors, let them bubble up
-    throw error;
+    return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Generate unique error ID
-    const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Log error to Supabase if available
-    this.logErrorToSupabase(error, errorInfo, errorId);
-    
-    // Only catch Web3-related errors
-    const isWeb3Error = 
-      error.message.includes('MetaMask') ||
-      error.message.includes('ethereum') ||
-      error.message.includes('web3') ||
-      error.message.includes('Failed to connect') ||
-      error.stack?.includes('chrome-extension');
-
-    if (isWeb3Error) {
-      console.warn('Web3 Error caught by boundary:', error, errorInfo);
-      this.setState({
-        error,
-        errorInfo,
-        errorId
-      });
-    } else {
-      // Re-throw non-Web3 errors
-      throw error;
-    }
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Web3ErrorBoundary caught an error:', error, errorInfo);
   }
-
-  logErrorToSupabase = async (error: Error, errorInfo: ErrorInfo, errorId: string) => {
-    if (!supabase) return;
-
-    try {
-      await supabase.from('error_logs').insert({
-        error_id: errorId,
-        error_message: error.message,
-        error_stack: error.stack,
-        component_stack: errorInfo.componentStack,
-        user_agent: navigator.userAgent,
-        url: window.location.href,
-        timestamp: new Date().toISOString(),
-        error_type: 'web3_boundary'
-      });
-    } catch (logError) {
-      console.error('Failed to log error to Supabase:', logError);
-    }
-  };
-
-  handleReset = () => {
-    this.setState({ hasError: false, error: null, errorInfo: null, errorId: null });
-  };
-
-  handleGoHome = () => {
-    window.location.href = '/';
-  };
-
-  handleReportBug = () => {
-    const errorDetails = {
-      errorId: this.state.errorId,
-      message: this.state.error?.message,
-      stack: this.state.error?.stack,
-      componentStack: this.state.errorInfo?.componentStack,
-      url: window.location.href,
-      userAgent: navigator.userAgent
-    };
-    
-    // Open email client with error details
-    const subject = encodeURIComponent(`Bug Report - Error ID: ${this.state.errorId}`);
-    const body = encodeURIComponent(`Error Details:\n\n${JSON.stringify(errorDetails, null, 2)}`);
-    window.open(`mailto:support@archi.com?subject=${subject}&body=${body}`);
-  };
 
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-4">
-          <div className="max-w-md w-full">
-            <Alert className="border-yellow-200 bg-yellow-50">
-              <AlertTriangle className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
-                <div className="space-y-3">
-                  <div>
-                    <h3 className="font-semibold">Web3 Extension Conflict</h3>
-                    <p className="text-sm mt-1">
-                      There seems to be a conflict with your browser's Web3 extension (like MetaMask). 
-                      This doesn't affect the core functionality of the application.
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={this.handleReset}
-                        className="flex-1"
-                        variant="outline"
-                      >
-                        <RefreshCw className="h-4 w-4 mr-2" />
-                        Continue
-                      </Button>
-                      <Button 
-                        onClick={this.handleGoHome}
-                        className="flex-1"
-                        variant="outline"
-                      >
-                        <Home className="h-4 w-4 mr-2" />
-                        Go Home
-                      </Button>
-                    </div>
-                    
-                    <Button 
-                      onClick={this.handleReportBug}
-                      className="w-full"
-                      variant="ghost"
-                      size="sm"
-                    >
-                      <Bug className="h-4 w-4 mr-2" />
-                      Report Bug
-                    </Button>
-                    
-                    {this.state.errorId && (
-                      <p className="text-xs text-yellow-600 text-center">
-                        Error ID: {this.state.errorId}
-                      </p>
-                    )}
-                    
-                    <details className="text-xs">
-                      <summary className="cursor-pointer text-yellow-700 hover:text-yellow-800">
-                        Technical Details
-                      </summary>
-                      <div className="mt-2 p-2 bg-yellow-100 rounded text-yellow-800">
-                        <p><strong>Error:</strong> {this.state.error?.message}</p>
-                        {process.env.NODE_ENV === 'development' && (
-                          <pre className="mt-1 text-xs overflow-auto">
-                            {this.state.error?.stack}
-                          </pre>
-                        )}
-                      </div>
-                    </details>
-                  </div>
-                </div>
-              </AlertDescription>
-            </Alert>
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+            <div className="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full">
+              <svg
+                className="w-6 h-6 text-red-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+            </div>
+            <div className="mt-4 text-center">
+              <h3 className="text-lg font-medium text-gray-900">
+                Something went wrong
+              </h3>
+              <p className="mt-2 text-sm text-gray-500">
+                An error occurred while loading the application. Please refresh the page to try again.
+              </p>
+              <div className="mt-4">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Refresh Page
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       );
