@@ -1,0 +1,51 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e6]:
+        - img [ref=e8]
+        - generic [ref=e14]: AR Interior
+      - generic [ref=e16]:
+        - link "Dashboard" [ref=e17] [cursor=pointer]:
+          - /url: /
+          - img [ref=e18] [cursor=pointer]
+          - text: Dashboard
+        - link "AI Generator" [ref=e21] [cursor=pointer]:
+          - /url: /ai-generator
+          - img [ref=e22] [cursor=pointer]
+          - text: AI Generator
+        - link "Design Feed" [ref=e31] [cursor=pointer]:
+          - /url: /design-feed
+          - img [ref=e32] [cursor=pointer]
+          - text: Design Feed
+        - link "AR Placement" [ref=e36] [cursor=pointer]:
+          - /url: /ar-placement
+          - img [ref=e37] [cursor=pointer]
+          - text: AR Placement
+        - link "Smart Shopping" [ref=e43] [cursor=pointer]:
+          - /url: /shopping
+          - img [ref=e44] [cursor=pointer]
+          - text: Smart Shopping
+        - link "Floor Plans" [ref=e48] [cursor=pointer]:
+          - /url: /floor-plans
+          - img [ref=e49] [cursor=pointer]
+          - text: Floor Plans
+        - link "AI Assistant" [ref=e54] [cursor=pointer]:
+          - /url: /assistant
+          - img [ref=e55] [cursor=pointer]
+          - text: AI Assistant
+        - link "Collaborate" [ref=e57] [cursor=pointer]:
+          - /url: /collaborate
+          - img [ref=e58] [cursor=pointer]
+          - text: Collaborate
+        - link "Analytics" [ref=e63] [cursor=pointer]:
+          - /url: /analytics
+          - img [ref=e64] [cursor=pointer]
+          - text: Analytics
+      - button "Sign in with Google" [ref=e70]:
+        - img
+        - generic [ref=e71]: Sign in with Google
+  - main [ref=e72]
+```

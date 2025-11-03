@@ -1,0 +1,51 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e2]:
+  - navigation [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e6]:
+        - img [ref=e8]
+        - generic [ref=e14]: AR Interior
+      - generic [ref=e16]:
+        - link "Dashboard" [ref=e17]:
+          - /url: /
+          - img [ref=e18]
+          - text: Dashboard
+        - link "AI Generator" [ref=e21]:
+          - /url: /ai-generator
+          - img [ref=e22]
+          - text: AI Generator
+        - link "Design Feed" [ref=e25]:
+          - /url: /design-feed
+          - img [ref=e26]
+          - text: Design Feed
+        - link "AR Placement" [ref=e30]:
+          - /url: /ar-placement
+          - img [ref=e31]
+          - text: AR Placement
+        - link "Smart Shopping" [ref=e37]:
+          - /url: /shopping
+          - img [ref=e38]
+          - text: Smart Shopping
+        - link "Floor Plans" [ref=e41]:
+          - /url: /floor-plans
+          - img [ref=e42]
+          - text: Floor Plans
+        - link "AI Assistant" [ref=e47]:
+          - /url: /assistant
+          - img [ref=e48]
+          - text: AI Assistant
+        - link "Collaborate" [ref=e50]:
+          - /url: /collaborate
+          - img [ref=e51]
+          - text: Collaborate
+        - link "Analytics" [ref=e56]:
+          - /url: /analytics
+          - img [ref=e57]
+          - text: Analytics
+      - button "Sign in with Google" [ref=e60]:
+        - img
+        - generic [ref=e61]: Sign in with Google
+  - main [ref=e62]
+```
