@@ -9,6 +9,7 @@ import json
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
+import requests
 from groq import Groq
 from hybrid_service import HybridImageService
 from database import init_db
@@ -18,6 +19,7 @@ from interior_ai_service import interior_ai_service
 from indian_ecommerce_service import IndianEcommerceService
 from interior_design_ecommerce_service import InteriorDesignEcommerceService
 from cache_service import CacheService
+from shops_router import router as shops_router
 from vastu_service import vastu_service, VastuRequest
 from ai_design_service import ai_design_service, MaterialRequest, BudgetRequest, ColorPaletteRequest, LayoutRequest
 from realtime_service import realtime_service
@@ -75,6 +77,7 @@ app = FastAPI(lifespan=lifespan)
 
 # Include the vision router
 app.include_router(vision_router)
+app.include_router(shops_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -83,6 +86,63 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Geoapify Places proxy
+GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
+
+@app.get("/places")
+async def get_places(
+    lon: float = Query(..., description="Longitude"),
+    lat: float = Query(..., description="Latitude"),
+    radius: int = Query(2000, ge=50, le=20000, description="Radius in meters (50-20000)"),
+    categories: str = Query("commercial.furniture", description="Geoapify category string"),
+    limit: int = Query(20, ge=1, le=100, description="Max items to return")
+):
+    try:
+        if not GEOAPIFY_API_KEY:
+            raise HTTPException(status_code=500, detail="GEOAPIFY_API_KEY is not configured on the server")
+
+        url = "https://api.geoapify.com/v2/places"
+        params = {
+            "categories": categories,
+            "filter": f"circle:{lon},{lat},{radius}",
+            "bias": f"proximity:{lon},{lat}",
+            "limit": limit,
+            "apiKey": GEOAPIFY_API_KEY,
+        }
+
+        resp = requests.get(url, params=params, timeout=10)
+        if resp.status_code == 403:
+            raise HTTPException(status_code=403, detail="Geoapify access forbidden - check API key or quotas")
+        if resp.status_code == 429:
+            raise HTTPException(status_code=429, detail="Rate limit exceeded for Geoapify free plan")
+        resp.raise_for_status()
+
+        data = resp.json()
+        # Normalize a minimal shape for frontend use
+        features = data.get("features", [])
+        results = [
+            {
+                "id": f.get("properties", {}).get("place_id"),
+                "name": f.get("properties", {}).get("name"),
+                "categories": f.get("properties", {}).get("categories", []),
+                "address": f.get("properties", {}).get("formatted"),
+                "lat": f.get("properties", {}).get("lat"),
+                "lon": f.get("properties", {}).get("lon"),
+                "distance": f.get("properties", {}).get("distance")
+            }
+            for f in features
+        ]
+
+        return {"results": results, "count": len(results)}
+    except HTTPException:
+        raise
+    except requests.Timeout:
+        raise HTTPException(status_code=504, detail="Geoapify request timed out")
+    except requests.RequestException as e:
+        raise HTTPException(status_code=502, detail=f"Geoapify request failed: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/health")
 async def health_check():
@@ -1582,54 +1642,13 @@ async def get_realtime_updates(request: Request):
         data = await request.json()
         product_id = data.get("product_id")
 
-        # Simulate real-time updates (in production, this would connect to actual retailer APIs)
-        updates = []
-        
-        if product_id:
-            # Generate relevant updates for the specific product
-            updates = [
-                {
-                    "id": f"update_{product_id}_1",
-                    "type": "inventory",
-                    "title": "Stock Alert",
-                    "description": f"Product {product_id} is running low (only 3 left)",
-                    "timestamp": time.time() - 300,  # 5 minutes ago
-                    "priority": "high",
-                    "status": "active",
-                    "product_id": product_id,
-                    "retailer": "Urban Ladder"
-                },
-                {
-                    "id": f"update_{product_id}_2",
-                    "type": "price",
-                    "title": "Price Drop",
-                    "description": f"Product {product_id} dropped by ₹500",
-                    "timestamp": time.time() - 900,  # 15 minutes ago
-                    "priority": "medium",
-                    "status": "active",
-                    "product_id": product_id,
-                    "retailer": "Pepperfry"
-                }
-            ]
-        else:
-            # General updates
-            updates = [
-                {
-                    "id": "general_1",
-                    "type": "trending",
-                    "title": "Trending Now",
-                    "description": "Modern furniture is trending in your area",
-                    "timestamp": time.time() - 1800,  # 30 minutes ago
-                    "priority": "medium",
-                    "status": "active",
-                    "retailer": "Multiple"
-                }
-            ]
-
+        # Return empty real-time updates
+        # In production, this would connect to actual retailer APIs
         return {
             "success": True,
-            "updates": updates,
-            "total": len(updates)
+            "price_comparisons": [],
+            "trending_products": [],
+            "inventory_updates": []
         }
 
     except Exception as e:
