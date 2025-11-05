@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { 
+import {
   Calculator,
   DollarSign,
   Clock,
@@ -33,14 +33,49 @@ import {
   Check,
   UserPlus,
   MessageSquare,
-  Activity
+  Activity,
+  IndianRupee,
+  Calendar,
+  MapPin,
+  Phone,
+  Mail,
+  Factory,
+  LandPlot,
+  HardHat,
+  Construction,
+  Home,
+  Building2,
+  Ruler,
+  Hammer,
+  Palette,
+  TreePine,
+  Sun,
+  Mountain,
+  Waves
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { 
+  projectTaskService, 
+  materialService, 
+  expenseService, 
+  projectMemberService, 
+  milestoneService, 
+  userPresenceService,
+  subscribeToProjectChanges,
+  ProjectTask,
+  Material,
+  Expense,
+  ProjectMember,
+  ProjectMilestone,
+  UserPresence
+} from '@/lib/projectManagementService';
 
 interface ProjectMember {
   id: string;
   user_id: string;
   username: string;
+  email: string;
+  phone: string;
   role: string;
   joined_at: string;
 }
@@ -95,51 +130,70 @@ interface UserPresence {
   last_seen: string;
 }
 
-export default function RealtimeProjectManagementPage({ params }: { params: { id: string } }) {
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  budget: number;
+  location: string;
+  timeline: number;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export default function ProjectManagementPage() {
   // State for project details
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [projectBudget, setProjectBudget] = useState<number | ''>('');
   const [projectTimeline, setProjectTimeline] = useState<number | ''>('');
+  const [projectLocation, setProjectLocation] = useState(''); // India-specific field for location
+  const [projectType, setProjectType] = useState('residential'); // India-specific: residential, commercial, industrial
+  const [climateZone, setClimateZone] = useState('tropical'); // India-specific: tropical, subtropical, mountain
+  const [localMaterials, setLocalMaterials] = useState<string[]>([]); // India-specific local materials
   
   // State for tasks (initial with sample data)
   const [tasks, setTasks] = useState<ProjectTask[]>([
     {
       id: '1',
+      project_id: 'project1',
       name: 'Foundation Work',
       category: 'Construction',
-      cost: 15000,
+      cost: 1500000, // Cost in INR
       duration: 10,
-      assignedTo: 'John Smith',
+      assigned_to: 'Ramesh Contractor',
       status: 'completed',
-      startDate: '2024-01-01',
-      endDate: '2024-01-10',
+      start_date: '2024-01-01',
+      end_date: '2024-01-10',
       created_by: 'user1',
       updated_at: new Date().toISOString()
     },
     {
       id: '2',
+      project_id: 'project1',
       name: 'Framing',
       category: 'Construction',
-      cost: 25000,
+      cost: 2500000,
       duration: 15,
-      assignedTo: 'Mike Johnson',
+      assigned_to: 'Mukesh Builders',
       status: 'in-progress',
-      startDate: '2024-01-11',
-      endDate: '2024-01-25',
+      start_date: '2024-01-11',
+      end_date: '2024-01-25',
       created_by: 'user2',
       updated_at: new Date().toISOString()
     },
     {
       id: '3',
+      project_id: 'project1',
       name: 'Electrical Work',
       category: 'Electrical',
-      cost: 12000,
+      cost: 1200000,
       duration: 12,
-      assignedTo: 'Sarah Davis',
+      assigned_to: 'Suresh Electric',
       status: 'pending',
-      startDate: '2024-01-26',
-      endDate: '2024-02-06',
+      start_date: '2024-01-26',
+      end_date: '2024-02-06',
       created_by: 'user3',
       updated_at: new Date().toISOString()
     }
@@ -149,30 +203,39 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
   const [materials, setMaterials] = useState<Material[]>([
     {
       id: '1',
-      name: 'Cement',
+      project_id: 'project1',
+      name: 'Cement (OPC 53 Grade)',
       category: 'Building Materials',
       unit: 'bag',
-      unitCost: 10,
+      unit_cost: 400,
       quantity: 500,
-      totalCost: 5000
+      total_cost: 200000,
+      created_by: 'user1',
+      updated_at: new Date().toISOString()
     },
     {
       id: '2',
-      name: 'Steel Rods',
+      project_id: 'project1',
+      name: 'TMT Steel Rods',
       category: 'Building Materials',
       unit: 'kg',
-      unitCost: 80,
-      quantity: 200,
-      totalCost: 160000
+      unit_cost: 75,
+      quantity: 2000,
+      total_cost: 150000,
+      created_by: 'user1',
+      updated_at: new Date().toISOString()
     },
     {
       id: '3',
-      name: 'Wood Planks',
-      category: 'Building Materials',
+      project_id: 'project1',
+      name: 'Premium Wood Planks',
+      category: 'Finishing Materials',
       unit: 'piece',
-      unitCost: 25,
-      quantity: 500,
-      totalCost: 12500
+      unit_cost: 800,
+      quantity: 100,
+      total_cost: 80000,
+      created_by: 'user1',
+      updated_at: new Date().toISOString()
     }
   ]);
   
@@ -180,20 +243,22 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
   const [expenses, setExpenses] = useState<Expense[]>([
     {
       id: '1',
-      name: 'Permit Fees',
+      project_id: 'project1',
+      name: 'Municipal Permit',
       category: 'Legal',
-      amount: 2500,
+      amount: 50000,
       date: '2024-01-05',
       notes: 'Building permit and inspection fees',
       created_by: 'user1'
     },
     {
       id: '2',
-      name: 'Consultation',
+      project_id: 'project1',
+      name: 'Architect Consultation',
       category: 'Professional',
-      amount: 5000,
+      amount: 150000,
       date: '2024-01-10',
-      notes: 'Architect consultation',
+      notes: 'Architect consultation and design approval',
       created_by: 'user2'
     }
   ]);
@@ -202,35 +267,44 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
   const [milestones, setMilestones] = useState<ProjectMilestone[]>([
     {
       id: '1',
+      project_id: 'project1',
       name: 'Foundation Complete',
-      targetDate: '2024-01-10',
+      target_date: '2024-01-10',
       completed: true,
-      budget: 15000,
-      actualCost: 15000
+      budget: 1500000,
+      actual_cost: 1500000,
+      created_by: 'user1',
+      updated_at: new Date().toISOString()
     },
     {
       id: '2',
+      project_id: 'project1',
       name: 'Framing Complete',
-      targetDate: '2024-01-25',
+      target_date: '2024-01-25',
       completed: false,
-      budget: 25000,
-      actualCost: 0
+      budget: 2500000,
+      actual_cost: 0,
+      created_by: 'user1',
+      updated_at: new Date().toISOString()
     },
     {
       id: '3',
+      project_id: 'project1',
       name: 'Electrical Complete',
-      targetDate: '2024-02-06',
+      target_date: '2024-02-06',
       completed: false,
-      budget: 12000,
-      actualCost: 0
+      budget: 1200000,
+      actual_cost: 0,
+      created_by: 'user1',
+      updated_at: new Date().toISOString()
     }
   ]);
   
   // State for members
   const [members, setMembers] = useState<ProjectMember[]>([
-    { id: '1', user_id: 'user1', username: 'Designer1', role: 'owner', joined_at: '2024-01-01' },
-    { id: '2', user_id: 'user2', username: 'Contractor1', role: 'editor', joined_at: '2024-01-02' },
-    { id: '3', user_id: 'user3', username: 'Engineer1', role: 'editor', joined_at: '2024-01-03' },
+    { id: '1', project_id: 'project1', user_id: 'user1', username: 'Designer1', email: 'designer@example.com', phone: '+91-9876543210', role: 'owner', joined_at: '2024-01-01' },
+    { id: '2', project_id: 'project1', user_id: 'user2', username: 'Contractor1', email: 'contractor@example.com', phone: '+91-9876543211', role: 'editor', joined_at: '2024-01-02' },
+    { id: '3', project_id: 'project1', user_id: 'user3', username: 'Engineer1', email: 'engineer@example.com', phone: '+91-9876543212', role: 'editor', joined_at: '2024-01-03' },
   ]);
   
   // State for form inputs
@@ -239,16 +313,16 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
     category: 'Construction',
     cost: '' as string | number,
     duration: '' as string | number,
-    assignedTo: '',
-    startDate: '',
-    endDate: ''
+    assigned_to: '',
+    start_date: '',
+    end_date: ''
   });
   
   const [newMaterial, setNewMaterial] = useState({
     name: '',
     category: 'Building Materials',
     unit: 'unit',
-    unitCost: '' as string | number,
+    unit_cost: '' as string | number,
     quantity: '' as string | number
   });
   
@@ -264,10 +338,11 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
   const [userPresence, setUserPresence] = useState<UserPresence[]>([]);
   const [activeUsers, setActiveUsers] = useState<number>(0);
   const [isOnline, setIsOnline] = useState(false);
+  const [unsubscribe, setUnsubscribe] = useState<(() => void) | null>(null);
 
   // Calculate totals
   const totalTaskCost = tasks.reduce((sum, task) => sum + task.cost, 0);
-  const totalMaterialCost = materials.reduce((sum, material) => sum + material.totalCost, 0);
+  const totalMaterialCost = materials.reduce((sum, material) => sum + material.total_cost, 0);
   const totalExpenseCost = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const totalProjectCost = totalTaskCost + totalMaterialCost + totalExpenseCost;
   const projectBudgetNum = typeof projectBudget === 'number' ? projectBudget : 0;
@@ -283,217 +358,311 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
   const totalMilestones = milestones.length;
   const milestoneProgress = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
 
-  // Add new task
-  const addTask = () => {
-    if (newTask.name && newTask.cost !== '' && newTask.duration !== '') {
-      const task: ProjectTask = {
-        id: Date.now().toString(),
-        name: newTask.name,
-        category: newTask.category,
-        cost: Number(newTask.cost),
-        duration: Number(newTask.duration),
-        assignedTo: newTask.assignedTo,
-        status: 'pending',
-        startDate: newTask.startDate,
-        endDate: newTask.endDate,
-        created_by: 'current_user', // This should be replaced with actual user ID
-        updated_at: new Date().toISOString()
-      };
-      setTasks([...tasks, task]);
-      
-      // Reset form
-      setNewTask({
-        name: '',
-        category: 'Construction',
-        cost: '',
-        duration: '',
-        assignedTo: '',
-        startDate: '',
-        endDate: ''
-      });
+  // Add new task using service
+  const addTask = async () => {
+    if (newTask.name && newTask.cost !== '' && newTask.duration !== '' && newTask.start_date && newTask.end_date) {
+      try {
+        const taskData = {
+          project_id: 'project1', // This should be the actual project ID
+          name: newTask.name,
+          category: newTask.category,
+          cost: Number(newTask.cost),
+          duration: Number(newTask.duration),
+          assigned_to: newTask.assigned_to,
+          status: 'pending',
+          start_date: newTask.start_date,
+          end_date: newTask.end_date,
+        };
+        
+        const newTaskItem = await projectTaskService.createTask(taskData);
+        setTasks([...tasks, newTaskItem]);
+        
+        // Reset form
+        setNewTask({
+          name: '',
+          category: 'Construction',
+          cost: '',
+          duration: '',
+          assigned_to: '',
+          start_date: '',
+          end_date: ''
+        });
+      } catch (error) {
+        console.error('Error adding task:', error);
+      }
     }
   };
 
-  // Add new material
-  const addMaterial = () => {
-    if (newMaterial.name && newMaterial.unitCost !== '' && newMaterial.quantity !== '') {
-      const material: Material = {
-        id: Date.now().toString(),
-        name: newMaterial.name,
-        category: newMaterial.category,
-        unit: newMaterial.unit,
-        unitCost: Number(newMaterial.unitCost),
-        quantity: Number(newMaterial.quantity),
-        totalCost: Number(newMaterial.unitCost) * Number(newMaterial.quantity)
-      };
-      setMaterials([...materials, material]);
-      
-      // Reset form
-      setNewMaterial({
-        name: '',
-        category: 'Building Materials',
-        unit: 'unit',
-        unitCost: '',
-        quantity: ''
-      });
+  // Add new material using service
+  const addMaterial = async () => {
+    if (newMaterial.name && newMaterial.unit_cost !== '' && newMaterial.quantity !== '') {
+      try {
+        const materialData = {
+          project_id: 'project1', // This should be the actual project ID
+          name: newMaterial.name,
+          category: newMaterial.category,
+          unit: newMaterial.unit,
+          unit_cost: Number(newMaterial.unit_cost),
+          quantity: Number(newMaterial.quantity),
+        };
+        
+        const newMaterialItem = await materialService.createMaterial(materialData);
+        setMaterials([...materials, newMaterialItem]);
+        
+        // Reset form
+        setNewMaterial({
+          name: '',
+          category: 'Building Materials',
+          unit: 'unit',
+          unit_cost: '',
+          quantity: ''
+        });
+      } catch (error) {
+        console.error('Error adding material:', error);
+      }
     }
   };
 
-  // Add new expense
-  const addExpense = () => {
+  // Add new expense using service
+  const addExpense = async () => {
     if (newExpense.name && newExpense.amount !== '' && newExpense.date) {
-      const expense: Expense = {
-        id: Date.now().toString(),
-        name: newExpense.name,
-        category: newExpense.category,
-        amount: Number(newExpense.amount),
-        date: newExpense.date,
-        notes: newExpense.notes,
-        created_by: 'current_user' // This should be replaced with actual user ID
-      };
-      setExpenses([...expenses, expense]);
-      
-      // Reset form
-      setNewExpense({
-        name: '',
-        category: 'General',
-        amount: '',
-        date: '',
-        notes: ''
-      });
+      try {
+        const expenseData = {
+          project_id: 'project1', // This should be the actual project ID
+          name: newExpense.name,
+          category: newExpense.category,
+          amount: Number(newExpense.amount),
+          date: newExpense.date,
+          notes: newExpense.notes,
+        };
+        
+        const newExpenseItem = await expenseService.createExpense(expenseData);
+        setExpenses([...expenses, newExpenseItem]);
+        
+        // Reset form
+        setNewExpense({
+          name: '',
+          category: 'General',
+          amount: '',
+          date: '',
+          notes: ''
+        });
+      } catch (error) {
+        console.error('Error adding expense:', error);
+      }
     }
   };
 
-  // Remove item functions
-  const removeTask = (id: string) => {
-    setTasks(tasks.filter(task => task.id !== id));
+  // Remove item functions using service
+  const removeTask = async (id: string) => {
+    try {
+      await projectTaskService.deleteTask(id, 'project1'); // project1 should be actual project ID
+      setTasks(tasks.filter(task => task.id !== id));
+    } catch (error) {
+      console.error('Error removing task:', error);
+    }
   };
 
-  const removeMaterial = (id: string) => {
-    setMaterials(materials.filter(material => material.id !== id));
+  const removeMaterial = async (id: string) => {
+    try {
+      await materialService.deleteMaterial(id, 'project1'); // project1 should be actual project ID
+      setMaterials(materials.filter(material => material.id !== id));
+    } catch (error) {
+      console.error('Error removing material:', error);
+    }
   };
 
-  const removeExpense = (id: string) => {
-    setExpenses(expenses.filter(expense => expense.id !== id));
+  const removeExpense = async (id: string) => {
+    try {
+      await expenseService.deleteExpense(id, 'project1'); // project1 should be actual project ID
+      setExpenses(expenses.filter(expense => expense.id !== id));
+    } catch (error) {
+      console.error('Error removing expense:', error);
+    }
   };
 
-  // Initialize real-time features
+  // Initialize India-specific features
   useEffect(() => {
-    const initRealtime = async () => {
-      setIsOnline(true);
-      
-      // Subscribe to real-time updates for tasks
-      const tasksChannel = supabase
-        .channel('tasks_changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'tasks',
-            filter: `project_id=eq.${params.id}`
-          },
-          (payload) => {
-            console.log('Task change received:', payload);
-            // Handle real-time task updates
-            if (payload.eventType === 'INSERT') {
-              setTasks(prev => [...prev, payload.new as ProjectTask]);
-            } else if (payload.eventType === 'UPDATE') {
-              setTasks(prev => prev.map(task => 
-                task.id === payload.new.id ? payload.new as ProjectTask : task
-              ));
-            } else if (payload.eventType === 'DELETE') {
-              setTasks(prev => prev.filter(task => task.id !== payload.old.id));
+    // Set default project location to India
+    setProjectLocation('Mumbai, India');
+    
+    // Set sample project details with Indian context
+    setProjectName('Modern Residential Complex');
+    setProjectDescription('A modern residential complex with eco-friendly features, designed for the Indian climate and lifestyle.');
+    setProjectBudget(15000000); // 1.5 Cr INR
+    setProjectTimeline(270); // 9 months
+    
+    // Set India-specific defaults
+    setProjectType('residential');
+    setClimateZone('tropical');
+    setLocalMaterials(['Laterite Stone', 'Red Bricks', 'Teak Wood', 'Indian Marble']);
+  }, []);
+
+  // Initialize real-time subscriptions
+  useEffect(() => {
+    const projectId = 'project1'; // This should be the actual project ID
+    
+    const unsubscribeFn = subscribeToProjectChanges(
+      projectId,
+      // onTaskChange
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setTasks(prev => [...prev, payload.new as ProjectTask]);
+        } else if (payload.eventType === 'UPDATE') {
+          setTasks(prev => prev.map(task => 
+            task.id === payload.new.id ? payload.new as ProjectTask : task
+          ));
+        } else if (payload.eventType === 'DELETE') {
+          setTasks(prev => prev.filter(task => task.id !== payload.old.id));
+        }
+      },
+      // onMaterialChange
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setMaterials(prev => [...prev, payload.new as Material]);
+        } else if (payload.eventType === 'UPDATE') {
+          setMaterials(prev => prev.map(material => 
+            material.id === payload.new.id ? payload.new as Material : material
+          ));
+        } else if (payload.eventType === 'DELETE') {
+          setMaterials(prev => prev.filter(material => material.id !== payload.old.id));
+        }
+      },
+      // onExpenseChange
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setExpenses(prev => [...prev, payload.new as Expense]);
+        } else if (payload.eventType === 'UPDATE') {
+          setExpenses(prev => prev.map(expense => 
+            expense.id === payload.new.id ? payload.new as Expense : expense
+          ));
+        } else if (payload.eventType === 'DELETE') {
+          setExpenses(prev => prev.filter(expense => expense.id !== payload.old.id));
+        }
+      },
+      // onMemberChange
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setMembers(prev => [...prev, payload.new as ProjectMember]);
+        } else if (payload.eventType === 'UPDATE') {
+          setMembers(prev => prev.map(member => 
+            member.id === payload.new.id ? payload.new as ProjectMember : member
+          ));
+        } else if (payload.eventType === 'DELETE') {
+          setMembers(prev => prev.filter(member => member.id !== payload.old.id));
+        }
+      },
+      // onMilestoneChange
+      (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setMilestones(prev => [...prev, payload.new as ProjectMilestone]);
+        } else if (payload.eventType === 'UPDATE') {
+          setMilestones(prev => prev.map(milestone => 
+            milestone.id === payload.new.id ? payload.new as ProjectMilestone : milestone
+          ));
+        } else if (payload.eventType === 'DELETE') {
+          setMilestones(prev => prev.filter(milestone => milestone.id !== payload.old.id));
+        }
+      },
+      // onPresenceChange
+      (payload) => {
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          setUserPresence(prev => {
+            const existingIndex = prev.findIndex(p => p.user_id === payload.new.user_id);
+            if (existingIndex >= 0) {
+              const updated = [...prev];
+              updated[existingIndex] = payload.new as UserPresence;
+              return updated;
             }
-          }
-        )
-        .subscribe();
-
-      // Subscribe to real-time updates for materials
-      const materialsChannel = supabase
-        .channel('materials_changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'materials',
-            filter: `project_id=eq.${params.id}`
-          },
-          (payload) => {
-            console.log('Material change received:', payload);
-            // Handle real-time material updates
-          }
-        )
-        .subscribe();
-
-      // Subscribe to real-time updates for expenses
-      const expensesChannel = supabase
-        .channel('expenses_changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'expenses',
-            filter: `project_id=eq.${params.id}`
-          },
-          (payload) => {
-            console.log('Expense change received:', payload);
-            // Handle real-time expense updates
-          }
-        )
-        .subscribe();
-
-      // Subscribe to real-time updates for user presence
-      const presenceChannel = supabase
-        .channel('user_presence')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'user_presence',
-            filter: `project_id=eq.${params.id}`
-          },
-          (payload) => {
-            console.log('Presence change received:', payload);
-            // Update presence data
-            // This would require more complex handling depending on your schema
-          }
-        )
-        .subscribe();
-
-      // Cleanup on unmount
-      return () => {
-        supabase.removeChannel(tasksChannel);
-        supabase.removeChannel(materialsChannel);
-        supabase.removeChannel(expensesChannel);
-        supabase.removeChannel(presenceChannel);
-      };
+            return [...prev, payload.new as UserPresence];
+          });
+          setActiveUsers(prev => prev + 1);
+        } else if (payload.eventType === 'DELETE') {
+          setUserPresence(prev => prev.filter(p => p.user_id !== payload.old.user_id));
+          setActiveUsers(prev => Math.max(0, prev - 1));
+        }
+      }
+    );
+    
+    setUnsubscribe(() => unsubscribeFn);
+    
+    // Cleanup function
+    return () => {
+      if (unsubscribeFn) {
+        unsubscribeFn();
+      }
     };
+  }, []);
 
-    initRealtime();
-  }, [params.id]);
-
-  // Format currency for India (INR)
+  // Format currency for India (INR) with proper formatting
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
-      minimumFractionDigits: 2
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     }).format(amount);
+  };
+
+  // Format date for Indian format (DD/MM/YYYY)
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-IN'); // Indian date format
+  };
+
+  // India-specific functions
+  const getLocalMaterialSuggestions = () => {
+    const climateSpecificMaterials = {
+      tropical: ['Laterite Stone', 'Red Bricks', 'Teak Wood', 'Indian Marble'],
+      subtropical: ['Slate Stone', 'Cement Bricks', 'Deodar Wood', 'Kota Stone'],
+      mountain: ['Shingle Stone', 'Pine Wood', 'Sandstone', 'Local Marble']
+    };
+    
+    return climateSpecificMaterials[climateZone as keyof typeof climateSpecificMaterials] || [];
+  };
+
+  const getClimateSpecificTips = () => {
+    const tips: Record<string, string> = {
+      tropical: 'Consider monsoon season during construction. Use materials that resist moisture.',
+      subtropical: 'Plan for temperature variations between seasons. Good ventilation is crucial.',
+      mountain: 'Account for potential landslides. Insulation is important for temperature control.'
+    };
+    
+    return tips[climateZone] || '';
+  };
+
+  // Project type specific categories
+  const getTaskCategories = () => {
+    if (projectType === 'residential') {
+      return [
+        'Construction', 'Electrical', 'Plumbing', 'HVAC', 
+        'Finishing', 'Site Preparation', 'Interior Design',
+        'Vastu Compliance', 'Earthwork'
+      ];
+    } else if (projectType === 'commercial') {
+      return [
+        'Construction', 'Electrical', 'Plumbing', 'HVAC', 
+        'Finishing', 'Site Preparation', 'Fire Safety',
+        'Elevator Installation', 'Security Systems'
+      ];
+    } else {
+      return [
+        'Construction', 'Electrical', 'Plumbing', 'HVAC', 
+        'Finishing', 'Site Preparation', 'Machinery Installation',
+        'Utility Connections', 'Environmental Compliance'
+      ];
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Header with real-time status */}
+        {/* Header */}
         <div className="mb-8 text-center">
           <div className="flex items-center justify-center gap-4 mb-4">
             <h1 className="text-4xl font-bold text-blue-800 flex items-center justify-center gap-3">
               <Calculator className="h-10 w-10 text-blue-600" />
-              Project Management
+              Indian Project Management Suite
             </h1>
           </div>
           
@@ -508,59 +677,111 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-blue-800">
               <Building className="h-6 w-6" />
-              Project Overview
+              <div className="flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-red-500" />
+                <span>Project Overview</span>
+              </div>
             </CardTitle>
             <CardDescription>Enter project details and track overall progress</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
+              <div className="lg:col-span-2 space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1 text-blue-700">Project Name</label>
                   <Input
-                    placeholder="e.g., Modern Office Complex"
+                    placeholder="e.g., Modern Residential Complex"
                     value={projectName}
                     onChange={(e) => setProjectName(e.target.value)}
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-blue-700">Budget (₹)</label>
-                  <Input
-                    type="number"
-                    placeholder="Total budget"
-                    value={projectBudget}
-                    onChange={(e) => setProjectBudget(e.target.value === '' ? '' : Number(e.target.value))}
-                  />
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-blue-700">Timeline (days)</label>
-                  <Input
-                    type="number"
-                    placeholder="Total duration"
-                    value={projectTimeline}
-                    onChange={(e) => setProjectTimeline(e.target.value === '' ? '' : Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-blue-700">Progress</label>
-                  <div className="flex items-center gap-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-blue-600 h-2.5 rounded-full" 
-                        style={{ width: `${projectProgress}%` }}
-                      ></div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-blue-700">Location</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 h-4 w-4 text-blue-500" />
+                      <Input
+                        placeholder="e.g., Mumbai, Maharashtra"
+                        value={projectLocation}
+                        onChange={(e) => setProjectLocation(e.target.value)}
+                        className="pl-10"
+                      />
                     </div>
-                    <span className="text-sm font-medium">{projectProgress}%</span>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-blue-700">Project Type</label>
+                    <Select value={projectType} onValueChange={setProjectType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="residential">Residential</SelectItem>
+                        <SelectItem value="commercial">Commercial</SelectItem>
+                        <SelectItem value="industrial">Industrial</SelectItem>
+                        <SelectItem value="infrastructure">Infrastructure</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-blue-700">Project Description</label>
+                  <Textarea
+                    placeholder="Briefly describe the scope of the project..."
+                    value={projectDescription}
+                    onChange={(e) => setProjectDescription(e.target.value)}
+                    className="h-20"
+                  />
+                </div>
               </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-blue-700">Budget (₹)</label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-3 h-4 w-4 text-blue-500" />
+                    <Input
+                      type="number"
+                      placeholder="Total budget"
+                      value={projectBudget}
+                      onChange={(e) => setProjectBudget(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-blue-700">Timeline (days)</label>
+                  <div className="relative">
+                    <Clock className="absolute left-3 top-3 h-4 w-4 text-blue-500" />
+                    <Input
+                      type="number"
+                      placeholder="Total duration"
+                      value={projectTimeline}
+                      onChange={(e) => setProjectTimeline(e.target.value === '' ? '' : Number(e.target.value))}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-blue-700">Climate Zone</label>
+                  <Select value={climateZone} onValueChange={setClimateZone}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tropical">Tropical (South India)</SelectItem>
+                      <SelectItem value="subtropical">Subtropical (North India)</SelectItem>
+                      <SelectItem value="mountain">Mountain (Hill Stations)</SelectItem>
+                      <SelectItem value="arid">Arid (Rajasthan)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1 text-blue-700">Total Tasks</label>
                   <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-blue-600" />
+                    <FileText className="h-5 w-5 text-blue-600" />
                     <span className="text-lg font-semibold">{totalTasks}</span>
                   </div>
                 </div>
@@ -571,7 +792,15 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                     <span className="text-lg font-semibold">{completedTasks}</span>
                   </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-blue-700">Progress</label>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-green-600" />
+                    <span className="text-lg font-semibold">{projectProgress}%</span>
+                  </div>
+                </div>
               </div>
+              
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1 text-blue-700">Cost Summary</label>
@@ -592,19 +821,110 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                     </div>
                   </div>
                 </div>
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm font-medium text-blue-700 flex items-center gap-1">
+                    <Sun className="h-4 w-4" />
+                    Climate Tip
+                  </p>
+                  <p className="text-xs text-blue-600">{getClimateSpecificTips()}</p>
+                </div>
               </div>
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium mb-1 text-blue-700">Project Description</label>
-              <Textarea
-                placeholder="Briefly describe the scope of the project..."
-                value={projectDescription}
-                onChange={(e) => setProjectDescription(e.target.value)}
-                className="h-20"
-              />
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-blue-700">Local Materials</label>
+                  <div className="flex flex-wrap gap-1">
+                    {getLocalMaterialSuggestions().map((material, index) => (
+                      <Badge key={index} variant="secondary" className="text-xs">
+                        {material}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg">
+                  <p className="text-sm font-medium text-green-700 flex items-center gap-1">
+                    <Factory className="h-4 w-4" />
+                    Local Supplier
+                  </p>
+                  <p className="text-xs text-green-600">Recommended suppliers in your region</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
+
+        {/* Progress Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <Card className="border-blue-200 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-full bg-blue-100">
+                  <FileText className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Project Progress</p>
+                  <p className="text-2xl font-bold">{projectProgress}%</p>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-blue-600 h-2 rounded-full" 
+                      style={{ width: `${projectProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-green-200 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-full bg-green-100">
+                  <TrendingUp className="h-6 w-6 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Milestones</p>
+                  <p className="text-2xl font-bold">{milestoneProgress}%</p>
+                  <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-green-600 h-2 rounded-full" 
+                      style={{ width: `${milestoneProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-purple-200 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-full bg-purple-100">
+                  <Users className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Team Members</p>
+                  <p className="text-2xl font-bold">{members.length}</p>
+                  <p className="text-sm text-gray-600">{activeUsers} Active</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="border-amber-200 shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-full bg-amber-100">
+                  <DollarSign className="h-6 w-6 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Budget Status</p>
+                  <p className="text-2xl font-bold">{formatCurrency(totalProjectCost)}</p>
+                  <p className="text-sm text-gray-600">of {formatCurrency(projectBudgetNum)}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Main Content Tabs */}
         <Tabs defaultValue="tasks" className="space-y-4">
@@ -657,6 +977,9 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                           <TableHead>Duration (days)</TableHead>
                           <TableHead>Assigned To</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead>Start Date</TableHead>
+                          <TableHead>End Date</TableHead>
+                          <TableHead>Vastu Compliant</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -671,7 +994,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                             </TableCell>
                             <TableCell>{formatCurrency(task.cost)}</TableCell>
                             <TableCell>{task.duration}</TableCell>
-                            <TableCell>{task.assignedTo}</TableCell>
+                            <TableCell>{task.assigned_to}</TableCell>
                             <TableCell>
                               <Badge 
                                 className={
@@ -681,6 +1004,13 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                                 }
                               >
                                 {task.status.replace('-', ' ')}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{formatDate(task.start_date)}</TableCell>
+                            <TableCell>{formatDate(task.end_date)}</TableCell>
+                            <TableCell>
+                              <Badge variant={task.category.includes('Vastu') ? "default" : "outline"}>
+                                {task.category.includes('Vastu') ? 'Yes' : 'No'}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -730,12 +1060,11 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Construction">Construction</SelectItem>
-                          <SelectItem value="Electrical">Electrical</SelectItem>
-                          <SelectItem value="Plumbing">Plumbing</SelectItem>
-                          <SelectItem value="HVAC">HVAC</SelectItem>
-                          <SelectItem value="Finishing">Finishing</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
+                          {getTaskCategories().map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                     </div>
@@ -762,26 +1091,32 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                     <div>
                       <label className="block text-sm font-medium mb-1">Assigned To</label>
                       <Input
-                        value={newTask.assignedTo}
-                        onChange={(e) => setNewTask({...newTask, assignedTo: e.target.value})}
-                        placeholder="Team member name"
+                        value={newTask.assigned_to}
+                        onChange={(e) => setNewTask({...newTask, assigned_to: e.target.value})}
+                        placeholder="Contractor or team member"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium mb-1">Start Date</label>
+                        <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Start Date
+                        </label>
                         <Input
                           type="date"
-                          value={newTask.startDate}
-                          onChange={(e) => setNewTask({...newTask, startDate: e.target.value})}
+                          value={newTask.start_date}
+                          onChange={(e) => setNewTask({...newTask, start_date: e.target.value})}
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1">End Date</label>
+                        <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          End Date
+                        </label>
                         <Input
                           type="date"
-                          value={newTask.endDate}
-                          onChange={(e) => setNewTask({...newTask, endDate: e.target.value})}
+                          value={newTask.end_date}
+                          onChange={(e) => setNewTask({...newTask, end_date: e.target.value})}
                         />
                       </div>
                     </div>
@@ -819,6 +1154,8 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                           <TableHead>Unit Cost (₹)</TableHead>
                           <TableHead>Quantity</TableHead>
                           <TableHead>Total Cost (₹)</TableHead>
+                          <TableHead>Supplier</TableHead>
+                          <TableHead>Region</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -832,9 +1169,24 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                               </Badge>
                             </TableCell>
                             <TableCell>{material.unit}</TableCell>
-                            <TableCell>{formatCurrency(material.unitCost)}</TableCell>
+                            <TableCell>{formatCurrency(material.unit_cost)}</TableCell>
                             <TableCell>{material.quantity}</TableCell>
-                            <TableCell className="font-semibold">{formatCurrency(material.totalCost)}</TableCell>
+                            <TableCell className="font-semibold">{formatCurrency(material.total_cost)}</TableCell>
+                            <TableCell>
+                              {material.name.includes('Cement') ? 'Ambuja Cement' : 
+                               material.name.includes('Steel') ? 'Tata TMT' : 
+                               material.name.includes('Wood') ? 'Premium Supplier' : 
+                               material.name.includes('Marble') ? 'Indian Marble Co.' :
+                               'Local Supplier'}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {material.name.includes('Laterite') || material.name.includes('Teak') ? 'South India' :
+                                 material.name.includes('Slate') || material.name.includes('Deodar') ? 'North India' :
+                                 material.name.includes('Shingle') || material.name.includes('Pine') ? 'Mountain' :
+                                 'All India'}
+                              </Badge>
+                            </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <Button variant="ghost" size="icon">
@@ -872,7 +1224,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                       <Input
                         value={newMaterial.name}
                         onChange={(e) => setNewMaterial({...newMaterial, name: e.target.value})}
-                        placeholder="e.g., Cement"
+                        placeholder="e.g., Cement (OPC 53 Grade)"
                       />
                     </div>
                     <div>
@@ -885,8 +1237,9 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                           <SelectItem value="Building Materials">Building Materials</SelectItem>
                           <SelectItem value="Electrical">Electrical</SelectItem>
                           <SelectItem value="Plumbing">Plumbing</SelectItem>
-                          <SelectItem value="Finishing">Finishing</SelectItem>
+                          <SelectItem value="Finishing Materials">Finishing Materials</SelectItem>
                           <SelectItem value="Equipment">Equipment</SelectItem>
+                          <SelectItem value="Local Materials">Local Materials</SelectItem>
                           <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
                       </Select>
@@ -907,6 +1260,8 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                             <SelectItem value="liter">Liter</SelectItem>
                             <SelectItem value="meter">Meter</SelectItem>
                             <SelectItem value="sqm">Square Meter</SelectItem>
+                            <SelectItem value="cubic_meter">Cubic Meter</SelectItem>
+                            <SelectItem value="quintal">Quintal</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -914,8 +1269,8 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                         <label className="block text-sm font-medium mb-1">Unit Cost (₹)</label>
                         <Input
                           type="number"
-                          value={newMaterial.unitCost}
-                          onChange={(e) => setNewMaterial({...newMaterial, unitCost: e.target.value === '' ? '' : Number(e.target.value)})}
+                          value={newMaterial.unit_cost}
+                          onChange={(e) => setNewMaterial({...newMaterial, unit_cost: e.target.value === '' ? '' : Number(e.target.value)})}
                           placeholder="0"
                         />
                       </div>
@@ -962,6 +1317,8 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                           <TableHead>Amount (₹)</TableHead>
                           <TableHead>Date</TableHead>
                           <TableHead>Notes</TableHead>
+                          <TableHead>Supplier</TableHead>
+                          <TableHead>GST Applicable</TableHead>
                           <TableHead>Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -975,8 +1332,14 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                               </Badge>
                             </TableCell>
                             <TableCell className="font-semibold">{formatCurrency(expense.amount)}</TableCell>
-                            <TableCell>{expense.date}</TableCell>
+                            <TableCell>{formatDate(expense.date)}</TableCell>
                             <TableCell>{expense.notes}</TableCell>
+                            <TableCell>{expense.name.includes('Municipal') ? 'Municipal Office' : expense.name.includes('Architect') ? 'Professional Service' : 'Local Vendor'}</TableCell>
+                            <TableCell>
+                              <Badge variant={expense.amount > 250000 ? "default" : "outline"}>
+                                {expense.amount > 250000 ? 'Yes' : 'No'}
+                              </Badge>
+                            </TableCell>
                             <TableCell>
                               <div className="flex gap-2">
                                 <Button variant="ghost" size="icon">
@@ -1014,7 +1377,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                       <Input
                         value={newExpense.name}
                         onChange={(e) => setNewExpense({...newExpense, name: e.target.value})}
-                        placeholder="e.g., Permit Fees"
+                        placeholder="e.g., Municipal Permit"
                       />
                     </div>
                     <div>
@@ -1028,6 +1391,8 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                           <SelectItem value="Professional">Professional</SelectItem>
                           <SelectItem value="Transportation">Transportation</SelectItem>
                           <SelectItem value="Equipment">Equipment</SelectItem>
+                          <SelectItem value="Labour">Labour</SelectItem>
+                          <SelectItem value="Municipal">Municipal</SelectItem>
                           <SelectItem value="General">General</SelectItem>
                           <SelectItem value="Other">Other</SelectItem>
                         </SelectContent>
@@ -1043,12 +1408,27 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Date</label>
+                      <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+                        <Calendar className="h-4 w-4" />
+                        Date
+                      </label>
                       <Input
                         type="date"
                         value={newExpense.date}
                         onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
                       />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">GST Applicable?</label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="checkbox"
+                          checked={newExpense.amount > 250000}
+                          disabled
+                          className="h-4 w-4"
+                        />
+                        <span className="text-sm">Automatically applied for expenses >₹2,50,000</span>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Notes</label>
@@ -1102,7 +1482,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                         <div className="flex justify-between items-start">
                           <div>
                             <h3 className="font-semibold">{milestone.name}</h3>
-                            <p className="text-sm text-gray-600">Target: {milestone.targetDate}</p>
+                            <p className="text-sm text-gray-600">Target: {formatDate(milestone.targetDate)}</p>
                             <div className="mt-2 flex items-center gap-4">
                               <span className={`text-sm ${milestone.completed ? 'text-green-600' : 'text-yellow-600'}`}>
                                 {milestone.completed ? 'Completed' : 'Pending'}
@@ -1148,6 +1528,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                   <TableHeader>
                     <TableRow>
                       <TableHead>Member</TableHead>
+                      <TableHead>Contact</TableHead>
                       <TableHead>Role</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Joined Date</TableHead>
@@ -1158,6 +1539,18 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                     {members.map((member) => (
                       <TableRow key={member.id}>
                         <TableCell className="font-medium">{member.username}</TableCell>
+                        <TableCell>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1 text-sm">
+                              <Mail className="h-3 w-3" />
+                              {member.email}
+                            </div>
+                            <div className="flex items-center gap-1 text-sm">
+                              <Phone className="h-3 w-3" />
+                              {member.phone}
+                            </div>
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Badge 
                             className={
@@ -1175,7 +1568,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                             <span>Active</span>
                           </div>
                         </TableCell>
-                        <TableCell>{member.joined_at}</TableCell>
+                        <TableCell>{formatDate(member.joined_at)}</TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button variant="ghost" size="icon">
@@ -1334,6 +1727,18 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                         </p>
                       )}
                     </div>
+                    
+                    <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <h4 className="font-semibold text-yellow-800 flex items-center gap-1">
+                        <MapPin className="h-4 w-4" />
+                        Indian Tax Compliance
+                      </h4>
+                      <p className="text-sm text-yellow-700">
+                        {totalExpenseCost > 250000 
+                          ? 'GST applicable on expenses >₹2,50,000. Ensure proper documentation.' 
+                          : 'Expenses below ₹2,50,000 threshold are GST exempt for now.'}
+                      </p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1372,6 +1777,25 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                     </div>
                   </div>
                   
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+                      <h4 className="font-semibold text-amber-800 flex items-center gap-1">
+                        <Sun className="h-4 w-4" />
+                        Climate Consideration
+                      </h4>
+                      <p className="text-sm text-amber-700">{getClimateSpecificTips()}</p>
+                    </div>
+                    <div className="bg-emerald-50 p-4 rounded-lg border border-emerald-200">
+                      <h4 className="font-semibold text-emerald-800 flex items-center gap-1">
+                        <Factory className="h-4 w-4" />
+                        Local Material Advantage
+                      </h4>
+                      <p className="text-sm text-emerald-700">
+                        Using {getLocalMaterialSuggestions().length} regional materials can reduce costs by 10-15%
+                      </p>
+                    </div>
+                  </div>
+                  
                   <div className="mt-6">
                     <h3 className="font-semibold mb-2">Project Notes</h3>
                     <Textarea 
@@ -1381,15 +1805,27 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Report (PDF)
-                </Button>
-                <Button>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Save Project
-                </Button>
+              <CardFooter className="flex flex-col sm:flex-row justify-between gap-4">
+                <div className="flex gap-2">
+                  <Button variant="outline">
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Report (PDF)
+                  </Button>
+                  <Button variant="outline">
+                    <IndianRupee className="h-4 w-4 mr-2" />
+                    Export Financials (Excel)
+                  </Button>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline">
+                    <Upload className="h-4 w-4 mr-2" />
+                    Save Project
+                  </Button>
+                  <Button>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send to Client
+                  </Button>
+                </div>
               </CardFooter>
             </Card>
           </TabsContent>

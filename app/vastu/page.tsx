@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-// import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   Compass,
   Home,
@@ -42,9 +42,7 @@ import {
   MapPin,
   Zap,
   Shield,
-  Heart,
-  Plus,
-  Settings
+  Heart
 } from 'lucide-react';
 
 // Types
@@ -251,41 +249,35 @@ const VastuPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
+      {/* Modern Header */}
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center">
-          <div className="mr-4 hidden md:flex">
-            <div className="flex items-center space-x-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Compass className="h-4 w-4 text-primary-foreground" />
+        <div className="container flex h-16 items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-red-500">
+                <Compass className="h-5 w-5 text-white" />
               </div>
-              <span className="hidden font-bold sm:inline-block">Vastu Shastra</span>
+              <div className="grid gap-1">
+                <h1 className="text-xl font-semibold">Vastu Shastra</h1>
+                <p className="text-sm text-muted-foreground">AI-Powered Ancient Wisdom</p>
+              </div>
             </div>
           </div>
-          <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-            <div className="w-full flex-1 md:w-auto md:flex-none">
-              <div className="flex items-center space-x-2">
-                <Badge variant="secondary">
-                  <Sparkles className="mr-1 h-3 w-3" />
-                  AI Powered
-                </Badge>
-                <Badge variant="outline">
-                  <Star className="mr-1 h-3 w-3" />
-                  Prokerala API
-                </Badge>
-              </div>
-            </div>
-            <nav className="flex items-center">
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4" />
-              </Button>
-            </nav>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="hidden sm:flex">
+              <Sparkles className="mr-1 h-3 w-3" />
+              Prokerala API
+            </Badge>
+            <Button size="sm">
+              <BookOpen className="mr-2 h-4 w-4" />
+              Learn More
+            </Button>
           </div>
         </div>
       </header>
 
-      <div className="container mx-auto p-6 max-w-7xl">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <div className="container py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageCircle className="h-4 w-4" />
@@ -305,86 +297,104 @@ const VastuPage = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="chat" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-4">
-              {/* Chat Interface */}
-              <div className="md:col-span-3">
+          {/* Chat Tab */}
+          <TabsContent value="chat" className="mt-6">
+            <div className="grid gap-6 lg:grid-cols-4">
+              {/* Main Chat */}
+              <div className="lg:col-span-3">
                 <Card className="h-[600px] flex flex-col">
                   <CardHeader className="flex flex-row items-center space-y-0 pb-2">
                     <div className="flex items-center space-x-4">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                        <Bot className="h-4 w-4" />
-                      </div>
+                      <Avatar>
+                        <AvatarFallback className="bg-gradient-to-br from-orange-500 to-red-500 text-white">
+                          <Bot className="h-4 w-4" />
+                        </AvatarFallback>
+                      </Avatar>
                       <div>
                         <CardTitle className="text-base">Vastu AI Consultant</CardTitle>
-                        <CardDescription className="text-xs">
+                        <CardDescription className="text-sm">
                           Powered by Groq AI & Prokerala Astrology
                         </CardDescription>
                       </div>
                     </div>
                     <div className="ml-auto flex items-center space-x-2">
-                      <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                      <span className="text-xs text-muted-foreground">Online</span>
+                      <div className="flex items-center space-x-1">
+                        <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                        <span className="text-xs text-muted-foreground">Online</span>
+                      </div>
                     </div>
                   </CardHeader>
                   <Separator />
-                  <CardContent className="flex-1 overflow-hidden p-0">
-                    <ScrollArea className="h-full p-4">
-                      <div className="space-y-4">
-                        {chatMessages.map((message, index) => (
-                          <div key={index} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            {message.role === 'assistant' && (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                  
+                  {/* Messages */}
+                  <ScrollArea className="flex-1 p-4">
+                    <div className="space-y-4">
+                      {chatMessages.map((message, index) => (
+                        <div key={index} className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                          {message.role === 'assistant' && (
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback className="bg-gradient-to-br from-orange-500 to-red-500 text-white">
                                 <Bot className="h-4 w-4" />
-                              </div>
-                            )}
-                            
-                            <div className={`flex flex-col space-y-1 max-w-[80%] ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
-                              <div className={`rounded-lg px-3 py-2 text-sm ${
-                                message.role === 'user'
-                                  ? 'bg-primary text-primary-foreground'
-                                  : 'bg-muted'
-                              }`}>
-                                <p className="whitespace-pre-wrap break-words">{message.content}</p>
-                              </div>
-                              <span className="text-xs text-muted-foreground">
-                                {new Date(message.timestamp).toLocaleTimeString()}
-                              </span>
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                          
+                          <div className={`max-w-[70%] ${message.role === 'user' ? 'order-1' : ''}`}>
+                            <div className={`rounded-lg px-3 py-2 text-sm ${
+                              message.role === 'user'
+                                ? 'bg-primary text-primary-foreground ml-auto'
+                                : 'bg-muted'
+                            }`}>
+                              <p className="whitespace-pre-wrap break-words">{message.content}</p>
                             </div>
+                            <p className={`text-xs text-muted-foreground mt-1 ${
+                              message.role === 'user' ? 'text-right' : 'text-left'
+                            }`}>
+                              {new Date(message.timestamp).toLocaleTimeString()}
+                            </p>
+                          </div>
 
-                            {message.role === 'user' && (
-                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary">
+                          {message.role === 'user' && (
+                            <Avatar className="h-8 w-8 order-2">
+                              <AvatarFallback className="bg-primary text-primary-foreground">
                                 <User className="h-4 w-4" />
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                              </AvatarFallback>
+                            </Avatar>
+                          )}
+                        </div>
+                      ))}
 
-                        {chatLoading && (
-                          <div className="flex gap-3 justify-start">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                      {chatLoading && (
+                        <div className="flex gap-3 justify-start">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="bg-gradient-to-br from-orange-500 to-red-500 text-white">
                               <Bot className="h-4 w-4" />
-                            </div>
-                            <div className="flex flex-col space-y-1">
-                              <div className="bg-muted rounded-lg px-3 py-2">
-                                <div className="flex items-center space-x-2">
-                                  <RefreshCw className="h-3 w-3 animate-spin" />
-                                  <span className="text-sm">Thinking...</span>
-                                </div>
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="bg-muted rounded-lg px-3 py-2">
+                            <div className="flex items-center space-x-2">
+                              <div className="flex space-x-1">
+                                <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                                <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                                <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                               </div>
+                              <span className="text-sm text-muted-foreground">Thinking...</span>
                             </div>
                           </div>
-                        )}
-                        
-                        <div ref={messagesEndRef} />
-                      </div>
-                    </ScrollArea>
-                  </CardContent>
+                        </div>
+                      )}
+                      
+                      <div ref={messagesEndRef} />
+                    </div>
+                  </ScrollArea>
+
                   <Separator />
+                  
+                  {/* Input */}
                   <CardContent className="p-4">
-                    <div className="flex space-x-2">
+                    <div className="flex gap-2">
                       <Textarea
-                        placeholder="Ask about Vastu principles..."
+                        placeholder="Ask about Vastu principles, room placement, remedies..."
                         value={currentMessage}
                         onChange={(e) => setCurrentMessage(e.target.value)}
                         onKeyDown={(e) => {
@@ -393,19 +403,21 @@ const VastuPage = () => {
                             sendChatMessage();
                           }
                         }}
-                        className="min-h-[60px] flex-1 resize-none"
+                        className="min-h-[60px] max-h-[120px] resize-none"
                         disabled={chatLoading}
                       />
                       <Button
                         onClick={sendChatMessage}
                         disabled={!currentMessage.trim() || chatLoading}
                         size="icon"
+                        className="h-[60px] w-[60px]"
                       >
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
+                    
                     <div className="flex flex-wrap gap-2 mt-3">
-                      {["Analyze bedroom", "Kitchen colors", "Vastu remedies", "Entrance direction"].map((suggestion) => (
+                      {["🏠 Analyze bedroom", "🍳 Kitchen colors", "💎 Vastu remedies", "🚪 Entrance direction"].map((suggestion) => (
                         <Button
                           key={suggestion}
                           variant="outline"
@@ -422,13 +434,13 @@ const VastuPage = () => {
               </div>
 
               {/* Sidebar */}
-              <div className="space-y-4">
-                {/* Astrology Integration */}
+              <div className="space-y-6">
+                {/* Astrology Form */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Star className="h-4 w-4" />
-                      <span>Astrology</span>
+                    <CardTitle className="flex items-center gap-2">
+                      <Star className="h-5 w-5 text-purple-500" />
+                      Astrology Integration
                     </CardTitle>
                     <CardDescription>
                       Add birth details for personalized recommendations
@@ -475,14 +487,14 @@ const VastuPage = () => {
                       disabled={!birthDate || !birthTime || !birthPlace}
                     >
                       <Sparkles className="h-4 w-4 mr-2" />
-                      Get Analysis
+                      Get Personalized Analysis
                     </Button>
                     
                     {birthDate && birthTime && birthPlace && (
                       <Alert>
                         <Info className="h-4 w-4" />
                         <AlertDescription>
-                          Authentic astrology data will be fetched from Prokerala API
+                          ✅ Authentic astrology data will be fetched from Prokerala API
                         </AlertDescription>
                       </Alert>
                     )}
@@ -492,19 +504,20 @@ const VastuPage = () => {
                 {/* Quick Actions */}
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Zap className="h-4 w-4" />
-                      <span>Quick Actions</span>
+                    <CardTitle className="flex items-center gap-2">
+                      <Zap className="h-5 w-5 text-yellow-500" />
+                      Quick Actions
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {[
-                      "Complete home analysis",
-                      "Best bedroom direction", 
-                      "Kitchen placement guide",
-                      "Main entrance analysis",
-                      "Vastu remedies",
-                      "Direction meanings"
+                      "🏠 Complete home analysis",
+                      "🛏️ Best bedroom direction",
+                      "🍳 Kitchen placement guide",
+                      "🚪 Main entrance analysis",
+                      "💊 Vastu remedies",
+                      "🧭 Direction meanings",
+                      "🌿 Plant recommendations"
                     ].map((action) => (
                       <Button
                         key={action}
@@ -514,29 +527,32 @@ const VastuPage = () => {
                         className="w-full justify-start"
                         disabled={chatLoading}
                       >
-                        <Plus className="h-3 w-3 mr-2" />
                         {action}
                       </Button>
                     ))}
                   </CardContent>
                 </Card>
               </div>
-              </div>
-            </TabsContent>
+            </div>
+          </TabsContent>
 
-          <TabsContent value="analyzer" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+          {/* Analyzer Tab */}
+          <TabsContent value="analyzer" className="mt-6">
+            <div className="grid gap-6 lg:grid-cols-2">
               <Card>
                 <CardHeader>
-                  <CardTitle>Room Analyzer</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Calculator className="h-5 w-5 text-orange-500" />
+                    Room Analyzer
+                  </CardTitle>
                   <CardDescription>
                     Analyze your room placement according to Vastu principles
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
+                <CardContent className="space-y-6">
+                  <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="room-type">Room Type</Label>
+                      <Label>Room Type</Label>
                       <Select value={roomType} onValueChange={setRoomType}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select room type" />
@@ -552,7 +568,7 @@ const VastuPage = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="direction">Direction</Label>
+                      <Label>Direction</Label>
                       <Select value={direction} onValueChange={setDirection}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select direction" />
@@ -576,7 +592,7 @@ const VastuPage = () => {
                     {loading ? (
                       <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
                     ) : (
-                      <Calculator className="mr-2 h-4 w-4" />
+                      <Compass className="mr-2 h-4 w-4" />
                     )}
                     {loading ? 'Analyzing...' : 'Analyze Room'}
                   </Button>
@@ -593,42 +609,42 @@ const VastuPage = () => {
               {analysis && (
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center justify-between">
-                      <span>Analysis Results</span>
-                      <Badge variant={analysis.status === 'excellent' ? 'default' : 'secondary'}>
-                        {analysis.status}
-                      </Badge>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle className="h-5 w-5" />
+                      Analysis Results
                     </CardTitle>
                     <CardDescription>
                       {roomTypes.find(rt => rt.value === roomType)?.label} in {directions.find(d => d.value === direction)?.label}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium">Vastu Score</span>
-                        <span className="text-sm text-muted-foreground">{analysis.vastu_score}/100</span>
-                      </div>
-                      <Progress value={analysis.vastu_score} />
+                    <div className="flex items-center justify-between">
+                      <Badge className={getStatusColor(analysis.status)}>
+                        {analysis.status.toUpperCase()}
+                      </Badge>
+                      <span className="text-sm font-medium">Score: {analysis.vastu_score}/100</span>
                     </div>
                     
-                    <Separator />
+                    <Progress value={analysis.vastu_score} className="w-full" />
                     
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                       <div>
-                        <h4 className="text-sm font-semibold mb-2">Analysis</h4>
+                        <h4 className="font-semibold mb-2">Analysis</h4>
                         <p className="text-sm text-muted-foreground">{analysis.analysis}</p>
                       </div>
                       
                       {analysis.benefits.length > 0 && (
                         <div>
-                          <h4 className="text-sm font-semibold mb-2 flex items-center">
-                            <CheckCircle className="h-4 w-4 mr-1 text-green-500" />
+                          <h4 className="font-semibold mb-2 flex items-center gap-2">
+                            <CheckCircle className="h-4 w-4 text-green-500" />
                             Benefits
                           </h4>
-                          <ul className="text-sm space-y-1 text-muted-foreground">
+                          <ul className="text-sm space-y-1">
                             {analysis.benefits.map((benefit, index) => (
-                              <li key={index}>• {benefit}</li>
+                              <li key={index} className="flex items-start gap-2">
+                                <span className="text-green-500 mt-1">•</span>
+                                {benefit}
+                              </li>
                             ))}
                           </ul>
                         </div>
@@ -636,13 +652,16 @@ const VastuPage = () => {
                       
                       {analysis.recommendations.length > 0 && (
                         <div>
-                          <h4 className="text-sm font-semibold mb-2 flex items-center">
-                            <Lightbulb className="h-4 w-4 mr-1 text-yellow-500" />
+                          <h4 className="font-semibold mb-2 flex items-center gap-2">
+                            <Lightbulb className="h-4 w-4 text-yellow-500" />
                             Recommendations
                           </h4>
-                          <ul className="text-sm space-y-1 text-muted-foreground">
+                          <ul className="text-sm space-y-1">
                             {analysis.recommendations.map((rec, index) => (
-                              <li key={index}>• {rec}</li>
+                              <li key={index} className="flex items-start gap-2">
+                                <span className="text-yellow-500 mt-1">•</span>
+                                {rec}
+                              </li>
                             ))}
                           </ul>
                         </div>
@@ -654,38 +673,39 @@ const VastuPage = () => {
             </div>
           </TabsContent>
 
-          <TabsContent value="elements" className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {/* Elements Tab */}
+          <TabsContent value="elements" className="mt-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[
-                { name: 'Earth (Prithvi)', icon: Mountain, direction: 'South-West', properties: 'Stability, strength, support' },
-                { name: 'Water (Jal)', icon: Droplets, direction: 'North-East', properties: 'Flow, purification, life' },
-                { name: 'Fire (Agni)', icon: Flame, direction: 'South-East', properties: 'Energy, transformation, power' },
-                { name: 'Air (Vayu)', icon: Wind, direction: 'North-West', properties: 'Movement, circulation, freshness' },
-                { name: 'Space (Akash)', icon: Star, direction: 'Center', properties: 'Openness, freedom, expansion' }
+                { name: 'Earth (Prithvi)', icon: Mountain, color: 'text-yellow-600', direction: 'South-West', properties: 'Stability, strength, support' },
+                { name: 'Water (Jal)', icon: Droplets, color: 'text-blue-600', direction: 'North-East', properties: 'Flow, purification, life' },
+                { name: 'Fire (Agni)', icon: Flame, color: 'text-red-600', direction: 'South-East', properties: 'Energy, transformation, power' },
+                { name: 'Air (Vayu)', icon: Wind, color: 'text-green-600', direction: 'North-West', properties: 'Movement, circulation, freshness' },
+                { name: 'Space (Akash)', icon: Star, color: 'text-purple-600', direction: 'Center', properties: 'Openness, freedom, expansion' }
               ].map((element, index) => (
-                <Card key={index}>
-                  <CardHeader className="flex flex-row items-center space-y-0 pb-2">
-                    <div className="flex items-center space-x-2">
-                      <element.icon className="h-5 w-5" />
-                      <CardTitle className="text-base">{element.name}</CardTitle>
-                    </div>
+                <Card key={index} className="hover:shadow-md transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-3">
+                      <div className={`p-2 rounded-lg bg-muted ${element.color}`}>
+                        <element.icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-semibold">{element.name}</div>
+                        <div className="text-sm text-muted-foreground">{element.direction}</div>
+                      </div>
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Compass className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">{element.direction}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{element.properties}</p>
-                    </div>
+                    <p className="text-sm text-muted-foreground">{element.properties}</p>
                   </CardContent>
                 </Card>
               ))}
             </div>
           </TabsContent>
 
-          <TabsContent value="tips" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {/* Tips Tab */}
+          <TabsContent value="tips" className="mt-6">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {[
                 {
                   category: 'Colors',
@@ -720,17 +740,17 @@ const VastuPage = () => {
               ].map((tip, index) => (
                 <Card key={index}>
                   <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <tip.icon className="h-4 w-4" />
-                      <span>{tip.category}</span>
+                    <CardTitle className="flex items-center gap-2">
+                      <tip.icon className="h-5 w-5 text-orange-500" />
+                      {tip.category}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
                       {tip.tips.map((tipText, tipIndex) => (
-                        <li key={tipIndex} className="flex items-start space-x-2 text-sm">
-                          <CheckCircle className="h-3 w-3 mt-0.5 text-green-500 flex-shrink-0" />
-                          <span>{tipText}</span>
+                        <li key={tipIndex} className="flex items-start gap-2 text-sm">
+                          <span className="text-orange-500 mt-1">•</span>
+                          {tipText}
                         </li>
                       ))}
                     </ul>
