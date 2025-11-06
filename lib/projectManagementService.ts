@@ -1,6 +1,27 @@
 // projectManagementService.ts
 import { supabase } from '@/lib/supabaseClient';
 
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  budget: number;
+  location: string;
+  state?: string;
+  city?: string;
+  climate_zone?: 'tropical' | 'subtropical' | 'mountain' | 'arid';
+  project_type?: 'residential' | 'commercial' | 'industrial' | 'infrastructure';
+  timeline_days?: number;
+  gst_number?: string;
+  local_contractor?: string;
+  monsoon_start_date?: string;
+  monsoon_end_date?: string;
+  vastu_consultant?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ProjectTask {
   id: string;
   project_id: string;
@@ -32,12 +53,17 @@ export interface Material {
 export interface Expense {
   id: string;
   project_id: string;
-  name: string;
+  description: string;
   category: string;
   amount: number;
-  date: string;
-  notes: string;
+  expense_date: string;
+  gst_applicable?: boolean;
+  gst_rate?: number;
+  gst_amount?: number;
+  payment_method?: string;
+  invoice_number?: string;
   created_by: string;
+  created_at: string;
   updated_at: string;
 }
 
@@ -56,11 +82,16 @@ export interface ProjectMilestone {
   id: string;
   project_id: string;
   name: string;
+  description?: string;
   target_date: string;
-  completed: boolean;
-  budget: number;
-  actual_cost: number;
+  completion_date?: string;
+  status: 'pending' | 'in-progress' | 'completed' | 'delayed';
+  payment_percentage?: number;
+  approval_required?: boolean;
+  approval_authority?: string;
+  compliance_documents?: string[];
   created_by: string;
+  created_at: string;
   updated_at: string;
 }
 
@@ -72,6 +103,94 @@ export interface UserPresence {
   last_seen: string;
   cursor_position?: any;
 }
+
+// Projects API
+export const projectService = {
+  async getProjects(userId?: string) {
+    let query = supabase
+      .from('projects')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (userId) {
+      query = query.eq('created_by', userId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching projects:', error);
+      return [];
+    }
+
+    return data as Project[];
+  },
+
+  async getProject(projectId: string) {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('id', projectId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching project:', error);
+      throw error;
+    }
+
+    return data as Project;
+  },
+
+  async createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) {
+    const { data, error } = await supabase
+      .from('projects')
+      .insert([{
+        ...project,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating project:', error);
+      throw error;
+    }
+
+    return data as Project;
+  },
+
+  async updateProject(projectId: string, updates: Partial<Project>) {
+    const { data, error } = await supabase
+      .from('projects')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', projectId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating project:', error);
+      throw error;
+    }
+
+    return data as Project;
+  },
+
+  async deleteProject(projectId: string) {
+    const { error } = await supabase
+      .from('projects')
+      .delete()
+      .eq('id', projectId);
+
+    if (error) {
+      console.error('Error deleting project:', error);
+      throw error;
+    }
+  }
+};
 
 // Project Tasks API
 export const projectTaskService = {
@@ -91,11 +210,13 @@ export const projectTaskService = {
   },
 
   async createTask(task: Omit<ProjectTask, 'id' | 'created_by' | 'updated_at'>) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
     const { data, error } = await supabase
       .from('tasks')
       .insert([{
         ...task,
-        created_by: 'current_user_id', // Should be replaced with actual user ID
+        created_by: user?.id || null,
         updated_at: new Date().toISOString()
       }])
       .select()
@@ -160,6 +281,7 @@ export const materialService = {
   },
 
   async createMaterial(material: Omit<Material, 'id' | 'created_by' | 'updated_at' | 'total_cost'>) {
+    const { data: { user } } = await supabase.auth.getUser();
     const totalCost = material.unit_cost * material.quantity;
     
     const { data, error } = await supabase
@@ -167,7 +289,7 @@ export const materialService = {
       .insert([{
         ...material,
         total_cost: totalCost,
-        created_by: 'current_user_id', // Should be replaced with actual user ID
+        created_by: user?.id || null,
         updated_at: new Date().toISOString()
       }])
       .select()
@@ -231,12 +353,15 @@ export const expenseService = {
     return data as Expense[];
   },
 
-  async createExpense(expense: Omit<Expense, 'id' | 'created_by' | 'updated_at'>) {
+  async createExpense(expense: Omit<Expense, 'id' | 'created_by' | 'created_at' | 'updated_at'>) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
     const { data, error } = await supabase
       .from('expenses')
       .insert([{
         ...expense,
-        created_by: 'current_user_id', // Should be replaced with actual user ID
+        created_by: user?.id || null,
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }])
       .select()
@@ -338,7 +463,7 @@ export const projectMemberService = {
 export const milestoneService = {
   async getMilestones(projectId: string) {
     const { data, error } = await supabase
-      .from('milestones') // Note: This table might need to be created in your schema
+      .from('milestones')
       .select('*')
       .eq('project_id', projectId)
       .order('target_date', { ascending: true });
@@ -351,13 +476,16 @@ export const milestoneService = {
     return data as ProjectMilestone[];
   },
 
-  async createMilestone(milestone: Omit<ProjectMilestone, 'id' | 'created_by' | 'updated_at' | 'actual_cost'>) {
+  async createMilestone(milestone: Omit<ProjectMilestone, 'id' | 'created_by' | 'created_at' | 'updated_at'>) {
+    const { data: { user } } = await supabase.auth.getUser();
+    
     const { data, error } = await supabase
       .from('milestones')
       .insert([{
         ...milestone,
-        actual_cost: 0, // Initially 0
-        created_by: 'current_user_id', // Should be replaced with actual user ID
+        status: milestone.status || 'pending',
+        created_by: user?.id || null,
+        created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }])
       .select()

@@ -1,25 +1,42 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from './types/supabase.types';
 
-// These must be set in your environment (e.g., .env.local) for the frontend
-// NEXT_PUBLIC_SUPABASE_URL=
-// NEXT_PUBLIC_SUPABASE_ANON_KEY=
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10,
+    },
+  },
+  db: {
+    schema: 'public',
+  },
+  global: {
+    headers: {
+      'x-application-name': 'project-management-india',
+    },
+  },
+});
 
-if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('your-supabase-url') || supabaseAnonKey.includes('your-anon-key')) {
-  // We purposely do not throw; components can detect absence and disable interactions
-  // eslint-disable-next-line no-console
-  console.warn('Supabase env vars are not properly configured. Authentication will be disabled.')
-}
+// Helper function to check if Supabase is properly configured
+export const isSupabaseConfigured = (): boolean => {
+  return (
+    supabaseUrl !== 'https://your-project.supabase.co' &&
+    supabaseAnonKey !== 'your-anon-key' &&
+    supabaseUrl.length > 0 &&
+    supabaseAnonKey.length > 0
+  );
+};
 
-// Check if Supabase is properly configured
-const isSupabaseConfigured = supabaseUrl && supabaseAnonKey && 
-  !supabaseUrl.includes('your-supabase-url') && 
-  !supabaseAnonKey.includes('your-anon-key') &&
-  supabaseUrl.trim() !== '' &&
-  supabaseAnonKey.trim() !== '';
+// Export types for use in other files
+export type { Database };
 
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+export default supabase;

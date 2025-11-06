@@ -21,6 +21,8 @@ from interior_design_ecommerce_service import InteriorDesignEcommerceService
 from cache_service import CacheService
 from shops_router import router as shops_router
 from vastu_service import vastu_service, VastuRequest
+from groq_vastu_service import groq_vastu_service, VastuChatRequest, VastuAnalysisRequest
+from astrology_api_service import prokerala_service
 from ai_design_service import ai_design_service, MaterialRequest, BudgetRequest, ColorPaletteRequest, LayoutRequest
 from realtime_service import realtime_service
 from dotenv import load_dotenv
@@ -1751,3 +1753,73 @@ async def analyze_vastu_house(request: Request):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to analyze house: {str(e)}")
+# ============================================================================
+# GROQ VASTU SHASTRA AI ENDPOINTS
+# ============================================================================
+
+@app.post("/vastu/chat")
+async def vastu_chat(request: VastuChatRequest):
+    """Interactive Vastu consultation chat using Groq AI"""
+    try:
+        result = await groq_vastu_service.vastu_chat(request)
+        return result
+    except Exception as e:
+        logger.error(f"Error in Vastu chat: {e}")
+        raise HTTPException(status_code=500, detail=f"Vastu chat failed: {str(e)}")
+
+@app.post("/vastu/analyze-ai")
+async def analyze_vastu_ai(request: VastuAnalysisRequest):
+    """Comprehensive Vastu analysis with astrology integration using Groq AI"""
+    try:
+        result = await groq_vastu_service.analyze_vastu_with_astrology(request)
+        return result
+    except Exception as e:
+        logger.error(f"Error in Vastu AI analysis: {e}")
+        raise HTTPException(status_code=500, detail=f"Vastu analysis failed: {str(e)}")
+
+@app.get("/vastu/room-types")
+async def get_vastu_room_types():
+    """Get available room types for Vastu analysis"""
+    return {
+        "room_types": [
+            {"value": "main_entrance", "label": "Main Entrance"},
+            {"value": "living_room", "label": "Living Room"},
+            {"value": "master_bedroom", "label": "Master Bedroom"},
+            {"value": "kitchen", "label": "Kitchen"},
+            {"value": "bathroom", "label": "Bathroom"},
+            {"value": "study_room", "label": "Study Room"},
+            {"value": "dining_room", "label": "Dining Room"},
+            {"value": "guest_room", "label": "Guest Room"},
+            {"value": "pooja_room", "label": "Pooja Room"},
+            {"value": "staircase", "label": "Staircase"},
+            {"value": "children_room", "label": "Children's Room"},
+            {"value": "store_room", "label": "Store Room"}
+        ]
+    }
+
+@app.get("/vastu/directions")
+async def get_vastu_directions():
+    """Get available directions for Vastu analysis"""
+    return {
+        "directions": [
+            {"value": "north", "label": "North"},
+            {"value": "north-east", "label": "North-East"},
+            {"value": "east", "label": "East"},
+            {"value": "south-east", "label": "South-East"},
+            {"value": "south", "label": "South"},
+            {"value": "south-west", "label": "South-West"},
+            {"value": "west", "label": "West"},
+            {"value": "north-west", "label": "North-West"},
+            {"value": "center", "label": "Center"}
+        ]
+    }
+
+@app.get("/vastu/tips/{category}")
+async def get_vastu_tips(category: str):
+    """Get Vastu tips by category"""
+    try:
+        tips = groq_vastu_service.get_quick_vastu_tips(category)
+        return tips
+    except Exception as e:
+        logger.error(f"Error getting Vastu tips: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get tips: {str(e)}")

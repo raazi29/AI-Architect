@@ -1,1132 +1,950 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { supabase } from '@/lib/supabaseClient';
+import { IndiaLocalizationService, ClimateZone, INDIAN_STATES } from '@/lib/services/indiaLocalizationService';
+import { MaterialData, INDIAN_MATERIALS } from '@/lib/data/indianMaterials';
+import { RealTimePresence } from '@/components/project-management/RealTimePresence';
+import { IndianMaterialSelector } from '@/components/project-management/IndianMaterialSelector';
+import { IndianCurrencyFormatter } from '@/components/project-management/IndianCurrencyFormatter';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
-  Calculator,
-  DollarSign,
-  Clock,
-  Users,
-  Building,
-  FileText,
-  TrendingUp,
-  TrendingDown,
-  PieChart,
-  BarChart3,
-  FileSpreadsheet,
-  Settings,
-  Plus,
-  Trash2,
-  Edit3,
-  Eye,
-  Download,
-  Upload,
-  Filter,
-  Search,
-  Check
+  Calculator, Plus, Trash2, Activity, Cloud, CheckCircle2, AlertCircle,
+  Edit2, MapPin, Calendar, TrendingUp, FileText, Users, Building2
 } from 'lucide-react';
 
-interface ProjectTask {
+// Types
+interface Project {
   id: string;
   name: string;
-  category: string;
+  description: string | null;
+  budget: number | null;
+  state: string | null;
+  city: string | null;
+  climate_zone: ClimateZone | null;
+  project_type: string | null;
+  timeline_days: number | null;
+  created_at: string;
+}
+
+interface Task {
+  id: string;
+  project_id: string;
+  name: string;
+  category: string | null;
   cost: number;
-  duration: number;
-  assignedTo: string;
-  status: 'pending' | 'in-progress' | 'completed';
-  startDate: string;
-  endDate: string;
+  status: string;
+  monsoon_dependent: boolean;
+  vastu_compliant: boolean;
+  permit_required: boolean;
 }
 
 interface Material {
   id: string;
+  project_id: string;
   name: string;
-  category: string;
-  unit: string;
-  unitCost: number;
+  category: string | null;
+  unit: string | null;
+  unit_cost: number;
   quantity: number;
-  totalCost: number;
+  total_cost: number;
+  gst_rate: number;
+  gst_amount: number;
+  is_local_material: boolean;
 }
 
 interface Expense {
   id: string;
-  name: string;
-  category: string;
+  project_id: string;
+  description: string;
   amount: number;
-  date: string;
-  notes: string;
+  category: string | null;
+  gst_rate: number;
+  gst_amount: number;
 }
 
-interface ProjectMilestone {
-  id: string;
-  name: string;
-  targetDate: string;
-  completed: boolean;
-  budget: number;
-  actualCost: number;
-}
-
-export default function ProjectManagementCostEstimatorPage() {
-  // State for project details
-  const [projectName, setProjectName] = useState('');
-  const [projectDescription, setProjectDescription] = useState('');
-  const [projectBudget, setProjectBudget] = useState<number | ''>('');
-  const [projectTimeline, setProjectTimeline] = useState<number | ''>('');
+export default function ProjectManagementPage() {
+  const [loading, setLoading] = useState(true);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [allProjects, setAllProjects] = useState<Project[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
   
-  // State for tasks
-  const [tasks, setTasks] = useState<ProjectTask[]>([
-    {
-      id: '1',
-      name: 'Foundation Work',
-      category: 'Construction',
-      cost: 15000,
-      duration: 10,
-      assignedTo: 'John Smith',
-      status: 'completed',
-      startDate: '2024-01-01',
-      endDate: '2024-01-10'
-    },
-    {
-      id: '2',
-      name: 'Framing',
-      category: 'Construction',
-      cost: 25000,
-      duration: 15,
-      assignedTo: 'Mike Johnson',
-      status: 'in-progress',
-      startDate: '2024-01-11',
-      endDate: '2024-01-25'
-    },
-    {
-      id: '3',
-      name: 'Electrical Work',
-      category: 'Electrical',
-      cost: 12000,
-      duration: 12,
-      assignedTo: 'Sarah Davis',
-      status: 'pending',
-      startDate: '2024-01-26',
-      endDate: '2024-02-06'
-    }
-  ]);
-  
-  // State for materials
-  const [materials, setMaterials] = useState<Material[]>([
-    {
-      id: '1',
-      name: 'Cement',
-      category: 'Building Materials',
-      unit: 'bag',
-      unitCost: 10,
-      quantity: 500,
-      totalCost: 5000
-    },
-    {
-      id: '2',
-      name: 'Steel Rods',
-      category: 'Building Materials',
-      unit: 'kg',
-      unitCost: 80,
-      quantity: 200,
-      totalCost: 160000
-    },
-    {
-      id: '3',
-      name: 'Wood Planks',
-      category: 'Building Materials',
-      unit: 'piece',
-      unitCost: 25,
-      quantity: 500,
-      totalCost: 12500
-    }
-  ]);
-  
-  // State for expenses
-  const [expenses, setExpenses] = useState<Expense[]>([
-    {
-      id: '1',
-      name: 'Permit Fees',
-      category: 'Legal',
-      amount: 2500,
-      date: '2024-01-05',
-      notes: 'Building permit and inspection fees'
-    },
-    {
-      id: '2',
-      name: 'Consultation',
-      category: 'Professional',
-      amount: 5000,
-      date: '2024-01-10',
-      notes: 'Architect consultation'
-    }
-  ]);
-  
-  // State for milestones
- const [milestones, setMilestones] = useState<ProjectMilestone[]>([
-    {
-      id: '1',
-      name: 'Foundation Complete',
-      targetDate: '2024-01-10',
-      completed: true,
-      budget: 15000,
-      actualCost: 15000
-    },
-    {
-      id: '2',
-      name: 'Framing Complete',
-      targetDate: '2024-01-25',
-      completed: false,
-      budget: 25000,
-      actualCost: 0
-    },
-    {
-      id: '3',
-      name: 'Electrical Complete',
-      targetDate: '2024-02-06',
-      completed: false,
-      budget: 12000,
-      actualCost: 0
-    }
-  ]);
+  // Dialogs
+  const [showNewProject, setShowNewProject] = useState(false);
+  const [showProjectList, setShowProjectList] = useState(false);
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [showMaterialSelector, setShowMaterialSelector] = useState(false);
+  const [showAddExpense, setShowAddExpense] = useState(false);
   
   // Form states
-  const [newTask, setNewTask] = useState({
-    name: '',
-    category: 'Construction',
-    cost: '' as string | number,
-    duration: '' as string | number,
-    assignedTo: '',
-    startDate: '',
-    endDate: ''
-  });
-  
-  const [newMaterial, setNewMaterial] = useState({
-    name: '',
-    category: 'Building Materials',
-    unit: 'unit',
-    unitCost: '' as string | number,
-    quantity: '' as string | number
-  });
-  
-  const [newExpense, setNewExpense] = useState({
-    name: '',
-    category: 'General',
-    amount: '' as string | number,
-    date: '',
-    notes: ''
-  });
-  
-  // Calculate totals
-  const totalTaskCost = tasks.reduce((sum, task) => sum + task.cost, 0);
-  const totalMaterialCost = materials.reduce((sum, material) => sum + material.totalCost, 0);
-  const totalExpenseCost = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const totalProjectCost = totalTaskCost + totalMaterialCost + totalExpenseCost;
-  const projectBudgetNum = typeof projectBudget === 'number' ? projectBudget : 0;
-  const budgetRemaining = projectBudgetNum - totalProjectCost;
-  
-  // Add new task
- const addTask = () => {
-    if (newTask.name && newTask.cost !== '' && newTask.duration !== '') {
-      const task: ProjectTask = {
-        id: Date.now().toString(),
-        name: newTask.name,
-        category: newTask.category,
-        cost: Number(newTask.cost),
-        duration: Number(newTask.duration),
-        assignedTo: newTask.assignedTo,
-        status: 'pending',
-        startDate: newTask.startDate,
-        endDate: newTask.endDate
-      };
-      setTasks([...tasks, task]);
+  const [projectForm, setProjectForm] = useState({ name: '', budget: '', state: '', city: '', climateZone: 'tropical' as ClimateZone, projectType: 'residential' });
+  const [taskForm, setTaskForm] = useState({ name: '', category: '', cost: '', status: 'pending', monsoonDependent: false, vastuCompliant: true, permitRequired: false });
+  const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', category: '', gstRate: '18' });
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      console.log('📊 Loading projects from database...');
+      setLoading(true);
       
-      // Reset form
-      setNewTask({
-        name: '',
-        category: 'Construction',
-        cost: '',
-        duration: '',
-        assignedTo: '',
-        startDate: '',
-        endDate: ''
-      });
+      const { data: projects, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      console.log('📥 Projects loaded:', { count: projects?.length || 0, error });
+
+      if (error) {
+        console.error('❌ Error loading projects:', error);
+        alert(`Error loading projects: ${error.message}\n\nThis usually means:\n1. Tables don't exist - Run SETUP_DATABASE.sql\n2. RLS is blocking - Disable RLS\n3. Wrong credentials - Check .env file`);
+        setLoading(false);
+        return;
+      }
+
+      setAllProjects(projects || []);
+      console.log(`✅ Loaded ${projects?.length || 0} projects`);
+      
+      if (projects && projects.length > 0) {
+        console.log('🎯 Setting current project:', projects[0].name);
+        setCurrentProject(projects[0]);
+        await loadProjectData(projects[0].id);
+      } else {
+        console.log('ℹ️ No projects found - showing create form');
+        setCurrentProject(null);
+      }
+    } catch (error: any) {
+      console.error('❌ Exception loading projects:', error);
+      alert(`Failed to load projects.\n\nError: ${error.message || 'Unknown error'}\n\nCheck console for details.`);
+    } finally {
+      setLoading(false);
     }
   };
-  
-  // Add new material
-  const addMaterial = () => {
-    if (newMaterial.name && newMaterial.unitCost !== '' && newMaterial.quantity !== '') {
-      const material: Material = {
-        id: Date.now().toString(),
-        name: newMaterial.name,
-        category: newMaterial.category,
-        unit: newMaterial.unit,
-        unitCost: Number(newMaterial.unitCost),
-        quantity: Number(newMaterial.quantity),
-        totalCost: Number(newMaterial.unitCost) * Number(newMaterial.quantity)
-      };
-      setMaterials([...materials, material]);
+
+  const loadProjectData = async (projectId: string) => {
+    console.log('📦 Loading project data for:', projectId);
+    
+    const [tasksRes, materialsRes, expensesRes] = await Promise.all([
+      supabase.from('tasks').select('*').eq('project_id', projectId),
+      supabase.from('materials').select('*').eq('project_id', projectId),
+      supabase.from('expenses').select('*').eq('project_id', projectId),
+    ]);
+    
+    console.log('📦 Loaded data:', {
+      tasks: tasksRes.data?.length || 0,
+      materials: materialsRes.data?.length || 0,
+      expenses: expensesRes.data?.length || 0
+    });
+    
+    if (tasksRes.data) console.log('📋 Tasks:', tasksRes.data);
+    if (materialsRes.data) console.log('🧱 Materials:', materialsRes.data);
+    if (expensesRes.data) console.log('💸 Expenses:', expensesRes.data);
+    
+    setTasks(tasksRes.data || []);
+    setMaterials(materialsRes.data || []);
+    setExpenses(expensesRes.data || []);
+  };
+
+  // Real-time
+  useEffect(() => {
+    if (!currentProject) return;
+    const channel = supabase.channel(`project:${currentProject.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `project_id=eq.${currentProject.id}` }, () => loadProjectData(currentProject.id))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'materials', filter: `project_id=eq.${currentProject.id}` }, () => loadProjectData(currentProject.id))
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'expenses', filter: `project_id=eq.${currentProject.id}` }, () => loadProjectData(currentProject.id))
+      .subscribe((status) => setIsConnected(status === 'SUBSCRIBED'));
+    return () => { supabase.removeChannel(channel); };
+  }, [currentProject]);
+
+  // CRUD operations
+  const createProject = async () => {
+    try {
+      console.log('🚀 Creating project with data:', projectForm);
       
-      // Reset form
-      setNewMaterial({
-        name: '',
-        category: 'Building Materials',
-        unit: 'unit',
-        unitCost: '',
-        quantity: ''
-      });
+      if (!projectForm.name || !projectForm.budget) {
+        alert('Please fill in project name and budget');
+        return;
+      }
+
+      const projectData = {
+        name: projectForm.name,
+        budget: parseFloat(projectForm.budget),
+        state: projectForm.state || null,
+        city: projectForm.city || null,
+        climate_zone: projectForm.climateZone,
+        project_type: projectForm.projectType
+      };
+
+      console.log('📤 Sending to Supabase:', projectData);
+
+      const { data, error } = await supabase
+        .from('projects')
+        .insert(projectData)
+        .select()
+        .single();
+
+      console.log('📥 Supabase response:', { data, error });
+
+      if (error) {
+        console.error('❌ Error creating project:', error);
+        alert(`Error creating project: ${error.message}\n\nDetails: ${error.details || 'No details'}\n\nHint: ${error.hint || 'No hint'}`);
+        return;
+      }
+
+      if (data) {
+        console.log('✅ Project created successfully:', data);
+        
+        // Update state immediately
+        setCurrentProject(data);
+        setAllProjects(prev => [data, ...prev]);
+        
+        // Clear form and close dialog
+        setProjectForm({ name: '', budget: '', state: '', city: '', climateZone: 'tropical', projectType: 'residential' });
+        setShowNewProject(false);
+        
+        // Load project data
+        await loadProjectData(data.id);
+        
+        // Reload all projects to ensure consistency
+        await loadData();
+        alert('Project created successfully! ✅');
+      }
+    } catch (error: any) {
+      console.error('❌ Exception creating project:', error);
+      alert(`Failed to create project.\n\nError: ${error.message || 'Unknown error'}\n\nCheck console for details.`);
     }
   };
-  
-  // Add new expense
-  const addExpense = () => {
-    if (newExpense.name && newExpense.amount !== '' && newExpense.date) {
-      const expense: Expense = {
-        id: Date.now().toString(),
-        name: newExpense.name,
-        category: newExpense.category,
-        amount: Number(newExpense.amount),
-        date: newExpense.date,
-        notes: newExpense.notes
-      };
-      setExpenses([...expenses, expense]);
-      
-      // Reset form
-      setNewExpense({
-        name: '',
-        category: 'General',
-        amount: '',
-        date: '',
-        notes: ''
+
+  const addTask = async () => {
+    if (!currentProject) return;
+    try {
+      if (!taskForm.name) {
+        alert('Please enter task name');
+        return;
+      }
+
+      const { error } = await supabase.from('tasks').insert({
+        project_id: currentProject.id,
+        name: taskForm.name,
+        category: taskForm.category || 'general',
+        cost: parseFloat(taskForm.cost) || 0,
+        status: taskForm.status,
+        monsoon_dependent: taskForm.monsoonDependent,
+        vastu_compliant: taskForm.vastuCompliant,
+        permit_required: taskForm.permitRequired
       });
+
+      if (error) {
+        console.error('Error adding task:', error);
+        alert(`Error adding task: ${error.message}`);
+        return;
+      }
+
+      setShowAddTask(false);
+      setTaskForm({ name: '', category: '', cost: '', status: 'pending', monsoonDependent: false, vastuCompliant: true, permitRequired: false });
+    } catch (error) {
+      console.error('Error adding task:', error);
+      alert('Failed to add task. Please check console for details.');
     }
   };
-  
-  // Remove item functions
-  const removeTask = (id: string) => {
-    setTasks(tasks.filter(task => task.id !== id));
+
+  const addMaterialFromSelector = async (material: MaterialData) => {
+    if (!currentProject) return;
+    try {
+      const quantity = 1;
+      const totalCost = material.basePrice * quantity;
+      const gstCalc = IndiaLocalizationService.calculateGST(totalCost, material.category);
+      
+      const { error } = await supabase.from('materials').insert({
+        project_id: currentProject.id,
+        name: material.name,
+        category: material.category,
+        unit: material.unit,
+        unit_cost: material.basePrice,
+        quantity,
+        total_cost: totalCost,
+        gst_rate: gstCalc.gstRate,
+        gst_amount: gstCalc.gstAmount,
+        is_local_material: material.localAvailability.includes(currentProject.state?.substring(0, 2).toUpperCase() || ''),
+        climate_suitable: material.climateZones.includes(currentProject.climate_zone || 'tropical')
+      });
+
+      if (error) {
+        console.error('Error adding material:', error);
+        alert(`Error adding material: ${error.message}`);
+        return;
+      }
+
+      setShowMaterialSelector(false);
+    } catch (error) {
+      console.error('Error adding material:', error);
+      alert('Failed to add material. Please check console for details.');
+    }
   };
-  
- const removeMaterial = (id: string) => {
-    setMaterials(materials.filter(material => material.id !== id));
+
+  const addExpense = async () => {
+    if (!currentProject) return;
+    try {
+      if (!expenseForm.description || !expenseForm.amount) {
+        alert('Please fill in description and amount');
+        return;
+      }
+
+      const amount = parseFloat(expenseForm.amount);
+      const gstCalc = IndiaLocalizationService.calculateGST(amount, expenseForm.category || 'default');
+      
+      const { error } = await supabase.from('expenses').insert({
+        project_id: currentProject.id,
+        description: expenseForm.description,
+        amount,
+        category: expenseForm.category || 'miscellaneous',
+        gst_applicable: true,
+        gst_rate: gstCalc.gstRate,
+        gst_amount: gstCalc.gstAmount,
+        expense_date: new Date().toISOString()
+      });
+
+      if (error) {
+        console.error('Error adding expense:', error);
+        alert(`Error adding expense: ${error.message}`);
+        return;
+      }
+
+      setShowAddExpense(false);
+      setExpenseForm({ description: '', amount: '', category: '', gstRate: '18' });
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      alert('Failed to add expense. Please check console for details.');
+    }
   };
-  
-  const removeExpense = (id: string) => {
-    setExpenses(expenses.filter(expense => expense.id !== id));
+
+  const deleteTask = async (id: string) => {
+    if (confirm('Delete this task?')) await supabase.from('tasks').delete().eq('id', id);
   };
-  
-  // Calculate project progress
- const completedTasks = tasks.filter(task => task.status === 'completed').length;
-  const totalTasks = tasks.length;
-  const projectProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  
-  // Calculate milestone progress
-  const completedMilestones = milestones.filter(m => m.completed).length;
- const totalMilestones = milestones.length;
-  const milestoneProgress = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
-  
+
+  const deleteMaterial = async (id: string) => {
+    if (confirm('Delete this material?')) await supabase.from('materials').delete().eq('id', id);
+  };
+
+  const deleteExpense = async (id: string) => {
+    if (confirm('Delete this expense?')) await supabase.from('expenses').delete().eq('id', id);
+  };
+
+  const switchProject = async (projectId: string) => {
+    try {
+      console.log('🔄 Switching to project:', projectId);
+      
+      const project = allProjects.find(p => p.id === projectId);
+      
+      if (!project) {
+        console.error('❌ Project not found in allProjects:', projectId);
+        alert('Project not found. Reloading projects...');
+        await loadData();
+        return;
+      }
+      
+      console.log('📂 Found project:', project.name);
+      
+      // Update current project
+      setCurrentProject(project);
+      
+      // Clear existing data
+      setTasks([]);
+      setMaterials([]);
+      setExpenses([]);
+      
+      // Load new project data
+      await loadProjectData(projectId);
+      
+      // Close dialog
+      setShowProjectList(false);
+      
+      console.log('✅ Switched to project:', project.name);
+    } catch (error: any) {
+      console.error('❌ Error switching project:', error);
+      alert(`Failed to switch project: ${error.message}`);
+    }
+  };
+
+  // Calculations - ensure all values are numbers
+  const totalTaskCost = tasks.reduce((sum, t) => sum + (Number(t.cost) || 0), 0);
+  const totalMaterialCost = materials.reduce((sum, m) => {
+    const total = Number(m.total_cost) || 0;
+    const gst = Number(m.gst_amount) || 0;
+    return sum + total + gst;
+  }, 0);
+  const totalExpenses = expenses.reduce((sum, e) => {
+    const amount = Number(e.amount) || 0;
+    const gst = Number(e.gst_amount) || 0;
+    return sum + amount + gst;
+  }, 0);
+  const totalSpent = totalTaskCost + totalMaterialCost + totalExpenses;
+  const budget = Number(currentProject?.budget) || 0;
+  const remaining = budget - totalSpent;
+  const completedTasks = tasks.filter(t => t.status === 'completed').length;
+  const progress = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
+
+  // Debug logging
+  console.log('💰 Calculations:', {
+    totalTaskCost,
+    totalMaterialCost,
+    totalExpenses,
+    totalSpent,
+    budget,
+    remaining,
+    tasksCount: tasks.length,
+    materialsCount: materials.length,
+    expensesCount: expenses.length
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Activity className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!currentProject) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-2xl mx-auto">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Your First Project</CardTitle>
+              <CardDescription>Start with India-specific project management</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label>Project Name</Label>
+                <Input value={projectForm.name} onChange={(e) => setProjectForm({...projectForm, name: e.target.value})} placeholder="Mumbai Residential Complex" />
+              </div>
+              <div>
+                <Label>Budget (₹)</Label>
+                <Input type="number" value={projectForm.budget} onChange={(e) => setProjectForm({...projectForm, budget: e.target.value})} placeholder="10000000" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>State</Label>
+                  <Select value={projectForm.state} onValueChange={(v) => setProjectForm({...projectForm, state: v})}>
+                    <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                    <SelectContent>
+                      {INDIAN_STATES.map(s => <SelectItem key={s.code} value={s.name}>{s.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>City</Label>
+                  <Input value={projectForm.city} onChange={(e) => setProjectForm({...projectForm, city: e.target.value})} placeholder="Mumbai" />
+                </div>
+              </div>
+              <Button onClick={createProject} className="w-full"><Plus className="h-4 w-4 mr-2" />Create Project</Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-indigo-50 p-4 md:p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-blue-80 mb-2 flex items-center justify-center gap-3">
-            <Calculator className="h-10 w-10 text-blue-60" />
-            Project Management & Cost Estimation Engine
-          </h1>
-          <p className="text-lg text-blue-600 max-w-3xl mx-auto">
-            Comprehensive project management and cost estimation tools for architectural and construction projects
-          </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-primary/10 rounded-lg">
+              <Calculator className="h-8 w-8 text-primary" />
+            </div>
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold">{currentProject.name}</h1>
+                <Badge variant={isConnected ? 'default' : 'secondary'}>
+                  <Activity className={`h-3 w-3 mr-1 ${isConnected ? 'animate-pulse' : ''}`} />
+                  {isConnected ? 'Live' : 'Offline'}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 mt-1 text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                <span>{currentProject.city}, {currentProject.state}</span>
+                {currentProject.climate_zone && (
+                  <>
+                    <span>•</span>
+                    <Cloud className="h-4 w-4" />
+                    <span className="capitalize">{currentProject.climate_zone} Zone</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <RealTimePresence projectId={currentProject.id} />
+            {allProjects.length > 1 && (
+              <Button variant="outline" onClick={() => setShowProjectList(true)}>
+                <Building2 className="h-4 w-4 mr-2" />
+                Switch Project
+              </Button>
+            )}
+            <Button onClick={() => setShowNewProject(true)}><Plus className="h-4 w-4 mr-2" />New Project</Button>
+          </div>
         </div>
 
-        {/* Project Summary Card */}
-        <Card className="mb-8 border-blue-200 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-80">
-              <Building className="h-6 w-6" />
-              Project Overview
-            </CardTitle>
-            <CardDescription>Enter project details and track overall progress</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-blue-700">Project Name</label>
-                  <Input
-                    placeholder="e.g., Modern Office Complex"
-                    value={projectName}
-                    onChange={(e) => setProjectName(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-blue-700">Budget ($)</label>
-                  <Input
-                    type="number"
-                    placeholder="Total budget"
-                    value={projectBudget}
-                    onChange={(e) => setProjectBudget(e.target.value === '' ? '' : Number(e.target.value))}
-                  />
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-blue-700">Timeline (days)</label>
-                  <Input
-                    type="number"
-                    placeholder="Total duration"
-                    value={projectTimeline}
-                    onChange={(e) => setProjectTimeline(e.target.value === '' ? '' : Number(e.target.value))}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-blue-700">Progress</label>
-                  <div className="flex items-center gap-2">
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-blue-600 h-2.5 rounded-full" 
-                        style={{ width: `${projectProgress}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-sm font-medium">{projectProgress}%</span>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-blue-700">Total Tasks</label>
-                  <div className="flex items-center gap-2">
-                    <Users className="h-5 w-5 text-blue-600" />
-                    <span className="text-lg font-semibold">{totalTasks}</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-blue-700">Completed Tasks</label>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-5 w-5 text-green-600" />
-                    <span className="text-lg font-semibold">{completedTasks}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1 text-blue-700">Cost Summary</label>
-                  <div className="space-y-1">
-                    <div className="flex justify-between">
-                      <span>Budget:</span>
-                      <span className="font-semibold">${projectBudgetNum.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Spent:</span>
-                      <span className="font-semibold">${totalProjectCost.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Remaining:</span>
-                      <span className={`font-semibold ${budgetRemaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${budgetRemaining.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-4">
-              <label className="block text-sm font-medium mb-1 text-blue-700">Project Description</label>
-              <Textarea
-                placeholder="Briefly describe the scope of the project..."
-                value={projectDescription}
-                onChange={(e) => setProjectDescription(e.target.value)}
-                className="h-20"
-              />
-            </div>
-          </CardContent>
-        </Card>
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <IndianCurrencyFormatter amount={budget} label="Total Budget" variant="card" compact />
+          <IndianCurrencyFormatter amount={totalSpent} label="Total Spent" variant="card" compact />
+          <IndianCurrencyFormatter amount={remaining} label="Remaining" variant="card" compact trend={remaining < 0 ? 'down' : 'up'} />
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-sm text-muted-foreground">Progress</p>
+              <p className="text-3xl font-bold">{progress.toFixed(0)}%</p>
+              <Progress value={progress} className="mt-2" />
+            </CardContent>
+          </Card>
+        </div>
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="tasks" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-5 bg-blue-10 p-1">
-            <TabsTrigger value="tasks" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <FileText className="h-4 w-4 mr-2" />
-              Tasks
-            </TabsTrigger>
-            <TabsTrigger value="materials" className="data-[state=active]:bg-blue-60 data-[state=active]:text-white">
-              <Building className="h-4 w-4 mr-2" />
-              Materials
-            </TabsTrigger>
-            <TabsTrigger value="expenses" className="data-[state=active]:bg-blue-60 data-[state=active]:text-white">
-              <DollarSign className="h-4 w-4 mr-2" />
-              Expenses
-            </TabsTrigger>
-            <TabsTrigger value="milestones" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Milestones
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
-              <PieChart className="h-4 w-4 mr-2" />
-              Reports
-            </TabsTrigger>
+        {/* Tabs */}
+        <Tabs defaultValue="tasks">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
+            <TabsTrigger value="materials">Materials ({materials.length})</TabsTrigger>
+            <TabsTrigger value="expenses">Expenses ({expenses.length})</TabsTrigger>
+            <TabsTrigger value="reports">Reports</TabsTrigger>
           </TabsList>
 
-          {/* Tasks Tab */}
           <TabsContent value="tasks">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <Card className="border-blue-200 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-80">
-                      <FileText className="h-6 w-6" />
-                      Project Tasks
-                    </CardTitle>
-                    <CardDescription>Manage and track project tasks with costs and timelines</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Task</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead>Cost ($)</TableHead>
-                          <TableHead>Duration (days)</TableHead>
-                          <TableHead>Assigned To</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {tasks.map((task) => (
-                          <TableRow key={task.id}>
-                            <TableCell className="font-medium">{task.name}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="capitalize">
-                                {task.category}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{task.cost.toLocaleString()}</TableCell>
-                            <TableCell>{task.duration}</TableCell>
-                            <TableCell>{task.assignedTo}</TableCell>
-                            <TableCell>
-                              <Badge 
-                                className={
-                                  task.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                  task.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-gray-100 text-gray-800'
-                                }
-                              >
-                                {task.status.replace('-', ' ')}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button variant="ghost" size="icon">
-                                  <Edit3 className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => removeTask(task.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <div>
-                <Card className="border-blue-200 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-800">
-                      <Plus className="h-6 w-6" />
-                      Add New Task
-                    </CardTitle>
-                    <CardDescription>Create a new project task</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Task Name</label>
-                      <Input
-                        value={newTask.name}
-                        onChange={(e) => setNewTask({...newTask, name: e.target.value})}
-                        placeholder="e.g., Foundation Work"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Category</label>
-                      <Select value={newTask.category} onValueChange={(value) => setNewTask({...newTask, category: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Construction">Construction</SelectItem>
-                          <SelectItem value="Electrical">Electrical</SelectItem>
-                          <SelectItem value="Plumbing">Plumbing</SelectItem>
-                          <SelectItem value="HVAC">HVAC</SelectItem>
-                          <SelectItem value="Finishing">Finishing</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Cost ($)</label>
-                        <Input
-                          type="number"
-                          value={newTask.cost}
-                          onChange={(e) => setNewTask({...newTask, cost: e.target.value === '' ? '' : Number(e.target.value)})}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Duration (days)</label>
-                        <Input
-                          type="number"
-                          value={newTask.duration}
-                          onChange={(e) => setNewTask({...newTask, duration: e.target.value === '' ? '' : Number(e.target.value)})}
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Assigned To</label>
-                      <Input
-                        value={newTask.assignedTo}
-                        onChange={(e) => setNewTask({...newTask, assignedTo: e.target.value})}
-                        placeholder="Team member name"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Start Date</label>
-                        <Input
-                          type="date"
-                          value={newTask.startDate}
-                          onChange={(e) => setNewTask({...newTask, startDate: e.target.value})}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">End Date</label>
-                        <Input
-                          type="date"
-                          value={newTask.endDate}
-                          onChange={(e) => setNewTask({...newTask, endDate: e.target.value})}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button onClick={addTask} className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Task
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Materials Tab */}
-          <TabsContent value="materials">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <Card className="border-blue-200 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-80">
-                      <Building className="h-6 w-6" />
-                      Materials & Resources
-                    </CardTitle>
-                    <CardDescription>Track materials and resources with costs</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Material</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead>Unit</TableHead>
-                          <TableHead>Unit Cost ($)</TableHead>
-                          <TableHead>Quantity</TableHead>
-                          <TableHead>Total Cost ($)</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {materials.map((material) => (
-                          <TableRow key={material.id}>
-                            <TableCell className="font-medium">{material.name}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="capitalize">
-                                {material.category}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{material.unit}</TableCell>
-                            <TableCell>{material.unitCost.toLocaleString()}</TableCell>
-                            <TableCell>{material.quantity}</TableCell>
-                            <TableCell className="font-semibold">{material.totalCost.toLocaleString()}</TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button variant="ghost" size="icon">
-                                  <Edit3 className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => removeMaterial(material.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <div>
-                <Card className="border-blue-200 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-80">
-                      <Plus className="h-6 w-6" />
-                      Add New Material
-                    </CardTitle>
-                    <CardDescription>Add a new material to your project</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Material Name</label>
-                      <Input
-                        value={newMaterial.name}
-                        onChange={(e) => setNewMaterial({...newMaterial, name: e.target.value})}
-                        placeholder="e.g., Cement"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Category</label>
-                      <Select value={newMaterial.category} onValueChange={(value) => setNewMaterial({...newMaterial, category: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Building Materials">Building Materials</SelectItem>
-                          <SelectItem value="Electrical">Electrical</SelectItem>
-                          <SelectItem value="Plumbing">Plumbing</SelectItem>
-                          <SelectItem value="Finishing">Finishing</SelectItem>
-                          <SelectItem value="Equipment">Equipment</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Unit</label>
-                        <Select value={newMaterial.unit} onValueChange={(value) => setNewMaterial({...newMaterial, unit: value})}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="unit">Unit</SelectItem>
-                            <SelectItem value="kg">Kilogram</SelectItem>
-                            <SelectItem value="bag">Bag</SelectItem>
-                            <SelectItem value="piece">Piece</SelectItem>
-                            <SelectItem value="box">Box</SelectItem>
-                            <SelectItem value="liter">Liter</SelectItem>
-                            <SelectItem value="meter">Meter</SelectItem>
-                            <SelectItem value="sqm">Square Meter</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Unit Cost ($)</label>
-                        <Input
-                          type="number"
-                          value={newMaterial.unitCost}
-                          onChange={(e) => setNewMaterial({...newMaterial, unitCost: e.target.value === '' ? '' : Number(e.target.value)})}
-                          placeholder="0"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Quantity</label>
-                        <Input
-                          type="number"
-                          value={newMaterial.quantity}
-                          onChange={(e) => setNewMaterial({...newMaterial, quantity: e.target.value === '' ? '' : Number(e.target.value)})}
-                          placeholder="0"
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button onClick={addMaterial} className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Material
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Expenses Tab */}
-          <TabsContent value="expenses">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <Card className="border-blue-200 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-800">
-                      <DollarSign className="h-6 w-6" />
-                      Additional Expenses
-                    </CardTitle>
-                    <CardDescription>Track additional project expenses</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Expense</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead>Amount ($)</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Notes</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {expenses.map((expense) => (
-                          <TableRow key={expense.id}>
-                            <TableCell className="font-medium">{expense.name}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="capitalize">
-                                {expense.category}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="font-semibold">{expense.amount.toLocaleString()}</TableCell>
-                            <TableCell>{expense.date}</TableCell>
-                            <TableCell>{expense.notes}</TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
-                                <Button variant="ghost" size="icon">
-                                  <Edit3 className="h-4 w-4" />
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
-                                  onClick={() => removeExpense(expense.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              <div>
-                <Card className="border-blue-200 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-800">
-                      <Plus className="h-6 w-6" />
-                      Add New Expense
-                    </CardTitle>
-                    <CardDescription>Add an additional project expense</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Expense Name</label>
-                      <Input
-                        value={newExpense.name}
-                        onChange={(e) => setNewExpense({...newExpense, name: e.target.value})}
-                        placeholder="e.g., Permit Fees"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Category</label>
-                      <Select value={newExpense.category} onValueChange={(value) => setNewExpense({...newExpense, category: value})}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Legal">Legal</SelectItem>
-                          <SelectItem value="Professional">Professional</SelectItem>
-                          <SelectItem value="Transportation">Transportation</SelectItem>
-                          <SelectItem value="Equipment">Equipment</SelectItem>
-                          <SelectItem value="General">General</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Amount ($)</label>
-                      <Input
-                        type="number"
-                        value={newExpense.amount}
-                        onChange={(e) => setNewExpense({...newExpense, amount: e.target.value === '' ? '' : Number(e.target.value)})}
-                        placeholder="0"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Date</label>
-                      <Input
-                        type="date"
-                        value={newExpense.date}
-                        onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Notes</label>
-                      <Textarea
-                        value={newExpense.notes}
-                        onChange={(e) => setNewExpense({...newExpense, notes: e.target.value})}
-                        placeholder="Additional details..."
-                        className="h-20"
-                      />
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button onClick={addExpense} className="w-full">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Expense
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Milestones Tab */}
-          <TabsContent value="milestones">
-            <Card className="border-blue-200 shadow-lg">
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-800">
-                  <TrendingUp className="h-6 w-6" />
-                  Project Milestones
-                </CardTitle>
-                <CardDescription>Track major project milestones and completion status</CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Project Tasks</CardTitle>
+                    <CardDescription>India-specific task management</CardDescription>
+                  </div>
+                  <Button onClick={() => setShowAddTask(true)}><Plus className="h-4 w-4 mr-2" />Add Task</Button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="mb-6">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-sm font-medium">Overall Milestone Progress</span>
-                    <span className="text-sm font-medium">{milestoneProgress}%</span>
+                {tasks.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No tasks yet. Click "Add Task" to get started.</p>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full" 
-                      style={{ width: `${milestoneProgress}%` }}
-                    ></div>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {milestones.map((milestone) => (
-                    <Card key={milestone.id} className={`border-l-4 ${milestone.completed ? 'border-l-green-500' : 'border-l-yellow-500'}`}>
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-semibold">{milestone.name}</h3>
-                            <p className="text-sm text-gray-600">Target: {milestone.targetDate}</p>
-                            <div className="mt-2 flex items-center gap-4">
-                              <span className={`text-sm ${milestone.completed ? 'text-green-600' : 'text-yellow-600'}`}>
-                                {milestone.completed ? 'Completed' : 'Pending'}
-                              </span>
-                              <span className="text-sm">Budget: ${milestone.budget.toLocaleString()}</span>
-                              <span className="text-sm">Actual: ${milestone.actualCost.toLocaleString()}</span>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Task</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Cost</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Flags</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {tasks.map(task => (
+                        <TableRow key={task.id}>
+                          <TableCell className="font-medium">{task.name}</TableCell>
+                          <TableCell>{task.category}</TableCell>
+                          <TableCell><IndianCurrencyFormatter amount={task.cost} variant="inline" compact /></TableCell>
+                          <TableCell>
+                            <Badge variant={task.status === 'completed' ? 'default' : 'outline'}>{task.status}</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              {task.monsoon_dependent && <Cloud className="h-4 w-4 text-blue-500" title="Monsoon Dependent" />}
+                              {task.vastu_compliant && <CheckCircle2 className="h-4 w-4 text-green-500" title="Vastu Compliant" />}
+                              {task.permit_required && <AlertCircle className="h-4 w-4 text-orange-500" title="Permit Required" />}
                             </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="icon">
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="sm" onClick={() => deleteTask(task.id)}><Trash2 className="h-4 w-4" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Reports Tab */}
-          <TabsContent value="reports">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="border-blue-200 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-blue-800">
-                    <PieChart className="h-6 w-6" />
-                    Cost Breakdown
-                  </CardTitle>
-                  <CardDescription>Visual representation of project costs</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between">
-                      <span>Tasks</span>
-                      <span className="font-semibold">${totalTaskCost.toLocaleString()}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-blue-600 h-2.5 rounded-full" 
-                        style={{ width: `${totalProjectCost > 0 ? (totalTaskCost / totalProjectCost) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span>Materials</span>
-                      <span className="font-semibold">${totalMaterialCost.toLocaleString()}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-green-600 h-2.5 rounded-full" 
-                        style={{ width: `${totalProjectCost > 0 ? (totalMaterialCost / totalProjectCost) * 10 : 0}%` }}
-                      ></div>
-                    </div>
-                    
-                    <div className="flex justify-between">
-                      <span>Expenses</span>
-                      <span className="font-semibold">${totalExpenseCost.toLocaleString()}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-purple-600 h-2.5 rounded-full" 
-                        style={{ width: `${totalProjectCost > 0 ? (totalExpenseCost / totalProjectCost) * 10 : 0}%` }}
-                      ></div>
-                    </div>
-                    
-                    <div className="pt-4 border-t border-gray-200 flex justify-between font-bold">
-                      <span>Total</span>
-                      <span>${totalProjectCost.toLocaleString()}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <Card className="border-blue-200 shadow-lg">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-blue-80">
-                    <BarChart3 className="h-6 w-6" />
-                    Budget Analysis
-                  </CardTitle>
-                  <CardDescription>Project budget vs actual spending</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-6">
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span>Budget</span>
-                        <span>${projectBudgetNum.toLocaleString()}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-4">
-                        <div 
-                          className="bg-blue-500 h-4 rounded-full" 
-                          style={{ width: '100%' }}
-                        ></div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between mb-1">
-                        <span>Spent</span>
-                        <span>${totalProjectCost.toLocaleString()}</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-4">
-                        <div 
-                          className={`h-4 rounded-full ${totalProjectCost > projectBudgetNum ? 'bg-red-500' : 'bg-green-500'}`} 
-                          style={{ width: `${projectBudgetNum > 0 ? Math.min(100, (totalProjectCost / projectBudgetNum) * 100) : 0}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                    
-                    <div className="pt-4 border-t border-gray-200">
-                      <div className="flex justify-between">
-                        <span>Remaining</span>
-                        <span className={`font-semibold ${budgetRemaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          ${budgetRemaining.toLocaleString()}
-                        </span>
-                      </div>
-                      {budgetRemaining < 0 && (
-                        <p className="text-sm text-red-600 mt-2">
-                          Budget exceeded by ${Math.abs(budgetRemaining).toLocaleString()}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <Card className="mt-6 border-blue-200 shadow-lg">
+          <TabsContent value="materials">
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-800">
-                  <FileSpreadsheet className="h-6 w-6" />
-                  Project Summary Report
-                </CardTitle>
-                <CardDescription>Comprehensive project status and financial summary</CardDescription>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Construction Materials</CardTitle>
+                    <CardDescription>Climate-optimized materials with GST</CardDescription>
+                  </div>
+                  <Button onClick={() => setShowMaterialSelector(true)}><Plus className="h-4 w-4 mr-2" />Add Material</Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {materials.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No materials yet. Use the material selector to add climate-appropriate materials.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Material</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead>Unit Cost</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>GST</TableHead>
+                        <TableHead>Final</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {materials.map(material => (
+                        <TableRow key={material.id}>
+                          <TableCell className="font-medium">
+                            {material.name}
+                            {material.is_local_material && <Badge variant="secondary" className="ml-2 text-xs">Local</Badge>}
+                          </TableCell>
+                          <TableCell>{material.category}</TableCell>
+                          <TableCell>{material.quantity} {material.unit}</TableCell>
+                          <TableCell><IndianCurrencyFormatter amount={material.unit_cost} variant="inline" compact /></TableCell>
+                          <TableCell><IndianCurrencyFormatter amount={material.total_cost} variant="inline" compact /></TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{material.gst_rate}%</Badge>
+                            <div className="text-xs text-muted-foreground">
+                              {IndiaLocalizationService.formatCurrency(material.gst_amount, { compact: true })}
+                            </div>
+                          </TableCell>
+                          <TableCell><IndianCurrencyFormatter amount={material.total_cost + material.gst_amount} variant="inline" compact /></TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="sm" onClick={() => deleteMaterial(material.id)}><Trash2 className="h-4 w-4" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="expenses">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Project Expenses</CardTitle>
+                    <CardDescription>Track expenses with GST compliance</CardDescription>
+                  </div>
+                  <Button onClick={() => setShowAddExpense(true)}><Plus className="h-4 w-4 mr-2" />Add Expense</Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {expenses.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>No expenses recorded yet.</p>
+                  </div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>GST</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {expenses.map(expense => (
+                        <TableRow key={expense.id}>
+                          <TableCell className="font-medium">{expense.description}</TableCell>
+                          <TableCell>{expense.category}</TableCell>
+                          <TableCell><IndianCurrencyFormatter amount={expense.amount} variant="inline" compact /></TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{expense.gst_rate}%</Badge>
+                            <div className="text-xs text-muted-foreground">
+                              {IndiaLocalizationService.formatCurrency(expense.gst_amount, { compact: true })}
+                            </div>
+                          </TableCell>
+                          <TableCell><IndianCurrencyFormatter amount={expense.amount + expense.gst_amount} variant="inline" compact /></TableCell>
+                          <TableCell>
+                            <Button variant="ghost" size="sm" onClick={() => deleteExpense(expense.id)}><Trash2 className="h-4 w-4" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="reports">
+            <Card>
+              <CardHeader>
+                <CardTitle>Project Reports</CardTitle>
+                <CardDescription>Cost analysis and GST breakdown</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <h3 className="font-semibold text-blue-800">Tasks</h3>
-                      <p className="text-2xl font-bold">{totalTasks}</p>
-                      <p className="text-sm text-blue-60">{completedTasks} completed</p>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Task Costs</p>
+                      <p className="text-2xl font-bold">{IndiaLocalizationService.formatCurrency(totalTaskCost, { compact: true })}</p>
                     </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <h3 className="font-semibold text-green-800">Materials</h3>
-                      <p className="text-2xl font-bold">{materials.length}</p>
-                      <p className="text-sm text-green-60">${totalMaterialCost.toLocaleString()}</p>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Material Costs</p>
+                      <p className="text-2xl font-bold">{IndiaLocalizationService.formatCurrency(totalMaterialCost, { compact: true })}</p>
                     </div>
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <h3 className="font-semibold text-purple-80">Expenses</h3>
-                      <p className="text-2xl font-bold">{expenses.length}</p>
-                      <p className="text-sm text-purple-60">${totalExpenseCost.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-yellow-50 p-4 rounded-lg">
-                      <h3 className="font-semibold text-yellow-800">Progress</h3>
-                      <p className="text-2xl font-bold">{projectProgress}%</p>
-                      <p className="text-sm text-yellow-600">Overall completion</p>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Other Expenses</p>
+                      <p className="text-2xl font-bold">{IndiaLocalizationService.formatCurrency(totalExpenses, { compact: true })}</p>
                     </div>
                   </div>
-                  
-                  <div className="mt-6">
-                    <h3 className="font-semibold mb-2">Project Notes</h3>
-                    <Textarea 
-                      placeholder="Add project notes, observations, or important information..."
-                      className="h-32"
-                    />
+                  <div className="pt-4 border-t">
+                    <p className="text-sm text-muted-foreground mb-2">Total GST Collected</p>
+                    <p className="text-3xl font-bold text-primary">
+                      {IndiaLocalizationService.formatCurrency(
+                        materials.reduce((sum, m) => sum + m.gst_amount, 0) + 
+                        expenses.reduce((sum, e) => sum + e.gst_amount, 0),
+                        { compact: true }
+                      )}
+                    </p>
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button variant="outline">
-                  <Download className="h-4 w-4 mr-2" />
-                  Export Report
-                </Button>
-                <Button>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Save Project
-                </Button>
-              </CardFooter>
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Dialogs */}
+        <Dialog open={showNewProject} onOpenChange={setShowNewProject}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Project</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Project Name *</Label>
+                <Input 
+                  value={projectForm.name} 
+                  onChange={(e) => setProjectForm({...projectForm, name: e.target.value})} 
+                  placeholder="Mumbai Residential Complex" 
+                />
+              </div>
+              <div>
+                <Label>Budget (₹) *</Label>
+                <Input 
+                  type="number" 
+                  value={projectForm.budget} 
+                  onChange={(e) => setProjectForm({...projectForm, budget: e.target.value})} 
+                  placeholder="10000000" 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>State</Label>
+                  <Select value={projectForm.state} onValueChange={(v) => setProjectForm({...projectForm, state: v})}>
+                    <SelectTrigger><SelectValue placeholder="Select state" /></SelectTrigger>
+                    <SelectContent>
+                      {INDIAN_STATES.map(s => (
+                        <SelectItem key={s.code} value={s.name}>{s.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>City</Label>
+                  <Input 
+                    value={projectForm.city} 
+                    onChange={(e) => setProjectForm({...projectForm, city: e.target.value})} 
+                    placeholder="Mumbai" 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Climate Zone</Label>
+                  <Select value={projectForm.climateZone} onValueChange={(v) => setProjectForm({...projectForm, climateZone: v as ClimateZone})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="tropical">Tropical</SelectItem>
+                      <SelectItem value="subtropical">Subtropical</SelectItem>
+                      <SelectItem value="mountain">Mountain</SelectItem>
+                      <SelectItem value="arid">Arid</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Project Type</Label>
+                  <Select value={projectForm.projectType} onValueChange={(v) => setProjectForm({...projectForm, projectType: v})}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="residential">Residential</SelectItem>
+                      <SelectItem value="commercial">Commercial</SelectItem>
+                      <SelectItem value="industrial">Industrial</SelectItem>
+                      <SelectItem value="infrastructure">Infrastructure</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowNewProject(false)}>Cancel</Button>
+              <Button onClick={createProject}>
+                <Plus className="h-4 w-4 mr-2" />
+                Create Project
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAddTask} onOpenChange={setShowAddTask}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Task</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Task Name</Label>
+                <Input value={taskForm.name} onChange={(e) => setTaskForm({...taskForm, name: e.target.value})} placeholder="Foundation work" />
+              </div>
+              <div>
+                <Label>Category</Label>
+                <Select value={taskForm.category} onValueChange={(v) => setTaskForm({...taskForm, category: v})}>
+                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    {IndiaLocalizationService.getTaskCategories().map(cat => (
+                      <SelectItem key={cat.value} value={cat.value}>{cat.icon} {cat.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Cost (₹)</Label>
+                <Input type="number" value={taskForm.cost} onChange={(e) => setTaskForm({...taskForm, cost: e.target.value})} placeholder="50000" />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox checked={taskForm.monsoonDependent} onCheckedChange={(c) => setTaskForm({...taskForm, monsoonDependent: !!c})} />
+                  <Label>Monsoon Dependent</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox checked={taskForm.vastuCompliant} onCheckedChange={(c) => setTaskForm({...taskForm, vastuCompliant: !!c})} />
+                  <Label>Vastu Compliant</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox checked={taskForm.permitRequired} onCheckedChange={(c) => setTaskForm({...taskForm, permitRequired: !!c})} />
+                  <Label>Permit Required</Label>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddTask(false)}>Cancel</Button>
+              <Button onClick={addTask}>Add Task</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showMaterialSelector} onOpenChange={setShowMaterialSelector}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Select Construction Material</DialogTitle>
+            </DialogHeader>
+            <IndianMaterialSelector
+              climateZone={currentProject.climate_zone || 'tropical'}
+              stateCode={currentProject.state?.substring(0, 2)}
+              onMaterialSelect={addMaterialFromSelector}
+            />
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Expense</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Description</Label>
+                <Input value={expenseForm.description} onChange={(e) => setExpenseForm({...expenseForm, description: e.target.value})} placeholder="Labor payment" />
+              </div>
+              <div>
+                <Label>Category</Label>
+                <Select value={expenseForm.category} onValueChange={(v) => setExpenseForm({...expenseForm, category: v})}>
+                  <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+                  <SelectContent>
+                    {IndiaLocalizationService.getExpenseCategories().map(cat => (
+                      <SelectItem key={cat.value} value={cat.value}>{cat.label} (GST {cat.gstRate}%)</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Amount (₹)</Label>
+                <Input type="number" value={expenseForm.amount} onChange={(e) => setExpenseForm({...expenseForm, amount: e.target.value})} placeholder="25000" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddExpense(false)}>Cancel</Button>
+              <Button onClick={addExpense}>Add Expense</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showProjectList} onOpenChange={setShowProjectList}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Switch Project</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-2">
+              {allProjects.map(project => (
+                <Card 
+                  key={project.id} 
+                  className={`cursor-pointer hover:border-primary transition-colors ${project.id === currentProject?.id ? 'border-primary' : ''}`}
+                  onClick={() => switchProject(project.id)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold">{project.name}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          {project.city}, {project.state}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold">
+                          {IndiaLocalizationService.formatCurrency(project.budget || 0, { compact: true })}
+                        </p>
+                        {project.climate_zone && (
+                          <Badge variant="secondary" className="text-xs capitalize">
+                            {project.climate_zone}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
