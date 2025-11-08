@@ -60,7 +60,7 @@ def generate_floor_plan(prompt: str, model_name: str = "default"):
 
     for attempt_model in models_to_try:
         try:
-            api_url = f"https://api-inference.huggingface.co/models/{attempt_model}"
+            api_url = f"https://router.huggingface.co/hf-inference/models/{attempt_model}"
             logger.info(f"Trying model: {attempt_model}")
 
             # Enhanced architectural floor plan prompts

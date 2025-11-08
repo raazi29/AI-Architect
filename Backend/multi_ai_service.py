@@ -26,8 +26,9 @@ class MultiAIService:
         self.providers = {
             "huggingface": {
                 "enabled": bool(self.hf_token),
-                "base_url": "https://api-inference.huggingface.co/models",
+                "base_url": "https://router.huggingface.co/hf-inference/models",
                 "models": [
+                    "black-forest-labs/FLUX.1-dev",  # Primary: High-quality, accurate image generation
                     "stabilityai/stable-diffusion-3.5-large",  # Best model first
                     "stabilityai/stable-diffusion-xl-base-1.0",  # Base model second
                     "runwayml/stable-diffusion-v1-5"  # Fallback model last
@@ -382,7 +383,15 @@ class MultiAIService:
                 }
                 
                 # Adjust parameters for specific models
-                if "stable-diffusion-3.5-large" in model:
+                if "FLUX.1-dev" in model:
+                    # FLUX.1-dev works best with specific parameters for accuracy
+                    parameters["num_inference_steps"] = min(kwargs.get("steps", 28), 28)  # FLUX works well with fewer steps
+                    parameters["guidance_scale"] = min(kwargs.get("guidance_scale", 3.5), 3.5)  # Lower guidance for FLUX
+                    # FLUX prefers specific dimensions
+                    if parameters["width"] == 1024 and parameters["height"] == 1024:
+                        parameters["width"] = 1024
+                        parameters["height"] = 1024  # FLUX works well with square images
+                elif "stable-diffusion-3.5-large" in model:
                     # The 3.5-large model might have different parameter requirements
                     # Try with fewer inference steps to avoid timeouts/errors
                     parameters["num_inference_steps"] = min(kwargs.get("steps", 25), 25)  # Even fewer steps for better model

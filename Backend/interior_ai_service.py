@@ -19,10 +19,11 @@ class InteriorAIService:
     
     def __init__(self):
         self.api_token = os.environ.get("HUGGING_FACE_API_TOKEN")
-        self.base_url = "https://api-inference.huggingface.co/models"
+        self.base_url = "https://router.huggingface.co/hf-inference/models"
         
-        # Primary models for interior design generation (specialized for better interior designs)
+        # Primary models for interior design generation (FLUX.1-dev prioritized for accuracy)
         self.primary_models = [
+            "black-forest-labs/FLUX.1-dev",  # Primary: High-quality, accurate image generation
             "Viktor1717/scandinavian-interior-style1",  # Specialized scandinavian interior model
             "SedatAl/Interior-Flux-Lora"  # Specialized interior design model
         ]
@@ -250,25 +251,18 @@ class InteriorAIService:
         
         enhanced_prompt = f"{enhanced_prompt}, {realism_context}, {practical_context}"
         
-        # Add accurate spatial context if room dimensions are specified
-        dimension_match = re.search(r"(\d+)\s*[xX]\s*(\d+)", user_prompt)
-        if dimension_match:
-            width_ft, length_ft = dimension_match.groups()
-            enhanced_prompt = (
-                f"{enhanced_prompt}, true-to-scale {width_ft} ft by {length_ft} ft room proportions, accurate furniture spacing"
-            )
-
-        # Add high-end photographic context while keeping user intent primary
-        realism_context = (
-            "ultra realistic, photo-realistic interior photography, sharp focus, physically accurate materials, "
-            "global illumination, natural soft shadows, volumetric lighting, ultra detailed textures, "
-            "8k resolution, HDR, magazine editorial quality, shot on Canon EOS R5 with 35mm lens at f/2.8"
+        # FLUX.1-dev specific enhancements for better accuracy
+        flux_enhancements = (
+            "photorealistic interior design, professional architectural photography, "
+            "ultra-detailed textures, physically accurate lighting, global illumination, "
+            "accurate material properties, proper perspective and scale, "
+            "high dynamic range, realistic shadows and reflections, "
+            "meticulous attention to user-specified object placement and positioning, "
+            "exact room layout as described, precise furniture arrangement, "
+            "authentic architectural details, professional interior styling"
         )
-        practicality_context = (
-            "professionally staged, code-compliant fixtures, ergonomically arranged furniture, realistic ceiling heights, "
-            "purposeful lighting placement, believable materials, functional interior design, architect-approved layout"
-        )
-        enhanced_prompt = f"{enhanced_prompt}, {realism_context}, {practicality_context}"
+        
+        enhanced_prompt = f"{enhanced_prompt}, {flux_enhancements}"
         
         # Add a final emphasis to follow the description exactly
         enhanced_prompt = f"{enhanced_prompt}, CRITICAL: INCLUDE ALL SPECIFIC OBJECTS MENTIONED AND FOLLOW PLACEMENT INSTRUCTIONS EXACTLY, NO ABSTRACT OR GENERIC ELEMENTS - BE PRECISE"

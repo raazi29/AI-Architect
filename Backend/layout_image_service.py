@@ -125,7 +125,7 @@ class LayoutImageService:
     async def _query_hf_model(self, model_name: str, prompt: str, session: aiohttp.ClientSession) -> Optional[bytes]:
         """Query a Hugging Face model asynchronously"""
         
-        api_url = f"https://api-inference.huggingface.co/models/{model_name}"
+        api_url = f"https://router.huggingface.co/hf-inference/models/{model_name}"
         
         payload = {
             "inputs": prompt,
@@ -270,7 +270,7 @@ class LayoutImageService:
         
         async with aiohttp.ClientSession() as session:
             for model_name in [self.primary_model] + self.fallback_models:
-                api_url = f"https://api-inference.huggingface.co/models/{model_name}"
+                api_url = f"https://router.huggingface.co/hf-inference/models/{model_name}"
                 
                 try:
                     async with session.get(api_url, headers=self.headers) as response:
