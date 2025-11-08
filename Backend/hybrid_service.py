@@ -14,6 +14,9 @@ from web_scraping_service import web_scraping_service
 # Import the image categorization service
 from image_categorization_service import image_categorization_service
 
+# Import the new enhanced design scraper
+from enhanced_design_scraper import enhanced_design_scraper
+
 from database import cache_images, get_cached_images, get_cached_images_multi_provider
 from fastapi import HTTPException
 
@@ -27,24 +30,28 @@ class HybridImageService:
         self.wikimedia = WikimediaService()
         self.rawpixel = RawpixelService()
         self.ambientcg = AmbientCGService()
-        self.web_scraping = web_scraping_service  # New web scraping service
+        self.web_scraping = web_scraping_service  # Old web scraping service (kept as fallback)
+        self.enhanced_scraper = enhanced_design_scraper  # New enhanced design scraper
         
-        # Start with web scraping first, fallback to APIs/free services
+        # Start with enhanced scraper first, then fallbacks
         self.providers = []
         
-        # PRIORITY 1: Web scraping service (PRIMARY - provides real design content without API keys)
+        # PRIORITY 1: Enhanced design scraper (PRIMARY - real design websites, no API keys needed)
+        self.providers.append(("enhanced_scraper", self.enhanced_scraper))
+        
+        # PRIORITY 2: Old web scraping service (SECONDARY - fallback)
         self.providers.append(("web_scraping", self.web_scraping))
         
-        # PRIORITY 2: Picsum (FIRST FALLBACK - no rate limits, always available)
+        # PRIORITY 3: Picsum (THIRD - no rate limits, always available)
         self.providers.append(("picsum", self.picsum))
         
-        # PRIORITY 3: Free services that support search (SECOND FALLBACK)
+        # PRIORITY 4: Free services that support search (FOURTH)
         self.providers.append(("rawpixel", self.rawpixel))
         self.providers.append(("openverse", self.openverse))
         self.providers.append(("wikimedia", self.wikimedia))
         self.providers.append(("ambientcg", self.ambientcg))
         
-        # PRIORITY 4: API services (FINAL FALLBACK - only if enabled, subject to rate limits)
+        # PRIORITY 5: API services (FINAL FALLBACK - only if enabled, subject to rate limits)
         if getattr(self.pexels, "enabled", False):
             self.providers.append(("pexels", self.pexels))
         if getattr(self.unsplash, "enabled", False):
@@ -87,8 +94,10 @@ class HybridImageService:
             # Try to fetch from the selected provider
             print(f"Fetching from {provider_name} for query '{query}', page {page}, per_page {per_page}")
             
-            # Handle web scraping service differently since it has a different interface
-            if provider_name == "web_scraping":
+            # Handle different service interfaces
+            if provider_name == "enhanced_scraper":
+                raw_data = await provider.search_design_images(query, page, per_page)
+            elif provider_name == "web_scraping":
                 raw_data = await provider.search_all_sources(query, page, per_page)
             else:
                 raw_data = await provider.search_photos(query, page, per_page)
@@ -163,13 +172,16 @@ class HybridImageService:
         all_results = []
         processed_urls = set()  # To avoid duplicates
         
-        # Always prioritize web scraping as it's faster and avoids rate limits
+        # Always prioritize enhanced scraper as it's faster and avoids rate limits
+        enhanced_scraper_provider = None
         web_scraping_provider = None
         other_providers = []
         picsum_provider = None
         
         for provider_name, provider in self.providers:
-            if provider_name == "web_scraping":
+            if provider_name == "enhanced_scraper":
+                enhanced_scraper_provider = (provider_name, provider)
+            elif provider_name == "web_scraping":
                 web_scraping_provider = (provider_name, provider)
             elif provider_name == "picsum":
                 picsum_provider = (provider_name, provider)
@@ -472,14 +484,11 @@ class HybridImageService:
                 continue  # Skip the provider that just failed
             
             try:
-                # Handle web scraping service differently since it has a different interface
-                if provider_name == "web_scraping":
+                # Handle different service interfaces
+                if provider_name == "enhanced_scraper":
+                    raw_data = await provider.search_design_images(query, page, per_page)
+                elif provider_name == "web_scraping":
                     raw_data = await provider.search_all_sources(query, page, per_page)
-                    # Web scraping service already returns properly formatted data
-                    if isinstance(raw_data, list):
-                        formatted_data = raw_data
-                    else:
-                        formatted_data = []
                 else:
                     raw_data = await provider.search_photos(query, page, per_page)
                     

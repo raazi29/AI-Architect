@@ -282,13 +282,17 @@ export const materialService = {
 
   async createMaterial(material: Omit<Material, 'id' | 'created_by' | 'updated_at' | 'total_cost'>) {
     const { data: { user } } = await supabase.auth.getUser();
-    const totalCost = material.unit_cost * material.quantity;
     
+    // Don't send total_cost - it's a GENERATED column in the database
     const { data, error } = await supabase
       .from('materials')
       .insert([{
-        ...material,
-        total_cost: totalCost,
+        project_id: material.project_id,
+        name: material.name,
+        category: material.category,
+        unit: material.unit,
+        unit_cost: material.unit_cost,
+        quantity: material.quantity,
         created_by: user?.id || null,
         updated_at: new Date().toISOString()
       }])

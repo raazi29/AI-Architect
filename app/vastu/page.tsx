@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -105,19 +106,32 @@ const VastuPage = () => {
   const [birthTime, setBirthTime] = useState('');
   const [birthPlace, setBirthPlace] = useState('');
 
+  // Additional state for elements, guidelines, and tips
+  const [vastuElements, setVastuElements] = useState<any[]>([]);
+  const [roomGuidelines, setRoomGuidelines] = useState<any[]>([]);
+  const [vastuTipsData, setVastuTipsData] = useState<any[]>([]);
+
   // Load data
   useEffect(() => {
     fetchRoomTypes();
     fetchDirections();
+    fetchVastuElements();
+    fetchRoomGuidelines();
+    fetchVastuTips();
   }, []);
 
   const fetchRoomTypes = async () => {
     try {
-      const response = await fetch('http://localhost:8001/vastu/room-types');
-      if (!response.ok) throw new Error('Failed to fetch');
+      const response = await fetch(`${API_BASE_URL}/vastu/room-types`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setRoomTypes(data.room_types || []);
     } catch (error) {
+      console.error('Error fetching room types:', error);
+      setError('Failed to load room types. Please refresh the page.');
+      // Fallback data
       setRoomTypes([
         { value: "main_entrance", label: "Main Entrance" },
         { value: "living_room", label: "Living Room" },
@@ -133,11 +147,16 @@ const VastuPage = () => {
 
   const fetchDirections = async () => {
     try {
-      const response = await fetch('http://localhost:8001/vastu/directions');
-      if (!response.ok) throw new Error('Failed to fetch');
+      const response = await fetch(`${API_BASE_URL}/vastu/directions`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       setDirections(data.directions || []);
     } catch (error) {
+      console.error('Error fetching directions:', error);
+      setError('Failed to load directions. Please refresh the page.');
+      // Fallback data
       setDirections([
         { value: "north", label: "North" },
         { value: "north-east", label: "North-East" },
@@ -148,6 +167,45 @@ const VastuPage = () => {
         { value: "west", label: "West" },
         { value: "north-west", label: "North-West" }
       ]);
+    }
+  };
+
+  const fetchVastuElements = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vastu/elements`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setVastuElements(data.elements || []);
+    } catch (error) {
+      console.error('Error fetching vastu elements:', error);
+    }
+  };
+
+  const fetchRoomGuidelines = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vastu/room-guidelines`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setRoomGuidelines(data.guidelines || []);
+    } catch (error) {
+      console.error('Error fetching room guidelines:', error);
+    }
+  };
+
+  const fetchVastuTips = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/vastu/tips`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      setVastuTipsData(data.tips || []);
+    } catch (error) {
+      console.error('Error fetching vastu tips:', error);
     }
   };
 
@@ -173,7 +231,7 @@ const VastuPage = () => {
     setChatLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8001/vastu/chat', {
+      const response = await fetch(`${API_BASE_URL}/vastu/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -215,7 +273,7 @@ const VastuPage = () => {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:8001/vastu/analyze-ai', {
+      const response = await fetch(`${API_BASE_URL}/vastu/analyze-ai`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -232,6 +290,7 @@ const VastuPage = () => {
       setAnalysis(data);
     } catch (error) {
       setError('Failed to analyze room. Please try again.');
+      console.error('Error analyzing room:', error);
     } finally {
       setLoading(false);
     }
@@ -278,7 +337,7 @@ const VastuPage = () => {
 
       <div className="container py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="chat" className="flex items-center gap-2">
               <MessageCircle className="h-4 w-4" />
               <span className="hidden sm:inline">AI Chat</span>
@@ -290,6 +349,10 @@ const VastuPage = () => {
             <TabsTrigger value="elements" className="flex items-center gap-2">
               <Star className="h-4 w-4" />
               <span className="hidden sm:inline">Elements</span>
+            </TabsTrigger>
+            <TabsTrigger value="guidelines" className="flex items-center gap-2">
+              <Home className="h-4 w-4" />
+              <span className="hidden sm:inline">Guidelines</span>
             </TabsTrigger>
             <TabsTrigger value="tips" className="flex items-center gap-2">
               <Lightbulb className="h-4 w-4" />
@@ -325,7 +388,7 @@ const VastuPage = () => {
                     </div>
                   </CardHeader>
                   <Separator />
-                  
+
                   {/* Messages */}
                   <ScrollArea className="flex-1 p-4">
                     <div className="space-y-4">
@@ -338,7 +401,7 @@ const VastuPage = () => {
                               </AvatarFallback>
                             </Avatar>
                           )}
-                          
+
                           <div className={`max-w-[70%] ${message.role === 'user' ? 'order-1' : ''}`}>
                             <div className={`rounded-lg px-3 py-2 text-sm ${
                               message.role === 'user'
@@ -373,23 +436,21 @@ const VastuPage = () => {
                           </Avatar>
                           <div className="bg-muted rounded-lg px-3 py-2">
                             <div className="flex items-center space-x-2">
-                              <div className="flex space-x-1">
-                                <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce"></div>
-                                <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                                <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                              </div>
-                              <span className="text-sm text-muted-foreground">Thinking...</span>
+                              <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce"></div>
+                              <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                              <div className="h-2 w-2 bg-muted-foreground rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                             </div>
+                            <span className="text-sm text-muted-foreground">Thinking...</span>
                           </div>
                         </div>
                       )}
-                      
+
                       <div ref={messagesEndRef} />
                     </div>
                   </ScrollArea>
 
                   <Separator />
-                  
+
                   {/* Input */}
                   <CardContent className="p-4">
                     <div className="flex gap-2">
@@ -415,7 +476,7 @@ const VastuPage = () => {
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
-                    
+
                     <div className="flex flex-wrap gap-2 mt-3">
                       {["🏠 Analyze bedroom", "🍳 Kitchen colors", "💎 Vastu remedies", "🚪 Entrance direction"].map((suggestion) => (
                         <Button
@@ -456,7 +517,7 @@ const VastuPage = () => {
                         onChange={(e) => setBirthDate(e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="birth-time">Birth Time</Label>
                       <Input
@@ -466,7 +527,7 @@ const VastuPage = () => {
                         onChange={(e) => setBirthTime(e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="birth-place">Birth Place</Label>
                       <Input
@@ -476,7 +537,7 @@ const VastuPage = () => {
                         onChange={(e) => setBirthPlace(e.target.value)}
                       />
                     </div>
-                    
+
                     <Button
                       onClick={() => {
                         if (birthDate && birthTime && birthPlace) {
@@ -489,7 +550,7 @@ const VastuPage = () => {
                       <Sparkles className="h-4 w-4 mr-2" />
                       Get Personalized Analysis
                     </Button>
-                    
+
                     {birthDate && birthTime && birthPlace && (
                       <Alert>
                         <Info className="h-4 w-4" />
@@ -566,7 +627,7 @@ const VastuPage = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label>Direction</Label>
                       <Select value={direction} onValueChange={setDirection}>
@@ -583,10 +644,10 @@ const VastuPage = () => {
                       </Select>
                     </div>
                   </div>
-                  
-                  <Button 
-                    onClick={analyzeRoom} 
-                    className="w-full" 
+
+                  <Button
+                    onClick={analyzeRoom}
+                    className="w-full"
                     disabled={!roomType || !direction || loading}
                   >
                     {loading ? (
@@ -624,15 +685,15 @@ const VastuPage = () => {
                       </Badge>
                       <span className="text-sm font-medium">Score: {analysis.vastu_score}/100</span>
                     </div>
-                    
+
                     <Progress value={analysis.vastu_score} className="w-full" />
-                    
+
                     <div className="space-y-4">
                       <div>
                         <h4 className="font-semibold mb-2">Analysis</h4>
                         <p className="text-sm text-muted-foreground">{analysis.analysis}</p>
                       </div>
-                      
+
                       {analysis.benefits.length > 0 && (
                         <div>
                           <h4 className="font-semibold mb-2 flex items-center gap-2">
@@ -649,7 +710,7 @@ const VastuPage = () => {
                           </ul>
                         </div>
                       )}
-                      
+
                       {analysis.recommendations.length > 0 && (
                         <div>
                           <h4 className="font-semibold mb-2 flex items-center gap-2">
@@ -675,88 +736,125 @@ const VastuPage = () => {
 
           {/* Elements Tab */}
           <TabsContent value="elements" className="mt-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {[
-                { name: 'Earth (Prithvi)', icon: Mountain, color: 'text-yellow-600', direction: 'South-West', properties: 'Stability, strength, support' },
-                { name: 'Water (Jal)', icon: Droplets, color: 'text-blue-600', direction: 'North-East', properties: 'Flow, purification, life' },
-                { name: 'Fire (Agni)', icon: Flame, color: 'text-red-600', direction: 'South-East', properties: 'Energy, transformation, power' },
-                { name: 'Air (Vayu)', icon: Wind, color: 'text-green-600', direction: 'North-West', properties: 'Movement, circulation, freshness' },
-                { name: 'Space (Akash)', icon: Star, color: 'text-purple-600', direction: 'Center', properties: 'Openness, freedom, expansion' }
-              ].map((element, index) => (
-                <Card key={index} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-3">
-                      <div className={`p-2 rounded-lg bg-muted ${element.color}`}>
-                        <element.icon className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="font-semibold">{element.name}</div>
-                        <div className="text-sm text-muted-foreground">{element.direction}</div>
-                      </div>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground">{element.properties}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Star className="h-5 w-5 text-purple-500" />
+                  Panchabhutas - Five Elements
+                </CardTitle>
+                <CardDescription>
+                  Understanding the fundamental elements of Vastu Shastra
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {vastuElements.length > 0 ? vastuElements.map((element) => (
+                    <Card key={element.name} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className={`h-8 w-8 ${element.color} rounded-full flex items-center justify-center`}>
+                            <Star className="h-5 w-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-lg">{element.name}</h3>
+                            <p className="text-sm text-muted-foreground">{element.direction}</p>
+                          </div>
+                        </div>
+                        <p className="text-sm mb-3">{element.properties}</p>
+                        <div className="p-3 bg-gray-50 rounded-lg">
+                          <p className="text-sm font-medium text-gray-700">{element.tips}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )) : (
+                    <div className="col-span-full text-center py-8">
+                      <p className="text-muted-foreground">Loading Vastu elements...</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Guidelines Tab */}
+          <TabsContent value="guidelines" className="mt-6">
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Home className="h-5 w-5 text-blue-500" />
+                  Room Placement Guidelines
+                </CardTitle>
+                <CardDescription>
+                  Optimal directions and placements for different rooms
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {roomGuidelines.length > 0 ? roomGuidelines.map((guideline) => (
+                    <Card key={guideline.room} className="hover:shadow-md transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="font-semibold text-lg">{guideline.room}</h3>
+                          <Badge variant={
+                            guideline.status === 'excellent' ? 'default' :
+                            guideline.status === 'warning' ? 'secondary' : 'outline'
+                          }>
+                            {guideline.status}
+                          </Badge>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <div>
+                            <p className="text-sm font-medium text-green-700 mb-1">Best Direction</p>
+                            <p className="text-sm">{guideline.bestDirection}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-red-700 mb-1">Avoid</p>
+                            <p className="text-sm">{guideline.avoid}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-blue-700 mb-1">Tips</p>
+                            <p className="text-sm">{guideline.tips}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground">Loading room guidelines...</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Tips Tab */}
           <TabsContent value="tips" className="mt-6">
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {[
-                {
-                  category: 'Colors',
-                  icon: Palette,
-                  tips: [
-                    'Use light colors in north and east walls',
-                    'Avoid dark colors in north-east',
-                    'Yellow and orange in south-west bring stability',
-                    'Blue and green in north enhance prosperity'
-                  ]
-                },
-                {
-                  category: 'Lighting',
-                  icon: Lightbulb,
-                  tips: [
-                    'Maximum natural light from north and east',
-                    'Avoid heavy curtains on north/east windows',
-                    'Use bright lights in dark corners',
-                    'Place lamps in south-east corner'
-                  ]
-                },
-                {
-                  category: 'Furniture',
-                  icon: Home,
-                  tips: [
-                    'Heavy furniture in south and west',
-                    'Keep north-east corner light and airy',
-                    'Avoid furniture in center of room',
-                    'Bed should not face north direction'
-                  ]
-                }
-              ].map((tip, index) => (
-                <Card key={index}>
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+              {vastuTipsData.length > 0 ? vastuTipsData.map((category: any) => (
+                <Card key={category.category} className="border-0 shadow-lg">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <tip.icon className="h-5 w-5 text-orange-500" />
-                      {tip.category}
-                    </CardTitle>
-                  </CardHeader>
+                      <Lightbulb className="h-5 w-5 text-orange-500" />
+                      {category.category}
+                  </CardTitle>
+                </CardHeader>
                   <CardContent>
                     <ul className="space-y-2">
-                      {tip.tips.map((tipText, tipIndex) => (
-                        <li key={tipIndex} className="flex items-start gap-2 text-sm">
+                      {category.tips.map((tip: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2 text-sm">
                           <span className="text-orange-500 mt-1">•</span>
-                          {tipText}
+                          {tip}
                         </li>
                       ))}
                     </ul>
                   </CardContent>
                 </Card>
-              ))}
+              )) : (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-muted-foreground">Loading Vastu tips...</p>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

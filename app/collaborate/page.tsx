@@ -40,6 +40,11 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { Navigation } from "@/components/navigation";
+import { ProfessionalsService } from "@/lib/services/professionalsService";
+import { ProfessionalCard } from "@/components/professionals/ProfessionalCard";
+import { ContactModal } from "@/components/professionals/ContactModal";
+import { ProfessionalsFilters } from "@/components/professionals/ProfessionalsFilters";
+import type { Professional } from "@/lib/types/professionals";
 
 interface Project {
   id: string;
@@ -123,6 +128,22 @@ export default function Collaborate() {
   const [contractorFilter, setContractorFilter] = useState("all");
   const [showCreateProject, setShowCreateProject] = useState(false);
   const [showContractorDetails, setShowContractorDetails] = useState(false);
+  
+  // Professionals state
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [filteredProfessionals, setFilteredProfessionals] = useState<Professional[]>([]);
+  const [selectedProfessional, setSelectedProfessional] = useState<Professional | null>(null);
+  const [showContactModal, setShowContactModal] = useState(false);
+  const [professionalsLoading, setProfessionalsLoading] = useState(false);
+  const [professionalsError, setProfessionalsError] = useState<string | null>(null);
+  const [areas, setAreas] = useState<string[]>([]);
+  
+  // Filter state
+  const [professionalSearchQuery, setProfessionalSearchQuery] = useState("");
+  const [selectedType, setSelectedType] = useState("all");
+  const [selectedArea, setSelectedArea] = useState("all");
+  const [selectedRating, setSelectedRating] = useState("all");
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [activities, setActivities] = useState<Activity[]>([]);
 
@@ -132,6 +153,61 @@ export default function Collaborate() {
       router.push("/auth/signin");
     }
   }, [user, loading, router]);
+
+  // Load professionals data
+  useEffect(() => {
+    const loadProfessionals = async () => {
+      setProfessionalsLoading(true);
+      setProfessionalsError(null);
+      try {
+        const data = await ProfessionalsService.loadProfessionals();
+        setProfessionals(data);
+        setFilteredProfessionals(data);
+        
+        const uniqueAreas = await ProfessionalsService.getUniqueAreas();
+        setAreas(uniqueAreas);
+      } catch (error) {
+        console.error('Failed to load professionals:', error);
+        setProfessionalsError('Unable to load contractor information. Please try again later.');
+      } finally {
+        setProfessionalsLoading(false);
+      }
+    };
+
+    loadProfessionals();
+  }, []);
+
+  // Filter professionals when filters change
+  useEffect(() => {
+    const filterProfessionals = async () => {
+      try {
+        const filters: any = {};
+        
+        if (selectedType !== 'all') {
+          filters.type = selectedType;
+        }
+        if (selectedArea !== 'all') {
+          filters.area = selectedArea;
+        }
+        if (selectedRating !== 'all') {
+          filters.minRating = parseFloat(selectedRating);
+        }
+        if (verifiedOnly) {
+          filters.verified = true;
+        }
+
+        const filtered = await ProfessionalsService.searchProfessionals(
+          professionalSearchQuery,
+          filters
+        );
+        setFilteredProfessionals(filtered);
+      } catch (error) {
+        console.error('Error filtering professionals:', error);
+      }
+    };
+
+    filterProfessionals();
+  }, [professionalSearchQuery, selectedType, selectedArea, selectedRating, verifiedOnly]);
 
   // Fetch projects
   useEffect(() => {
@@ -414,6 +490,20 @@ export default function Collaborate() {
     }
   };
 
+  // Professionals handlers
+  const handleContactProfessional = (professional: Professional) => {
+    setSelectedProfessional(professional);
+    setShowContactModal(true);
+  };
+
+  const handleClearFilters = () => {
+    setProfessionalSearchQuery("");
+    setSelectedType("all");
+    setSelectedArea("all");
+    setSelectedRating("all");
+    setVerifiedOnly(false);
+  };
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
@@ -659,16 +749,77 @@ export default function Collaborate() {
               </TabsContent>
 
               <TabsContent value="contractors" className="mt-6">
-                <div className="text-center py-12">
-                  <Hammer className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Contractor Network</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Connect with professionals for your projects
-                  </p>
-                  <Button disabled>
-                    Browse Contractors
-                  </Button>
+                <div className="space-y-6">
+                  <ProfessionalsFilters
+                    searchQuery={professionalSearchQuery}
+                    onSearchChange={setProfessionalSearchQuery}
+                    selectedType={selectedType}
+                    onTypeChange={setSelectedType}
+                    selectedArea={selectedArea}
+                    onAreaChange={setSelectedArea}
+                    selectedRating={selectedRating}
+                    onRatingChange={setSelectedRating}
+                    verifiedOnly={verifiedOnly}
+                    onVerifiedChange={setVerifiedOnly}
+                    areas={areas}
+                    onClearFilters={handleClearFilters}
+                  />
+
+                  {professionalsLoading ? (
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                      <p className="text-muted-foreground mt-4">Loading professionals...</p>
+                    </div>
+                  ) : professionalsError ? (
+                    <div className="text-center py-12">
+                      <Hammer className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2 text-destructive">Error Loading Data</h3>
+                      <p className="text-muted-foreground mb-4">{professionalsError}</p>
+                      <Button onClick={() => window.location.reload()}>
+                        Try Again
+                      </Button>
+                    </div>
+                  ) : filteredProfessionals.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Hammer className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No Professionals Found</h3>
+                      <p className="text-muted-foreground mb-4">
+                        {professionalSearchQuery || selectedType !== 'all' || selectedArea !== 'all' || selectedRating !== 'all' || verifiedOnly
+                          ? "Try adjusting your search or filters"
+                          : "No professionals available at the moment"}
+                      </p>
+                      {(professionalSearchQuery || selectedType !== 'all' || selectedArea !== 'all' || selectedRating !== 'all' || verifiedOnly) && (
+                        <Button variant="outline" onClick={handleClearFilters}>
+                          Clear Filters
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">
+                          Showing {filteredProfessionals.length} professional{filteredProfessionals.length !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {filteredProfessionals.map((professional) => (
+                          <ProfessionalCard
+                            key={professional.id}
+                            professional={professional}
+                            onContact={handleContactProfessional}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
+
+                <ContactModal
+                  professional={selectedProfessional}
+                  isOpen={showContactModal}
+                  onClose={() => setShowContactModal(false)}
+                />
               </TabsContent>
 
               <TabsContent value="bids" className="mt-6">

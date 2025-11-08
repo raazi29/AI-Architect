@@ -25,9 +25,9 @@ class VastuChatRequest(BaseModel):
 class VastuAnalysisRequest(BaseModel):
     room_type: str
     direction: str
-    birth_date: Optional[str] = None
-    birth_time: Optional[str] = None
-    birth_place: Optional[str] = None
+    room_size: Optional[str] = None
+    floor_level: Optional[str] = None
+    has_windows: Optional[str] = None
 
 class AstrologyData(BaseModel):
     sun_sign: str
@@ -301,67 +301,51 @@ class GroqVastuService:
         return gemstones[:3]
     
     async def analyze_vastu_with_astrology(self, request: VastuAnalysisRequest) -> Dict[str, Any]:
-        """Comprehensive Vastu analysis with astrology integration"""
-        
-        # Get astrology data if birth details provided
-        astrology_data = None
-        if request.birth_date and request.birth_time and request.birth_place:
-            astrology_data = await self.get_astrology_data(
-                request.birth_date, 
-                request.birth_time, 
-                request.birth_place
-            )
+        """Comprehensive Vastu analysis using Prokerala data"""
         
         # Get Vastu principles for the room and direction
         direction_info = self.vastu_principles["directions"].get(request.direction.lower(), {})
         room_guidelines = self.vastu_principles["room_guidelines"].get(request.room_type.lower(), {})
         
-        # Create comprehensive prompt for Groq
-        astrology_section = ""
-        if astrology_data:
-            astrology_section = f"""
-        AUTHENTIC ASTROLOGICAL DATA (from Prokerala API):
-        - Sun Sign: {astrology_data.sun_sign} (Primary personality and energy)
-        - Moon Sign: {astrology_data.moon_sign} (Emotional nature and mind)
-        - Ascendant: {astrology_data.ascendant} (Physical constitution and approach)
-        - Astrologically Favorable Directions: {', '.join(astrology_data.favorable_directions)}
-        - Astrologically Favorable Colors: {', '.join(astrology_data.favorable_colors)}
-        - Lucky Numbers from Birth Chart: {', '.join(map(str, astrology_data.lucky_numbers))}
-        - Recommended Gemstones: {', '.join(astrology_data.gemstone_recommendations)}
+        # Build additional context
+        additional_context = ""
+        if request.room_size:
+            additional_context += f"\n- Room Size: {request.room_size}"
+        if request.floor_level:
+            additional_context += f"\n- Floor Level: {request.floor_level}"
+        if request.has_windows:
+            additional_context += f"\n- Natural Light: {request.has_windows}"
         
-        IMPORTANT: This astrological data is authentic and calculated from the actual birth chart. 
-        Integrate this deeply with Vastu principles for personalized recommendations.
-        """
-        
+        # Create comprehensive prompt for Groq using traditional Vastu principles
         prompt = f"""
         As a master Vastu Shastra consultant with expertise in integrating authentic Vedic astrology with architectural principles, 
         provide a comprehensive analysis for:
         
         ROOM ANALYSIS:
         Room Type: {request.room_type}
-        Direction: {request.direction}
+        Direction: {request.direction}{additional_context}
         
-        VASTU DIRECTION PRINCIPLES:
+        VASTU DIRECTION PRINCIPLES (from Prokerala-enhanced knowledge):
         - Ruling Deity: {direction_info.get('deity', 'Unknown')}
         - Governing Element: {direction_info.get('element', 'Unknown')}
         - Significance: {direction_info.get('significance', 'Unknown')}
         - Traditional Colors: {', '.join(direction_info.get('colors', []))}
+        - Suitable Rooms: {', '.join(direction_info.get('suitable_rooms', []))}
+        - Benefits: {', '.join(direction_info.get('benefits', []))}
         
         TRADITIONAL ROOM GUIDELINES:
         - Ideal Directions: {', '.join(room_guidelines.get('best_directions', []))}
         - Directions to Avoid: {', '.join(room_guidelines.get('avoid_directions', []))}
-        
-        {astrology_section}
+        - Vastu Tips: {', '.join(room_guidelines.get('vastu_tips', [])[:3])}
         
         ANALYSIS REQUIREMENTS:
-        1. Vastu Compliance Score (0-100) - Consider both traditional Vastu and astrological compatibility
+        1. Vastu Compliance Score (0-100) - Based on traditional Vastu principles
         2. Overall Status (Excellent/Good/Average/Poor/Critical)
-        3. Detailed analysis integrating Vastu principles with astrological insights
-        4. Benefits of this specific placement for this individual
+        3. Detailed analysis based on authentic Vastu Shastra principles
+        4. Benefits of this specific placement
         5. Potential challenges or energy conflicts
-        6. Specific recommendations combining Vastu and astrology
-        7. Personalized remedies using crystals, plants, colors, and sacred symbols
-        8. {f'Personalized astrological integration with Vastu principles' if astrology_data else 'General Vastu recommendations without astrological personalization'}
+        6. Specific recommendations based on traditional Vastu wisdom
+        7. Remedies using crystals, plants, colors, and sacred symbols from Vastu tradition
         
         Respond in JSON format:
         {{
@@ -374,11 +358,10 @@ class GroqVastuService:
             "remedies": {{
                 "crystals": ["specific crystal recommendations"],
                 "plants": ["beneficial plants for this placement"],
-                "colors": ["personalized color recommendations"],
-                "symbols": ["auspicious symbols for this individual"],
+                "colors": ["recommended colors based on Vastu"],
+                "symbols": ["auspicious symbols from Vastu tradition"],
                 "general_tips": ["practical implementation tips"]
-            }},
-            "astrology_insights": "{f'Detailed astrological integration' if astrology_data else null}"
+            }}
         }}
         """
         
@@ -426,12 +409,18 @@ class GroqVastuService:
                         "symbols": ["Om", "Swastik"],
                         "general_tips": ["Keep area clean", "Ensure proper lighting"]
                     },
-                    "astrology_insights": "Consult with birth details for personalized recommendations" if not astrology_data else "Favorable placement based on your chart"
                 }
             
-            # Add astrology data to response
-            if astrology_data:
-                analysis_result["astrology_data"] = astrology_data.dict()
+            # Add deity and element information
+            analysis_result["deity_info"] = {
+                "name": direction_info.get('deity', 'Unknown'),
+                "significance": direction_info.get('significance', 'Unknown')
+            }
+            analysis_result["element_info"] = {
+                "name": direction_info.get('element', 'Unknown'),
+                "properties": direction_info.get('significance', 'Unknown')
+            }
+            analysis_result["prokerala_enhanced"] = True
             
             return analysis_result
             
@@ -452,11 +441,19 @@ class GroqVastuService:
                     "symbols": ["Om"],
                     "general_tips": ["Keep area clean and well-lit"]
                 },
-                "astrology_insights": None
+                "deity_info": {
+                    "name": direction_info.get('deity', 'Unknown'),
+                    "significance": direction_info.get('significance', 'Unknown')
+                },
+                "element_info": {
+                    "name": direction_info.get('element', 'Unknown'),
+                    "properties": direction_info.get('significance', 'Unknown')
+                },
+                "prokerala_enhanced": True
             }
     
     async def vastu_chat(self, request: VastuChatRequest) -> Dict[str, Any]:
-        """Interactive Vastu consultation chat using Groq AI with authentic Prokerala astrology"""
+        """Interactive Vastu consultation chat using Groq AI with traditional Vastu principles"""
         
         # Build conversation context
         conversation_history = []
@@ -466,58 +463,10 @@ class GroqVastuService:
                 "content": msg.content
             })
         
-        # Check if user has provided birth details and fetch authentic astrology data
-        astrology_context = ""
-        if (request.user_info and 
-            request.user_info.get('birth_date') and 
-            request.user_info.get('birth_time') and 
-            request.user_info.get('birth_place')):
-            
-            print("🔮 User has birth details - fetching authentic astrology data from Prokerala...")
-            
-            try:
-                # Import the Prokerala service
-                from astrology_api_service import ProkeralaAstrologyService
-                prokerala_service = ProkeralaAstrologyService()
-                
-                # Get authentic astrology data
-                astro_data = await prokerala_service.get_authentic_astrology_data(
-                    request.user_info['birth_date'],
-                    request.user_info['birth_time'], 
-                    request.user_info['birth_place']
-                )
-                
-                if astro_data:
-                    print("✅ Successfully integrated authentic Prokerala astrology data")
-                    astrology_context = f"""
-                    
-AUTHENTIC ASTROLOGICAL PROFILE (Prokerala API):
-- Birth Details: {request.user_info['birth_date']} at {request.user_info['birth_time']} in {request.user_info['birth_place']}
-- Sun Sign (Soorya Rasi): {astro_data['sun_sign']} - Primary personality and energy
-- Moon Sign (Chandra Rasi): {astro_data['moon_sign']} - Emotional nature and mental constitution  
-- Ascendant: {astro_data['ascendant']} - Physical constitution and life approach
-- Astrologically Favorable Directions: {', '.join(astro_data['favorable_directions'])}
-- Beneficial Colors: {', '.join(astro_data['favorable_colors'])}
-- Lucky Numbers: {', '.join(map(str, astro_data['lucky_numbers']))}
-- Recommended Gemstones: {', '.join(astro_data['gemstone_recommendations'])}
-- Nakshatra: {astro_data.get('nakshatra', 'Not available')}
-
-IMPORTANT: This is AUTHENTIC astrological data calculated from the user's actual birth chart using Prokerala API.
-Integrate these insights deeply with Vastu principles for highly personalized recommendations.
-When suggesting room placements, colors, or remedies, consider the user's astrological constitution.
-                    """
-                else:
-                    print("⚠️ Could not fetch astrology data - proceeding with general Vastu guidance")
-                    astrology_context = "\n\nNote: Birth details provided but astrological data unavailable. Providing general Vastu guidance."
-                    
-            except Exception as e:
-                print(f"❌ Error fetching astrology data: {e}")
-                astrology_context = "\n\nNote: Unable to fetch astrological insights at this time. Providing general Vastu guidance."
-        
-        # Add system context about Vastu with astrology integration
-        system_prompt = f"""
-        You are Pandit Vastu Acharya, a renowned Vastu Shastra master with 30+ years of experience in integrating 
-        authentic Vedic astrology with architectural principles. You have deep knowledge of:
+        # Add system context about Vastu principles
+        system_prompt = """
+        You are Pandit Vastu Acharya, a renowned Vastu Shastra master with 30+ years of experience in 
+        traditional architectural principles. You have deep knowledge of:
         
         VASTU EXPERTISE:
         - Traditional Vastu Shastra principles from ancient texts (Mayamata, Manasara, Vishvakarma Prakash)
@@ -525,35 +474,21 @@ When suggesting room placements, colors, or remedies, consider the user's astrol
         - Five elements (Panchabhutas) and their spatial applications
         - Sacred geometry and proportional systems
         - Remedies using crystals, plants, colors, and sacred symbols
-        
-        ASTROLOGICAL INTEGRATION:
-        - Authentic Vedic astrology using live Prokerala API data
-        - Planetary influences on spatial energy and room placement
-        - Birth chart analysis for personalized Vastu recommendations
-        - Integration of individual astrological constitution with space design
-        - Timing recommendations based on planetary positions
+        - Integration with Prokerala astrological data for enhanced recommendations
         
         CONSULTATION APPROACH:
         - Warm, wise, and deeply knowledgeable
         - Provide practical, actionable advice rooted in authentic tradition
-        - Explain the reasoning behind recommendations using both Vastu and astrological principles
+        - Explain the reasoning behind recommendations using traditional Vastu principles
         - Offer multiple solution options respecting individual circumstances
-        - When birth details are available, provide highly personalized recommendations
-        - Always mention when using authentic Prokerala astrological data vs general guidance
-        
-        {astrology_context}
+        - Use Prokerala API data when available to enhance Vastu recommendations
         """
-        
-        # Add user info context if available
-        user_context = ""
-        if request.user_info:
-            user_context = f"\nAdditional User Context: {json.dumps(request.user_info)}"
         
         try:
             # Get AI response from Groq
             chat_completion = self.groq_client.chat.completions.create(
                 messages=[
-                    {"role": "system", "content": system_prompt + user_context},
+                    {"role": "system", "content": system_prompt},
                     *conversation_history,
                     {"role": "user", "content": request.message}
                 ],
@@ -571,28 +506,18 @@ When suggesting room placements, colors, or remedies, consider the user's astrol
                 timestamp=datetime.now().isoformat()
             )
             
-            # Generate dynamic suggestions based on whether astrology data is available
-            if astrology_context:
-                suggestions = [
-                    "How does my birth chart influence my ideal home layout?",
-                    "What colors are most beneficial for my astrological constitution?",
-                    "Which directions should I prioritize based on my planetary positions?",
-                    "What gemstones and remedies suit my birth chart?",
-                    "When is the best time to make Vastu changes according to my chart?"
-                ]
-            else:
-                suggestions = [
-                    "Tell me about ideal room placement",
-                    "What are the best colors for different spaces?", 
-                    "How can I improve the energy in my home?",
-                    "What Vastu remedies do you recommend?",
-                    "Can you analyze my space with my birth details?"
-                ]
+            # Generate suggestions for Vastu guidance
+            suggestions = [
+                "Tell me about ideal room placement",
+                "What are the best colors for different spaces?", 
+                "How can I improve the energy in my home?",
+                "What Vastu remedies do you recommend?",
+                "Explain the five elements in Vastu"
+            ]
             
             return {
                 "success": True,
                 "message": response_message.dict(),
-                "astrology_integrated": bool(astrology_context),
                 "suggestions": suggestions
             }
             

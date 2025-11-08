@@ -74,26 +74,62 @@ export interface MaterialData {
   description: string;
 }
 
-// Comprehensive material database for Indian construction
+// Comprehensive material database for Indian construction (200+ materials)
 export const INDIAN_MATERIALS: MaterialData[] = [
-  // Cement & Concrete
+  // Cement & Concrete (Expanded)
   { name: 'OPC 53 Grade Cement', category: 'cement', unit: 'bag', estimatedCost: 400, gstRate: 28, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'High strength cement for all construction' },
   { name: 'OPC 43 Grade Cement', category: 'cement', unit: 'bag', estimatedCost: 350, gstRate: 28, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Standard cement for general construction' },
   { name: 'PPC Cement', category: 'cement', unit: 'bag', estimatedCost: 380, gstRate: 28, climateZones: ['tropical', 'subtropical', 'arid'], isLocal: true, description: 'Portland Pozzolana Cement, eco-friendly' },
+  { name: 'PSC Cement', category: 'cement', unit: 'bag', estimatedCost: 390, gstRate: 28, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Portland Slag Cement for marine structures' },
+  { name: 'White Cement', category: 'cement', unit: 'bag', estimatedCost: 650, gstRate: 28, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'For decorative finishes' },
+  { name: 'Rapid Hardening Cement', category: 'cement', unit: 'bag', estimatedCost: 450, gstRate: 28, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Quick setting cement' },
+  { name: 'Sulphate Resistant Cement', category: 'cement', unit: 'bag', estimatedCost: 420, gstRate: 28, climateZones: ['tropical', 'subtropical', 'arid'], isLocal: true, description: 'For foundations in sulphate-rich soil' },
   { name: 'Ready Mix Concrete M20', category: 'concrete', unit: 'cubic meter', estimatedCost: 4500, gstRate: 28, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Standard grade concrete' },
   { name: 'Ready Mix Concrete M25', category: 'concrete', unit: 'cubic meter', estimatedCost: 5000, gstRate: 28, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'High strength concrete' },
+  { name: 'Ready Mix Concrete M30', category: 'concrete', unit: 'cubic meter', estimatedCost: 5500, gstRate: 28, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Extra high strength concrete' },
+  { name: 'Ready Mix Concrete M35', category: 'concrete', unit: 'cubic meter', estimatedCost: 6000, gstRate: 28, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Premium strength concrete' },
+  { name: 'Self-Compacting Concrete', category: 'concrete', unit: 'cubic meter', estimatedCost: 6500, gstRate: 28, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: false, description: 'No vibration required' },
+  { name: 'Fiber Reinforced Concrete', category: 'concrete', unit: 'cubic meter', estimatedCost: 7000, gstRate: 28, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: false, description: 'Enhanced crack resistance' },
   
-  // Steel & Metal
-  { name: 'TMT Steel Bars Fe 500', category: 'steel', unit: 'kg', estimatedCost: 75, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Thermo-mechanically treated steel bars' },
+  // Steel & Metal (Expanded)
+  { name: 'TMT Steel Bars Fe 500 - 8mm', category: 'steel', unit: 'kg', estimatedCost: 72, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'TMT bars 8mm diameter' },
+  { name: 'TMT Steel Bars Fe 500 - 10mm', category: 'steel', unit: 'kg', estimatedCost: 73, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'TMT bars 10mm diameter' },
+  { name: 'TMT Steel Bars Fe 500 - 12mm', category: 'steel', unit: 'kg', estimatedCost: 74, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'TMT bars 12mm diameter' },
+  { name: 'TMT Steel Bars Fe 500 - 16mm', category: 'steel', unit: 'kg', estimatedCost: 75, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'TMT bars 16mm diameter' },
+  { name: 'TMT Steel Bars Fe 500 - 20mm', category: 'steel', unit: 'kg', estimatedCost: 76, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'TMT bars 20mm diameter' },
+  { name: 'TMT Steel Bars Fe 500 - 25mm', category: 'steel', unit: 'kg', estimatedCost: 77, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'TMT bars 25mm diameter' },
   { name: 'TMT Steel Bars Fe 550', category: 'steel', unit: 'kg', estimatedCost: 80, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'High strength TMT bars' },
-  { name: 'MS Angles', category: 'steel', unit: 'kg', estimatedCost: 70, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Mild steel angles for structural work' },
-  { name: 'Steel Mesh', category: 'steel', unit: 'sq meter', estimatedCost: 150, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Welded steel mesh for reinforcement' },
+  { name: 'TMT Steel Bars Fe 600', category: 'steel', unit: 'kg', estimatedCost: 85, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Extra high strength TMT bars' },
+  { name: 'MS Angles 50x50mm', category: 'steel', unit: 'kg', estimatedCost: 68, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Mild steel angles' },
+  { name: 'MS Angles 75x75mm', category: 'steel', unit: 'kg', estimatedCost: 70, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Mild steel angles' },
+  { name: 'MS Channels 100mm', category: 'steel', unit: 'kg', estimatedCost: 72, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Mild steel channels' },
+  { name: 'MS Channels 150mm', category: 'steel', unit: 'kg', estimatedCost: 74, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Mild steel channels' },
+  { name: 'Steel I-Beams ISMB 150', category: 'steel', unit: 'kg', estimatedCost: 76, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'I-beams for structural work' },
+  { name: 'Steel I-Beams ISMB 200', category: 'steel', unit: 'kg', estimatedCost: 78, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'I-beams for structural work' },
+  { name: 'Steel Mesh 6mm', category: 'steel', unit: 'sq meter', estimatedCost: 140, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Welded steel mesh' },
+  { name: 'Steel Mesh 8mm', category: 'steel', unit: 'sq meter', estimatedCost: 160, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Welded steel mesh' },
+  { name: 'Stainless Steel 304', category: 'steel', unit: 'kg', estimatedCost: 350, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: false, description: 'Corrosion resistant steel' },
+  { name: 'Stainless Steel 316', category: 'steel', unit: 'kg', estimatedCost: 450, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: false, description: 'Marine grade stainless steel' },
+  { name: 'Galvanized Iron Sheets', category: 'steel', unit: 'sq meter', estimatedCost: 280, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Rust-resistant roofing sheets' },
+  { name: 'Aluminum Sheets', category: 'metal', unit: 'sq meter', estimatedCost: 450, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Lightweight metal sheets' },
+  { name: 'Copper Pipes 15mm', category: 'metal', unit: 'meter', estimatedCost: 380, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'For plumbing' },
+  { name: 'Brass Fittings', category: 'metal', unit: 'piece', estimatedCost: 150, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Plumbing fittings' },
   
-  // Bricks & Blocks
-  { name: 'Red Clay Bricks', category: 'bricks', unit: 'piece', estimatedCost: 8, gstRate: 12, climateZones: ['tropical', 'subtropical'], isLocal: true, description: 'Traditional clay bricks' },
+  // Bricks & Blocks (Expanded)
+  { name: 'Red Clay Bricks - First Class', category: 'bricks', unit: 'piece', estimatedCost: 10, gstRate: 12, climateZones: ['tropical', 'subtropical'], isLocal: true, description: 'Premium quality clay bricks' },
+  { name: 'Red Clay Bricks - Second Class', category: 'bricks', unit: 'piece', estimatedCost: 8, gstRate: 12, climateZones: ['tropical', 'subtropical'], isLocal: true, description: 'Standard quality clay bricks' },
+  { name: 'Red Clay Bricks - Third Class', category: 'bricks', unit: 'piece', estimatedCost: 6, gstRate: 12, climateZones: ['tropical', 'subtropical'], isLocal: true, description: 'Economy clay bricks' },
   { name: 'Fly Ash Bricks', category: 'bricks', unit: 'piece', estimatedCost: 6, gstRate: 12, climateZones: ['tropical', 'subtropical', 'arid'], isLocal: true, description: 'Eco-friendly lightweight bricks' },
-  { name: 'AAC Blocks', category: 'blocks', unit: 'cubic meter', estimatedCost: 3500, gstRate: 12, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Autoclaved Aerated Concrete blocks' },
-  { name: 'Concrete Blocks', category: 'blocks', unit: 'piece', estimatedCost: 35, gstRate: 12, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Hollow concrete blocks' },
+  { name: 'Concrete Bricks', category: 'bricks', unit: 'piece', estimatedCost: 12, gstRate: 12, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'High strength concrete bricks' },
+  { name: 'Fire Bricks', category: 'bricks', unit: 'piece', estimatedCost: 25, gstRate: 12, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Heat resistant bricks' },
+  { name: 'Perforated Bricks', category: 'bricks', unit: 'piece', estimatedCost: 9, gstRate: 12, climateZones: ['tropical', 'subtropical'], isLocal: true, description: 'Lightweight with holes' },
+  { name: 'AAC Blocks 600x200x100mm', category: 'blocks', unit: 'piece', estimatedCost: 55, gstRate: 12, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Autoclaved Aerated Concrete blocks' },
+  { name: 'AAC Blocks 600x200x150mm', category: 'blocks', unit: 'piece', estimatedCost: 75, gstRate: 12, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Thicker AAC blocks' },
+  { name: 'AAC Blocks 600x200x200mm', category: 'blocks', unit: 'piece', estimatedCost: 95, gstRate: 12, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Extra thick AAC blocks' },
+  { name: 'Concrete Blocks 400x200x200mm', category: 'blocks', unit: 'piece', estimatedCost: 35, gstRate: 12, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Hollow concrete blocks' },
+  { name: 'Solid Concrete Blocks', category: 'blocks', unit: 'piece', estimatedCost: 45, gstRate: 12, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Solid concrete blocks' },
+  { name: 'CLC Blocks', category: 'blocks', unit: 'piece', estimatedCost: 50, gstRate: 12, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: true, description: 'Cellular Lightweight Concrete' },
+  { name: 'Interlocking Blocks', category: 'blocks', unit: 'piece', estimatedCost: 40, gstRate: 12, climateZones: ['tropical', 'subtropical', 'arid'], isLocal: true, description: 'No mortar required' },
   
   // Aggregates
   { name: 'River Sand', category: 'sand', unit: 'cubic meter', estimatedCost: 1500, gstRate: 5, climateZones: ['tropical', 'subtropical'], isLocal: true, description: 'Natural river sand' },
@@ -142,6 +178,12 @@ export const INDIAN_MATERIALS: MaterialData[] = [
   { name: 'Acoustic Insulation', category: 'insulation', unit: 'sq meter', estimatedCost: 250, gstRate: 18, climateZones: ['tropical', 'subtropical', 'mountain', 'arid'], isLocal: false, description: 'Sound insulation' },
   { name: 'Double Glazed Windows', category: 'glass', unit: 'sq meter', estimatedCost: 1500, gstRate: 28, climateZones: ['mountain'], isLocal: false, description: 'Insulated windows for cold climate' },
 ];
+
+// Import comprehensive materials database
+import COMPREHENSIVE_INDIAN_MATERIALS from './indianMaterialsDatabase';
+
+// Merge both databases for complete material list (200+ materials)
+export const ALL_INDIAN_MATERIALS = [...INDIAN_MATERIALS, ...COMPREHENSIVE_INDIAN_MATERIALS];
 
 export class IndiaLocalizationService {
   /**
@@ -407,7 +449,7 @@ export class IndiaLocalizationService {
    * Get detailed material data for a climate zone
    */
   static getMaterialsByClimateZone(zone: ClimateZone, category?: string): MaterialData[] {
-    let materials = INDIAN_MATERIALS.filter((material) =>
+    let materials = ALL_INDIAN_MATERIALS.filter((material) =>
       material.climateZones.includes(zone)
     );
 
@@ -425,7 +467,7 @@ export class IndiaLocalizationService {
    * Get all material categories
    */
   static getMaterialCategories(): string[] {
-    const categories = new Set(INDIAN_MATERIALS.map((m) => m.category));
+    const categories = new Set(ALL_INDIAN_MATERIALS.map((m) => m.category));
     return Array.from(categories).sort();
   }
 
@@ -434,7 +476,7 @@ export class IndiaLocalizationService {
    */
   static searchMaterials(query: string, zone?: ClimateZone): MaterialData[] {
     const queryLower = query.toLowerCase();
-    let materials = INDIAN_MATERIALS.filter(
+    let materials = ALL_INDIAN_MATERIALS.filter(
       (material) =>
         material.name.toLowerCase().includes(queryLower) ||
         material.description.toLowerCase().includes(queryLower)
@@ -453,8 +495,24 @@ export class IndiaLocalizationService {
    * Get material by exact name
    */
   static getMaterialByName(name: string): MaterialData | undefined {
-    return INDIAN_MATERIALS.find(
+    return ALL_INDIAN_MATERIALS.find(
       (material) => material.name.toLowerCase() === name.toLowerCase()
+    );
+  }
+  
+  /**
+   * Get total number of materials in database
+   */
+  static getTotalMaterialsCount(): number {
+    return ALL_INDIAN_MATERIALS.length;
+  }
+  
+  /**
+   * Get materials by category
+   */
+  static getMaterialsByCategory(category: string): MaterialData[] {
+    return ALL_INDIAN_MATERIALS.filter(
+      (material) => material.category.toLowerCase() === category.toLowerCase()
     );
   }
 
