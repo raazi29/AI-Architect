@@ -45,71 +45,14 @@ export default function OrderTracker({ orderId, order: propOrder }: OrderTracker
   const [loading, setLoading] = useState(!propOrder);
   const [progress, setProgress] = useState(0);
 
-  // Mock order data if not provided
   useEffect(() => {
-    if (!propOrder && orderId) {
-      // Simulate API call to fetch order details
-      const fetchOrder = async () => {
-        setLoading(true);
-        
-        // Mock data
-        const mockOrder: Order = {
-          id: orderId,
-          order_number: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
-          items: [
-            {
-              id: 'item-1',
-              name: 'Modern Sectional Sofa',
-              image: '/modern-sofa.png',
-              quantity: 1,
-              price: 12999,
-            },
-            {
-              id: 'item-2',
-              name: 'LED Study Table Lamp',
-              image: '/modern-floor-lamp.png',
-              quantity: 2,
-              price: 1999,
-            }
-          ],
-          total_amount: 16997,
-          retailer: 'Urban Ladder',
-          status: 'shipped',
-          order_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-          estimated_delivery: new Date(Date.now() + 3 * 24 * 60 * 1000), // 3 days from now
-          current_location: 'Mumbai, Maharashtra',
-          status_history: [
-            {
-              id: '1',
-              status: 'processing',
-              timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-            },
-            {
-              id: '2',
-              status: 'shipped',
-              timestamp: new Date(Date.now() - 1 * 24 * 60 * 1000),
-              location: 'Mumbai, Maharashtra',
-            },
-            {
-              id: '3',
-              status: 'out_for_delivery',
-              timestamp: new Date(Date.now()),
-              location: 'Delhi, India',
-              estimated_delivery: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
-            }
-          ]
-        };
-        
-        setOrder(mockOrder);
-        setLoading(false);
-      };
-      
-      fetchOrder();
+    if (!propOrder) {
+      setLoading(false);
     }
- }, [orderId, propOrder]);
+  }, [propOrder]);
 
   // Calculate progress based on status
- useEffect(() => {
+  useEffect(() => {
     if (order) {
       switch (order.status) {
         case 'processing':

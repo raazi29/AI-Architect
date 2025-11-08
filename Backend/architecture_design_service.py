@@ -1,99 +1,72 @@
-"""
-Architecture Design Service for generating design-focused titles and descriptions
-"""
 import random
-from typing import List
+from typing import List, Dict, Any
 
 class ArchitectureDesignService:
     def __init__(self):
-        # Architecture and interior design focused titles
         self.design_styles = [
-            "Modern", "Contemporary", "Minimalist", "Scandinavian", "Industrial", 
-            "Mid-Century Modern", "Bohemian", "Traditional", "Rustic", "Luxury",
-            "Art Deco", "Bauhaus", "Mediterranean", "Colonial", "Victorian",
-            "Zen", "Japandi", "Farmhouse", "Urban Loft", "Coastal"
+            "Modern", "Minimalist", "Contemporary", "Industrial", "Scandinavian",
+            "Mid-Century Modern", "Rustic", "Bohemian", "Farmhouse", "Coastal",
+            "Traditional", "Transitional", "Art Deco", "Mediterranean", "Asian Zen"
         ]
         
         self.room_types = [
-            "Living Room", "Bedroom", "Kitchen", "Bathroom", "Dining Room",
-            "Office", "Study", "Library", "Entryway", "Hallway", "Balcony",
-            "Terrace", "Garden", "Patio", "Basement", "Attic", "Garage",
-            "Walk-in Closet", "Laundry Room", "Home Theater", "Gym", "Studio"
+            "Living Room", "Bedroom", "Kitchen", "Bathroom", "Home Office",
+            "Dining Room", "Outdoor Space", "Entryway", "Home Bar", "Library"
         ]
         
-        self.architectural_elements = [
-            "Open Floor Plan", "High Ceilings", "Large Windows", "Natural Light",
-            "Exposed Beams", "Brick Walls", "Concrete Floors", "Hardwood Floors",
-            "Built-in Storage", "Kitchen Island", "Fireplace", "Skylight",
-            "French Doors", "Bay Windows", "Vaulted Ceilings", "Crown Molding",
-            "Wainscoting", "Coffered Ceiling", "Archways", "Columns"
+        self.materials = [
+            "Wood", "Marble", "Concrete", "Glass", "Metal", "Leather", "Linen",
+            "Wool", "Ceramic", "Stone", "Brick", "Copper", "Brass", "Velvet"
         ]
         
-        self.design_features = [
-            "Clean Lines", "Neutral Palette", "Bold Colors", "Natural Materials",
-            "Mixed Textures", "Statement Lighting", "Artwork Display", "Plants",
-            "Vintage Accents", "Modern Furniture", "Custom Cabinetry", "Marble Countertops",
-            "Subway Tiles", "Geometric Patterns", "Metallic Finishes", "Wood Accents",
-            "Glass Elements", "Stone Features", "Fabric Textures", "Leather Details"
+        self.colors = [
+            "Neutral", "White", "Black", "Grey", "Beige", "Navy", "Emerald",
+            "Sage Green", "Dusty Blue", "Terracotta", "Mustard", "Blush Pink"
         ]
         
-        self.color_schemes = [
-            "Monochromatic", "Earth Tones", "Black and White", "Warm Neutrals",
-            "Cool Grays", "Navy and Gold", "Sage Green", "Terracotta", "Blush Pink",
-            "Deep Blues", "Rich Burgundy", "Soft Pastels", "Bold Jewel Tones"
+        self.design_terms = [
+            "Open Plan", "Statement Lighting", "Accent Wall", "Floating Shelves",
+            "Gallery Wall", "Indoor Plants", "Natural Light", "Geometric Patterns",
+            "Textured Walls", "Mixed Materials", "Vintage Accents", "Handcrafted"
         ]
-
+    
+    def _get_random_choice(self, items: List[Any], seed: int = None) -> Any:
+        if seed is not None:
+            random.seed(seed)
+        return random.choice(items)
+    
     def generate_design_title(self, seed: int = None) -> str:
-        """Generate a professional architecture/interior design title"""
-        if seed is not None:
-            random.seed(seed)
+        """Generate a design title based on the given seed."""
+        style = self._get_random_choice(self.design_styles, seed)
+        room = self._get_random_choice(self.room_types, seed + 1 if seed is not None else None)
         
-        # Different title patterns
-        patterns = [
-            "{style} {room} Design",
-            "{style} {room} with {feature}",
-            "{room} featuring {element}",
-            "{style} {room} in {color} Palette",
-            "{element} in {style} {room}",
-            "Contemporary {room} Design",
-            "{style} Interior Design",
-            "{room} with {feature} and {element}",
-            "Elegant {style} {room}",
-            "Sophisticated {room} Design"
+        title_templates = [
+            f"{style} {room} Design",
+            f"{style} {room} Inspiration",
+            f"{room} with {style} Touches",
+            f"{style} Design: {room} Ideas",
+            f"{room} in {style} Style"
         ]
         
-        pattern = random.choice(patterns)
-        
-        return pattern.format(
-            style=random.choice(self.design_styles),
-            room=random.choice(self.room_types),
-            feature=random.choice(self.design_features),
-            element=random.choice(self.architectural_elements),
-            color=random.choice(self.color_schemes)
-        )
-
+        return self._get_random_choice(title_templates, seed)
+    
     def generate_alt_text(self, seed: int = None) -> str:
-        """Generate descriptive alt text for accessibility"""
-        if seed is not None:
-            random.seed(seed)
+        """Generate alt text for design images."""
+        style = self._get_random_choice(self.design_styles, seed)
+        room = self._get_random_choice(self.room_types, seed + 1 if seed is not None else None)
+        material = self._get_random_choice(self.materials, seed + 2 if seed is not None else None)
+        color = self._get_random_choice(self.colors, seed + 3 if seed is not None else None)
+        term = self._get_random_choice(self.design_terms, seed + 4 if seed is not None else None)
         
-        style = random.choice(self.design_styles).lower()
-        room = random.choice(self.room_types).lower()
-        feature = random.choice(self.design_features).lower()
+        alt_texts = [
+            f"{style} {room} featuring {color} {material} and {term.lower()}",
+            f"{room} design in {style} style with {color} accents and {term.lower()}",
+            f"{style} interior with {material} details in {color} tones, {term.lower()}",
+            f"{room} showcasing {style} design elements with {color} {material} and {term.lower()}",
+            f"{style} {room} with {material} finishes in {color} palette, {term.lower()}"
+        ]
         
-        return f"A {style} {room} interior featuring {feature} and professional design elements"
+        return self._get_random_choice(alt_texts, seed)
 
-    def generate_description(self, seed: int = None) -> str:
-        """Generate a detailed description for the design"""
-        if seed is not None:
-            random.seed(seed)
-        
-        style = random.choice(self.design_styles)
-        room = random.choice(self.room_types)
-        elements = random.sample(self.architectural_elements, 2)
-        features = random.sample(self.design_features, 2)
-        
-        return f"This {style.lower()} {room.lower()} showcases {elements[0].lower()} and {elements[1].lower()}, complemented by {features[0].lower()} and {features[1].lower()}. The design emphasizes functionality while maintaining aesthetic appeal."
-
-# Create a singleton instance
+# Create a singleton instance to be imported by other modules
 architecture_design_service = ArchitectureDesignService()

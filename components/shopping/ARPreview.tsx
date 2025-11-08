@@ -28,28 +28,9 @@ export default function ARPreview({ productId, productName, modelUrl, dimensions
     visible: true
   });
 
-  // Mock AR data for the product
+  // Do not generate mock AR data
   useEffect(() => {
-    if (productId) {
-      setIsLoading(true);
-      
-      // Simulate API call to get AR data
-      setTimeout(() => {
-        const mockArData = {
-          model_url: modelUrl || `/ar_models/${productId}.glb`,
-          model_type: 'glb',
-          scale_factor: 1.0,
-          rotation_offset: { x: 0, y: 0, z: 0 },
-          position_offset: { x: 0, y: 0, z: 0 },
-          supported_features: ['rotate', 'scale', 'move', 'measure'],
-          measurement_units: ['cm', 'in', 'ft'],
-          last_updated: new Date().toISOString()
-        };
-        
-        setArData(mockArData);
-        setIsLoading(false);
-      }, 800);
-    }
+    setIsLoading(false);
   }, [productId, modelUrl]);
 
   const handleARStart = async () => {

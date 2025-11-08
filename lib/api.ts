@@ -1,6 +1,9 @@
 // Enhanced API utility functions with error handling and retry logic
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8001";
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  process.env.NEXT_PUBLIC_API_BASE_URL ||
+  "http://127.0.0.1:8001";
 
 // Error types for better error handling
 export enum ErrorType {

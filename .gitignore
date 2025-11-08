@@ -38,6 +38,8 @@ __pycache__/
 # Environment files
 .env
 Backend/.env
+venv
+.env.local
 # Database files
 cache.db
 Backend/cache.db

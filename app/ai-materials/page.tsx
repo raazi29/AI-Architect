@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { BrickWall, Search, Sparkles } from "lucide-react"
+import { API_BASE_URL } from "@/lib/api"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface MaterialSuggestions {
   flooring: {
@@ -59,9 +61,52 @@ export default function AiMaterialsPage() {
   const [textureDescription, setTextureDescription] = useState("")
   const [searchQuery, setSearchQuery] = useState("")
 
+  const ROOM_TYPES = [
+    { value: "living_room", label: "Living Room" },
+    { value: "bedroom", label: "Bedroom" },
+    { value: "kitchen", label: "Kitchen" },
+    { value: "bathroom", label: "Bathroom" },
+    { value: "dining_room", label: "Dining Room" },
+    { value: "office", label: "Office" },
+    { value: "hallway", label: "Hallway" },
+    { value: "outdoor", label: "Outdoor" },
+  ]
+
+  const STYLES = [
+    { value: "modern", label: "Modern" },
+    { value: "traditional", label: "Traditional" },
+    { value: "scandinavian", label: "Scandinavian" },
+    { value: "industrial", label: "Industrial" },
+    { value: "luxury", label: "Luxury" },
+    { value: "minimalist", label: "Minimalist" },
+    { value: "bohemian", label: "Bohemian" },
+    { value: "rustic", label: "Rustic" },
+  ]
+
+  const ROOM_SIZES = [
+    { value: "10", label: "10 m²" },
+    { value: "15", label: "15 m²" },
+    { value: "20", label: "20 m²" },
+    { value: "25", label: "25 m²" },
+    { value: "30", label: "30 m²" },
+    { value: "40", label: "40 m²" },
+  ]
+
+  const DURABILITIES = [
+    { value: "high", label: "High" },
+    { value: "medium", label: "Medium" },
+    { value: "low", label: "Low" },
+  ]
+
+  const BUDGETS = [
+    { value: "low", label: "Low" },
+    { value: "medium", label: "Medium" },
+    { value: "high", label: "High" },
+  ]
+
   const getMaterialSuggestions = async () => {
-    if (!roomType || !style || !roomSize) {
-      setError('Please fill in room type, style, and size')
+    if (!roomType || !style || !roomSize || !durability || !budget) {
+      setError('Please select room type, style, size, durability, and budget')
       return
     }
 
@@ -70,16 +115,18 @@ export default function AiMaterialsPage() {
     setSuggestions(null)
 
     try {
-      const response = await fetch("http://localhost:8001/materials/search", {
+      const response = await fetch(`${API_BASE_URL}/ai/materials`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query: `${roomType} ${style} materials`,
-          room_type: roomType,
-          style: style,
+          room_type: roomType, // enum
+          style: style, // enum
+          room_size: parseFloat(roomSize),
+          durability_needs: durability,
           budget_range: budget,
+          special_requirements: specialRequirements || null,
         }),
       })
 
@@ -88,36 +135,11 @@ export default function AiMaterialsPage() {
       }
 
       const data = await response.json()
-
       if (data.error) {
         setError(data.message || "Failed to get material suggestions")
         return
       }
-
-      // Convert the response to the expected format
-      const mockSuggestions = {
-        flooring: {
-          primary_options: data.products?.slice(0, 3).map((product: any) => ({
-            material: product.name,
-            description: product.brand,
-            pros: ["Durable", "Cost-effective", "Easy to maintain"],
-            cons: ["May require professional installation"],
-            cost_range: `₹${product.price * 2}-${product.price * 4} per sq ft`
-          })) || [],
-          alternative_options: []
-        },
-        walls: {
-          paint: {
-            recommended_types: ["Emulsion paint", "Texture paint", "Wallpaper"]
-          }
-        },
-        ceiling: {
-          materials: ["POP ceiling", "Gypsum boards", "Wooden panels"]
-        },
-        summary: `Based on your ${roomType} requirements with ${style} style, here are the recommended materials for a ${roomSize} sq meter room.`
-      }
-
-      setSuggestions(mockSuggestions)
+      setSuggestions(data as MaterialSuggestions)
     } catch (error) {
       setError("Failed to get material suggestions. Please try again.")
       console.error("Error getting material suggestions:", error)
@@ -132,7 +154,7 @@ export default function AiMaterialsPage() {
     setTexture(null)
 
     try {
-      const response = await fetch("http://localhost:8001/ai/texture-generation", {
+      const response = await fetch(`${API_BASE_URL}/ai/texture-generation`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -162,16 +184,16 @@ export default function AiMaterialsPage() {
 
     try {
       // Call real backend API for material search
-      const response = await fetch('http://localhost:8001/materials/search', {
+      const response = await fetch(`${API_BASE_URL}/materials/search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           query: searchQuery,
-          room_type: selectedRoomType,
-          style: selectedStyle,
-          budget_range: selectedBudget
+          room_type: roomType,
+          style: style,
+          budget_range: budget
         })
       })
 
@@ -192,7 +214,8 @@ export default function AiMaterialsPage() {
           name: "Sample Material",
           brand: "Mock Brand",
           price: 1000,
-          image: "/placeholder.svg"
+          image: "/placeholder.svg",
+          retailer: "Mock Retailer"
         }
       ])
     } finally {
@@ -246,23 +269,68 @@ export default function AiMaterialsPage() {
                       <h3 className="text-lg font-medium">Get Material Suggestions</h3>
                       <div className="space-y-2">
                         <Label htmlFor="room-type">Room Type</Label>
-                        <Input id="room-type" placeholder="e.g., Living Room, Kitchen" value={roomType} onChange={(e) => setRoomType(e.target.value)} />
+                        <Select value={roomType} onValueChange={setRoomType}>
+                          <SelectTrigger className="w-full" id="room-type">
+                            <SelectValue placeholder="Select room type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ROOM_TYPES.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="style">Design Style</Label>
-                        <Input id="style" placeholder="e.g., Modern, Industrial" value={style} onChange={(e) => setStyle(e.target.value)} />
+                        <Select value={style} onValueChange={setStyle}>
+                          <SelectTrigger className="w-full" id="style">
+                            <SelectValue placeholder="Select style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STYLES.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="room-size">Room Size (sq meters)</Label>
-                        <Input id="room-size" placeholder="e.g., 25" type="number" value={roomSize} onChange={(e) => setRoomSize(e.target.value)} />
+                        <Select value={roomSize} onValueChange={setRoomSize}>
+                          <SelectTrigger className="w-full" id="room-size">
+                            <SelectValue placeholder="Select size" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {ROOM_SIZES.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="durability">Durability Needs</Label>
-                        <Input id="durability" placeholder="e.g., high, medium, low" value={durability} onChange={(e) => setDurability(e.target.value)} />
+                        <Select value={durability} onValueChange={setDurability}>
+                          <SelectTrigger className="w-full" id="durability">
+                            <SelectValue placeholder="Select durability" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {DURABILITIES.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="budget">Budget Range</Label>
-                        <Input id="budget" placeholder="e.g., low, medium, high" value={budget} onChange={(e) => setBudget(e.target.value)} />
+                        <Select value={budget} onValueChange={setBudget}>
+                          <SelectTrigger className="w-full" id="budget">
+                            <SelectValue placeholder="Select budget" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {BUDGETS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="special-reqs">Special Requirements</Label>
