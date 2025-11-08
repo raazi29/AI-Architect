@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { API_BASE_URL } from '@/lib/api';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -44,7 +46,7 @@ export default function RealTimeUpdates({ productId }: RealTimeUpdatesProps) {
       
       try {
         // Call real backend API for real-time updates
-        const response = await fetch('http://localhost:8001/shopping/realtime-updates', {
+        const response = await fetch(`${API_BASE_URL}/shopping/realtime-updates`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -63,68 +65,8 @@ export default function RealTimeUpdates({ productId }: RealTimeUpdatesProps) {
         setLastUpdated(new Date());
       } catch (error) {
         console.error('Error fetching real-time updates:', error);
-        
-        // Fallback to mock data only if API fails
-        const mockUpdates: RealTimeUpdate[] = [
-        {
-          id: '1',
-          type: 'inventory',
-          title: 'Stock Alert',
-          description: 'Urban Ladder - Modern Sectional Sofa is running low (only 3 left)',
-          timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-          priority: 'high',
-          status: 'active',
-          product_id: 'urban_ladder_1',
-          retailer: 'Urban Ladder'
-        },
-        {
-          id: '2',
-          type: 'price',
-          title: 'Price Drop',
-          description: 'Pepperfry - LED Study Table Lamp dropped by ₹500',
-          timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
-          priority: 'medium',
-          status: 'active',
-          product_id: 'pepperfry_2',
-          retailer: 'Pepperfry'
-        },
-        {
-          id: '3',
-          type: 'rating',
-          title: 'New Rating',
-          description: 'Godrej Interio - Modern Bookshelf received 5-star review',
-          timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-          priority: 'low',
-          status: 'active',
-          product_id: 'godrej_interio_3',
-          retailer: 'Godrej Interio'
-        },
-        {
-          id: '4',
-          type: 'trending',
-          title: 'Trending Now',
-          description: 'Your search - Modern Dining Chair is trending in your area',
-          timestamp: new Date(Date.now() - 1000 * 60 * 45), // 45 minutes ago
-          priority: 'medium',
-          status: 'active',
-          product_id: 'wood_street_4',
-          retailer: 'Wood Street'
-        },
-        {
-          id: '5',
-          type: 'review',
-          title: 'New Review',
-          description: 'Home Centre - Marble Side Table has 12 new reviews',
-          timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-          priority: 'low',
-          status: 'active',
-          product_id: 'home_centre_5',
-          retailer: 'Home Centre'
-        }
-      ];
-      
-      setUpdates(mockUpdates);
-      setLastUpdated(new Date());
+        setUpdates([]);
+        setLastUpdated(new Date());
       }
       
       setLoading(false);
@@ -152,7 +94,7 @@ export default function RealTimeUpdates({ productId }: RealTimeUpdatesProps) {
   const getPriorityBadge = (priority: RealTimeUpdate['priority']) => {
     switch (priority) {
       case 'high': return <Badge variant="destructive">High Priority</Badge>;
-      case 'medium': return <Badge variant="warning">Medium Priority</Badge>;
+      case 'medium': return <Badge variant="secondary">Medium Priority</Badge>;
       case 'low': return <Badge variant="secondary">Low Priority</Badge>;
       default: return <Badge variant="secondary">Normal</Badge>;
     }
@@ -227,7 +169,11 @@ export default function RealTimeUpdates({ productId }: RealTimeUpdatesProps) {
                       <div className="flex flex-col items-end gap-1">
                         {getPriorityBadge(update.priority)}
                         <span className="text-xs text-muted-foreground">
-                          {new Date(update.timestamp * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {(() => {
+                            const t = update.timestamp as unknown as any;
+                            const d = typeof t === 'number' ? new Date(t * 1000) : (t instanceof Date ? t : new Date());
+                            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                          })()}
                         </span>
                       </div>
                     </div>

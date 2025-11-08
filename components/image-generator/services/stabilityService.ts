@@ -89,7 +89,8 @@ export const downloadImage = (imageUrl: string, filename?: string) => {
 
 export const getAvailableStyles = async () => {
   try {
-    const response = await fetch('http://localhost:8001/interior-styles');
+    const { API_BASE_URL } = await import('@/lib/api');
+    const response = await fetch(`${API_BASE_URL}/interior-styles`);
     if (response.ok) {
       const data = await response.json();
       return data.styles;
@@ -104,7 +105,8 @@ export const getAvailableStyles = async () => {
 
 export const getAvailableRoomTypes = async () => {
   try {
-    const response = await fetch('http://localhost:8001/room-types');
+    const { API_BASE_URL } = await import('@/lib/api');
+    const response = await fetch(`${API_BASE_URL}/room-types`);
     if (response.ok) {
       const data = await response.json();
       return data.room_types;

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { API_BASE_URL } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -161,7 +162,7 @@ const AILayoutPage = () => {
 
   const fetchRoomTypes = async () => {
     try {
-      const response = await fetch('http://localhost:8001/ai/room-types');
+      const response = await fetch(`${API_BASE_URL}/ai/room-types`);
       const data = await response.json();
       setRoomTypes(data.room_types);
     } catch (error) {
@@ -193,7 +194,7 @@ const AILayoutPage = () => {
 
     try {
       if (outputMode === 'text') {
-        const response = await fetch('http://localhost:8001/ai/layout', {
+        const response = await fetch(`${API_BASE_URL}/ai/layout`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -219,7 +220,7 @@ const AILayoutPage = () => {
         setOptimization(data);
       } else {
         // Image-based layout generation
-        const response = await fetch('http://localhost:8001/ai/layout-image', {
+        const response = await fetch(`${API_BASE_URL}/ai/layout-image`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -1,0 +1,108 @@
+# VASTU COMPLIANCE STANDARD RULES
+
+## Room-Direction Mapping Table
+
+North-East (NE):
+- Ideal: prayer_room, water_feature, entrance, meditation
+- Avoid: toilet, kitchen, heavy_furniture
+- Remedies: Place sea salt, use light colors, keep door closed or area open
+- Weight: 20
+
+East (E):
+- Ideal: bathroom, study_room, entrance
+- Avoid: toilet, heavy_storage
+- Remedies: Use blue or green colors, adequate ventilation
+- Weight: 15
+
+South-East (SE):
+- Ideal: kitchen, electrical_room
+- Avoid: prayer_room, bedroom, water_tank
+- Remedies: Add copper pyramids, use red/orange decor
+- Weight: 15
+
+South (S):
+- Ideal: bedroom, heavy_storage, staircase
+- Avoid: entrance, water_feature
+- Remedies: Place earthen pots, avoid water tanks
+- Weight: 10
+
+South-West (SW):
+- Ideal: master_bedroom, safe, heavy_furniture
+- Avoid: kitchen, toilet, entrance
+- Remedies: Place brown shades, keep cash safes closed, use crystals
+- Weight: 20
+
+West (W):
+- Ideal: children_bedroom, study_room, dining
+- Avoid: entrance, prayer_room
+- Remedies: Use white/grey decor, display symbolic art
+- Weight: 10
+
+North-West (NW):
+- Ideal: guest_room, garage, storage
+- Avoid: master_bedroom, kitchen
+- Remedies: Place wind chimes, use light silver/white colors
+- Weight: 10
+
+North (N):
+- Ideal: living_room, treasury, cash_counter
+- Avoid: toilet, kitchen, staircase
+- Remedies: Place mirror decorations, water features
+- Weight: 15
+
+Center:
+- Ideal: open_space, courtyard, living_room
+- Avoid: toilet, kitchen, heavy_furniture, staircase
+- Remedies: Use marble, ensure ample light, keep free from obstacles
+- Weight: 15
+
+## General Scoring Formula
+Score = 100 - [Sum of penalties for each invalid placement based on weights] + [Bonus for ideal placements]
+
+## Example Violation Message
+Violation: Kitchen placed in SW (Avoided direction)
+Remedy: Move kitchen to SE. If impossible, use yellow/orange decor, install copper pyramid, consult expert.
+
+## Scoring Output Example
+{
+  "score": 76,
+  "grade": "Good",
+  "violations": [
+    {
+      "room": "kitchen",
+      "direction": "SW",
+      "issue": "Kitchen is placed in South-West; this is not ideal.",
+      "remedy": "Decorate with yellow/orange, use copper pyramid."
+    }
+  ],
+  "recommendations": [
+    {
+      "room": "kitchen",
+      "ideal_directions": ["SE"],
+      "remedy": "Relocate if possible; otherwise, apply listed remedy."
+    }
+  ]
+}
+
+## Prompt Templates
+
+Analyze plan prompt:
+"Given the following home plan grid JSON, report the Vastu compliance score, all violations with reasons, and remedies using the rule mappings provided."
+
+Room placement explanation prompt:
+"Why is it ideal for the [room] to be in [direction]? Provide Vastu Shastra reasoning and energetic principles."
+
+Remedy prompt:
+"For a violation involving [room] in [direction], suggest practical Vastu remedies and symbolic corrections."
+
+## Source Reference
+Inspired by open-source files in VastuYantra (src/vastuRules.js) and Vastu-IO.
+
+## How to Use With Gemini API
+
+Paste the rule section as context or system prompt to Gemini:
+- “Refer to these rules for all answers. Score compliance for user-submitted grid and provide violations & remedies per room.”
+- “For this JSON plan: {...}, provide detailed Vastu compliance feedback using these rules.”
+
+---
+

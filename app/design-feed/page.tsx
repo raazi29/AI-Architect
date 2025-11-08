@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import DesignPostCard from "./design-post-card"
+import { API_BASE_URL } from "@/lib/api"
 
 interface DesignPost {
   id: number;
@@ -168,8 +169,8 @@ export default function DesignFeed() {
       // Set per_page to 30 for better infinite scroll
       params.set('per_page', '30');
       console.log('Fetching with params:', Object.fromEntries(params.entries())); // Debug log
-      console.log('Making request to:', `http://localhost:8001/${endpoint}?${params.toString()}`);
-      const res = await fetchWithRetry(`http://localhost:8001/${endpoint}?${params.toString()}`);
+      console.log('Making request to:', `${API_BASE_URL}/${endpoint}?${params.toString()}`);
+      const res = await fetchWithRetry(`${API_BASE_URL}/${endpoint}?${params.toString()}`);
 
       if (!res.ok) {
         console.error('API request failed:', res.status, await res.text());
@@ -394,7 +395,7 @@ export default function DesignFeed() {
         try {
           // Fetch a small amount of new content
           const newContent = await fetchWithRetry(
-            `http://localhost:8001/feed?page=1&per_page=5&query=${encodeURIComponent(searchQuery)}&style=${selectedStyle}${roomType ? `&room_type=${roomType}` : ''}`,
+            `${API_BASE_URL}/feed?page=1&per_page=5&query=${encodeURIComponent(searchQuery)}&style=${selectedStyle}${roomType ? `&room_type=${roomType}` : ''}`,
             { headers: { "Content-Type": "application/json" } }
           );
           
