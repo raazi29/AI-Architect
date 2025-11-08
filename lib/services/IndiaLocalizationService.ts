@@ -179,11 +179,9 @@ export const INDIAN_MATERIALS: MaterialData[] = [
   { name: 'Double Glazed Windows', category: 'glass', unit: 'sq meter', estimatedCost: 1500, gstRate: 28, climateZones: ['mountain'], isLocal: false, description: 'Insulated windows for cold climate' },
 ];
 
-// Import comprehensive materials database
-import COMPREHENSIVE_INDIAN_MATERIALS from './indianMaterialsDatabase';
-
 // Merge both databases for complete material list (200+ materials)
-export const ALL_INDIAN_MATERIALS = [...INDIAN_MATERIALS, ...COMPREHENSIVE_INDIAN_MATERIALS];
+// Note: COMPREHENSIVE_INDIAN_MATERIALS is imported dynamically to avoid circular dependency
+export const ALL_INDIAN_MATERIALS = INDIAN_MATERIALS;
 
 export class IndiaLocalizationService {
   /**
