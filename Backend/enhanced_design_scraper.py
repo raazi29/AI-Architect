@@ -30,14 +30,17 @@ class EnhancedDesignScraper:
         self.session = httpx.AsyncClient(
             timeout=30.0,
             follow_redirects=True,
-            headers=self._get_random_headers()
+            headers=self._get_random_headers(),
+            http2=True  # Enable HTTP/2 for better compatibility
         )
 
-        # Rate limiting per domain
+        # Rate limiting per domain with adaptive adjustment
         self.rate_limits = {
-            "unsplash.com": {"last_request": 0, "min_interval": 2.0},  # 2 seconds between requests
-            "houzz.com": {"last_request": 0, "min_interval": 3.0},     # 3 seconds between requests
-            "archdigest.com": {"last_request": 0, "min_interval": 3.0}, # 3 seconds
+            "unsplash.com": {"last_request": 0, "min_interval": 2.0, "blocked_count": 0},
+            "houzz.com": {"last_request": 0, "min_interval": 3.0, "blocked_count": 0},
+            "archdigest.com": {"last_request": 0, "min_interval": 3.0, "blocked_count": 0},
+            "pexels.com": {"last_request": 0, "min_interval": 1.5, "blocked_count": 0},
+            "pixabay.com": {"last_request": 0, "min_interval": 2.0, "blocked_count": 0},
         }
 
         # Cache for storing requests temporarily
@@ -70,10 +73,18 @@ class EnhancedDesignScraper:
 
     def _get_random_headers(self) -> Dict[str, str]:
         """Generate realistic browser headers to avoid blocking"""
+        # Rotate between common browsers
+        browsers = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.1 Safari/605.1.15',
+        ]
+        
         return {
-            'User-Agent': self.ua.random,
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
+            'User-Agent': random.choice(browsers),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
             'Accept-Encoding': 'gzip, deflate, br',
             'DNT': '1',
             'Connection': 'keep-alive',
@@ -81,7 +92,9 @@ class EnhancedDesignScraper:
             'Sec-Fetch-Dest': 'document',
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
             'Cache-Control': 'max-age=0',
+            'Referer': 'https://www.google.com/',  # Appear to come from Google
         }
 
     def _get_cache_key(self, site: str, query: str, page: int, per_page: int) -> str:
@@ -93,13 +106,23 @@ class EnhancedDesignScraper:
         return (time.time() - timestamp) < self.cache_timeout
 
     async def _rate_limit(self, domain: str):
-        """Implement rate limiting per domain"""
+        """Implement adaptive rate limiting per domain"""
         if domain in self.rate_limits:
             limiter = self.rate_limits[domain]
+            
+            # Adaptive rate limiting - increase wait time if we're being blocked
+            if limiter["blocked_count"] > 0:
+                # Increase interval exponentially based on block count
+                adjusted_interval = limiter["min_interval"] * (2 ** limiter["blocked_count"])
+                adjusted_interval = min(adjusted_interval, 30.0)  # Cap at 30 seconds
+            else:
+                adjusted_interval = limiter["min_interval"]
+            
             elapsed = time.time() - limiter["last_request"]
-            if elapsed < limiter["min_interval"]:
-                wait_time = limiter["min_interval"] - elapsed
+            if elapsed < adjusted_interval:
+                wait_time = adjusted_interval - elapsed
                 await asyncio.sleep(wait_time)
+            
             limiter["last_request"] = time.time()
 
     async def search_design_images(

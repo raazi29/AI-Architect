@@ -1,4 +1,6 @@
-import { Navigation } from "@/components/navigation"
+import dynamic from 'next/dynamic'
+
+const Navigation = dynamic(() => import('@/components/navigation').then(mod => mod.Navigation), { ssr: false })
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -79,32 +81,43 @@ export default function Dashboard() {
       <Navigation />
 
       <main className="ml-64 p-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="h-6 w-6 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground">Welcome to AI Interior Design and Architect</h1>
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-3 rounded-xl bg-muted">
+              <Sparkles className="h-8 w-8 text-foreground" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold text-foreground">AI Interior Design & Architecture</h1>
+              <p className="text-sm text-muted-foreground mt-1">Professional-grade design tools powered by AI</p>
+            </div>
           </div>
-          <p className="text-lg text-muted-foreground max-w-2xl">
-            Transform your space with AI-powered interior design, augmented reality visualization, and smart shopping
-            integration. Create beautiful rooms with professional-grade tools. (Smart Shopping temporarily unavailable)
+          <p className="text-lg text-muted-foreground max-w-3xl leading-relaxed">
+            Transform your space with AI-powered interior design, augmented reality visualization, and smart shopping integration.
           </p>
+          <div className="mt-6 flex gap-3">
+            <a href="/auth/signup"><Button>Get started</Button></a>
+            <a href="/auth/signin"><Button variant="outline">Sign in</Button></a>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {features.map((feature) => (
-            <a href={feature.href} key={feature.title}>
-              <Card className="group hover:shadow-lg transition-shadow cursor-pointer">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in">
+          {features.map((feature, index) => (
+            <a href={feature.href} key={feature.title} style={{ animationDelay: `${index * 50}ms` }}>
+              <Card className="group h-full border transition-colors">
                 <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <feature.icon className={`h-6 w-6 ${feature.color}`} />
-                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="p-2.5 rounded-lg bg-muted">
+                      <feature.icon className={`h-6 w-6 text-foreground`} />
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <CardTitle className="text-lg">{feature.title}</CardTitle>
+                  <CardTitle className="text-lg text-foreground">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CardDescription className="text-sm leading-relaxed">{feature.description}</CardDescription>
-                  <div className="mt-3 font-medium text-primary hover:text-primary/80">
-                    Get Started →
+                  <CardDescription className="text-sm leading-relaxed mb-4">{feature.description}</CardDescription>
+                  <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                    <span>Get Started</span>
+                    <ArrowRight className="h-4 w-4" />
                   </div>
                 </CardContent>
               </Card>
@@ -112,23 +125,38 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="bg-card border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-2xl font-bold text-primary">10,000+</CardTitle>
-              <CardDescription>Design Templates</CardDescription>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-muted">
+                  <Sparkles className="h-5 w-5 text-foreground" />
+                </div>
+                <CardTitle className="text-3xl font-bold text-foreground">10,000+</CardTitle>
+              </div>
+              <CardDescription className="text-base">Design Templates</CardDescription>
             </CardHeader>
           </Card>
-          <Card>
+          <Card className="bg-card border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-2xl font-bold text-accent">50,000+</CardTitle>
-              <CardDescription>Furniture Items</CardDescription>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-muted">
+                  <Cube className="h-5 w-5 text-foreground" />
+                </div>
+                <CardTitle className="text-3xl font-bold text-foreground">50,000+</CardTitle>
+              </div>
+              <CardDescription className="text-base">Furniture Items</CardDescription>
             </CardHeader>
           </Card>
-          <Card>
+          <Card className="bg-card border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-2xl font-bold text-primary">AI-Powered</CardTitle>
-              <CardDescription>Smart Recommendations</CardDescription>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 rounded-lg bg-muted">
+                  <Wand2 className="h-5 w-5 text-foreground" />
+                </div>
+                <CardTitle className="text-3xl font-bold text-foreground">AI-Powered</CardTitle>
+              </div>
+              <CardDescription className="text-base">Smart Recommendations</CardDescription>
             </CardHeader>
           </Card>
         </div>

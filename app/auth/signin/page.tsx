@@ -80,7 +80,7 @@ export default function SignInPage() {
             </Button>
             <div className="text-center text-sm">
               <Link href="/auth/signup" className="text-primary hover:underline">
-                Don't have an account? Sign up
+                Don&apos;t have an account? Sign up
               </Link>
             </div>
             <div className="text-center text-sm">

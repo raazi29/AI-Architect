@@ -95,8 +95,14 @@ export default function FloorPlanGenerator() {
   }, [selectedCategory, selectedSubcategory, selectedDimension, searchQuery])
 
   const generateFloorPlan = async () => {
-    if (!prompt) return
+    console.log('🔘 Generate button clicked!', { prompt, selectedModel });
+    
+    if (!prompt) {
+      console.warn('⚠️ No prompt provided');
+      return;
+    }
 
+    console.log('🚀 Starting floor plan generation...');
     setIsLoading(true)
     setGeneratedImage("")
 
@@ -105,6 +111,7 @@ export default function FloorPlanGenerator() {
     const timeoutId = setTimeout(() => controller.abort(), 90000) // 90 second timeout
 
     try {
+      console.log('📡 Sending request to:', `${API_BASE_URL}/floor-plan`);
       const response = await fetch(`${API_BASE_URL}/floor-plan`, {
         method: "POST",
         headers: {

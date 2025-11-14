@@ -156,7 +156,7 @@ export default function PerformanceTest() {
               <Database className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
               <p className="text-muted-foreground">No tests run yet</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Click "Run Tests" to begin performance evaluation
+                Click &quot;Run Tests&quot; to begin performance evaluation
               </p>
             </div>
           )}

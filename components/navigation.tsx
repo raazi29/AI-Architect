@@ -41,7 +41,6 @@ const navigation = [
   { name: "AI Assistant", href: "/assistant", icon: MessageCircle },
   { name: "Collaborate", href: "/collaborate", icon: Users },
   { name: "Analytics", href: "/analytics", icon: BarChart3 },
-  { name: "Theme Test", href: "/theme-test", icon: Sun },
 ]
 
 export function Navigation() {

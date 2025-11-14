@@ -366,5 +366,122 @@ class ImageCategorizationService:
         
         return None  # No matching category found
     
+    def enhance_image_metadata(self, image_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Enhance image metadata with better captions and descriptions based on detected content
+        """
+        # If image is not valid design content, don't enhance it
+        if not self.is_valid_design_image(image_data):
+            return image_data
+
+        # Create a copy to avoid modifying original
+        enhanced_data = image_data.copy()
+
+        # Get category for better description
+        category = self.categorize_image(image_data)
+        
+        # Extract existing text elements
+        title = image_data.get('title', '')
+        alt_text = image_data.get('alt', '') or image_data.get('altText', '')
+        
+        # Generate better titles based on category
+        if category and not title:
+            # Generate descriptive title based on category
+            category_title = self._generate_title_from_category(category)
+            enhanced_data['title'] = category_title
+            enhanced_data['alt'] = f"{category_title} - Interior Design"
+        elif category and not alt_text:
+            # Enhance the alt text if we have a title but no alt text
+            category_title = self._generate_title_from_category(category)
+            enhanced_data['alt'] = f"{title} - {category_title}"
+
+        # Enhance alt text if it's generic
+        if alt_text and any(generic in alt_text.lower() for generic in ['design image', 'architecture design image', 'photo', 'image', 'picture']):
+            # Generate a more descriptive alt text
+            if category:
+                category_title = self._generate_title_from_category(category)
+                enhanced_data['alt'] = f"{category_title} - Professional interior design, high quality"
+            else:
+                # If no category, remove generic alt text
+                enhanced_data['alt'] = title or "Interior design image"
+        
+        # Generate better alt text based on category if needed
+        if category and (not alt_text or len(alt_text.strip()) < 10):
+            style_info = self._get_style_info_from_category(category)
+            enhanced_data['alt'] = f"{title or 'Interior design image'} - {style_info} - Architectural photography"
+        
+        # If title is too generic, try to make it more specific or use the category
+        if title.lower() in ['design', 'architecture', 'interior design', 'image', 'photo']:
+            if category:
+                enhanced_data['title'] = self._generate_title_from_category(category)
+
+        # Remove completely empty or placeholder alt text
+        if enhanced_data.get('alt', '').strip().lower() in ['', 'image', 'photo', 'design image']:
+            enhanced_data['alt'] = enhanced_data.get('title', 'Interior design')
+
+        return enhanced_data
+
+    def _generate_title_from_category(self, category: str) -> str:
+        """
+        Generate a descriptive title based on the category
+        """
+        category_descriptions = {
+            "living_rooms": "Modern Living Room Interior",
+            "bedrooms": "Contemporary Bedroom Design",
+            "kitchens": "Contemporary Kitchen Design",
+            "bathrooms": "Luxury Bathroom Design",
+            "dining_rooms": "Elegant Dining Room",
+            "home_offices": "Professional Home Office",
+            "outdoor_spaces": "Stylish Outdoor Living Space",
+            "commercial_interiors": "Modern Commercial Interior",
+            "modern_contemporary": "Modern Contemporary Design",
+            "minimalist": "Minimalist Interior Design",
+            "scandinavian": "Scandinavian Style Interior",
+            "industrial": "Industrial Style Interior",
+            "mid_century_modern": "Mid-Century Modern Design",
+            "luxury_classic": "Luxury Classic Interior",
+            "bohemian_eclectic": "Bohemian Eclectic Design",
+            "futuristic_smart": "Futuristic Smart Home Design",
+            "wood_focused": "Wood Material Focused Design",
+            "stone_marble": "Stone and Marble Design",
+            "metal_industrial": "Industrial Metal Design",
+            "glass_heavy": "Glass Element Design",
+            "sustainable_eco": "Sustainable Eco-Friendly Design",
+            "neutral_earth": "Neutral and Earth Tone Design",
+            "monochrome": "Monochrome Design",
+            "bold_vibrant": "Bold and Vibrant Design",
+            "pastel_soft": "Pastel Soft Tone Design",
+            "dark_mood": "Dark and Moody Design",
+            "furniture_layouts": "Furniture Layout Design",
+            "lighting_designs": "Lighting Design Feature",
+            "wall_treatments": "Wall Treatment Design",
+            "ceilings": "Ceiling Design Feature",
+            "flooring_patterns": "Flooring Pattern Design",
+            "decor_details": "Decorative Elements Design",
+            "residential": "Residential Interior Design",
+            "commercial": "Commercial Space Design",
+            "hospitality": "Hospitality Interior Design",
+            "public_spaces": "Public Space Design"
+        }
+        
+        return category_descriptions.get(category, "Architecture and Interior Design")
+
+    def _get_style_info_from_category(self, category: str) -> str:
+        """
+        Get descriptive style information based on category
+        """
+        style_info_map = {
+            "modern_contemporary": "Modern Contemporary Architecture",
+            "minimalist": "Minimalist Style Design",
+            "scandinavian": "Scandinavian Hygge Style",
+            "industrial": "Industrial Urban Design",
+            "mid_century_modern": "Mid-Century Modern Style",
+            "luxury_classic": "Luxury Classic Architecture",
+            "bohemian_eclectic": "Bohemian Eclectic Style",
+            "futuristic_smart": "Smart Home Technology"
+        }
+        
+        return style_info_map.get(category, "Professional Interior Design")
+
 # Global instance
 image_categorization_service = ImageCategorizationService()

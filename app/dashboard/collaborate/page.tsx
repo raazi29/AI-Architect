@@ -798,7 +798,7 @@ export default function Collaborate() {
                     <>
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-muted-foreground">
-                          Showing {filteredProfessionals.length} professional{filteredProfessionals.length !== 1 ? 's' : ''}
+                          Showing {filteredProfessionals.length} professional{filteredProfessionals.length !== 1 ? '&apos;s' : ''}
                         </p>
                       </div>
                       

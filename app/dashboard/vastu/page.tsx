@@ -376,7 +376,7 @@ const VastuPage = () => {
                       <div>
                         <CardTitle className="text-base">Vastu AI Consultant</CardTitle>
                         <CardDescription className="text-sm">
-                          Powered by Groq AI & Prokerala Astrology
+                          Powered by AI architect team
                         </CardDescription>
                       </div>
                     </div>

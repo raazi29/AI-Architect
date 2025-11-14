@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Search, Filter, X } from "lucide-react";
 import type { ProfessionalType } from "@/lib/types/professionals";
 
@@ -180,7 +181,7 @@ export const ProfessionalsFilters: React.FC<ProfessionalsFiltersProps> = ({
             <div className="flex flex-wrap gap-2">
               {searchQuery && (
                 <Badge variant="secondary" className="text-xs">
-                  Search: "{searchQuery}"
+                  Search: &quot;{searchQuery}&quot;
                 </Badge>
               )}
               {selectedType !== "all" && (

@@ -182,7 +182,7 @@ export default function TestDatabasePage() {
             <div>
               <h3 className="font-semibold mb-2">If connection fails:</h3>
               <p className="text-sm text-muted-foreground">
-                Check your <code className="bg-muted px-2 py-1 rounded">.env</code> file has correct Supabase URL and key
+                Check your <code className="bg-muted px-2 py-1 rounded">&apos;env</code> file has correct Supabase URL and key
               </p>
             </div>
           </CardContent>

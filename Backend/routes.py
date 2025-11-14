@@ -504,10 +504,21 @@ async def get_interior_styles():
     return {"styles": interior_ai_service.get_available_styles()}
 
 
-@app.get("/room-types")
-async def get_room_types():
-    """Get available room types"""
-    return {"room_types": interior_ai_service.get_available_room_types()}
+@app.get("/ai/room-types")
+async def get_ai_room_types():
+    """Get available room types for AI services"""
+    return {
+        "room_types": [
+            {"value": "living_room", "label": "Living Room"},
+            {"value": "bedroom", "label": "Bedroom"},
+            {"value": "kitchen", "label": "Kitchen"},
+            {"value": "bathroom", "label": "Bathroom"},
+            {"value": "dining_room", "label": "Dining Room"},
+            {"value": "office", "label": "Office"},
+            {"value": "hallway", "label": "Hallway"},
+            {"value": "outdoor", "label": "Outdoor"}
+        ]
+    }
 
 
 # India Shopping API endpoints - DISABLED
@@ -981,75 +992,10 @@ async def analyze_room_gemini(request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to analyze room: {str(e)}")
 
-@app.post("/vastu/analyze-room")
-async def analyze_room(request: Request):
-    """Analyze a single room's Vastu compliance (legacy endpoint)"""
-    try:
-        data = await request.json()
-        room_type = data.get("room_type")
-        direction = data.get("direction")
-        
-        if not room_type or not direction:
-            raise HTTPException(status_code=400, detail="Room type and direction are required")
-        
-        analysis = vastu_service.analyze_room(room_type, direction)
-        return analysis.dict()
-        
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@app.post("/vastu/analyze-house")
-async def analyze_house(vastu_request: VastuRequest):
-    """Analyze complete house Vastu compliance"""
-    try:
-        analysis = vastu_service.analyze_house(vastu_request)
-        return analysis.dict()
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
-@app.get("/vastu/tips")
-async def get_vastu_tips():
-    """Get Vastu tips by category"""
-    try:
-        tips = vastu_service.get_vastu_tips()
-        return {"tips": tips}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get Vastu tips: {str(e)}")
-
-
-@app.get("/vastu/directional-guide")
-async def get_directional_guide():
-    """Get comprehensive directional guide with elements and significance"""
-    try:
-        guide = vastu_service.get_directional_guide()
-        return guide
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
-
-@app.get("/vastu/room-types")
-async def get_vastu_room_types():
-    """Get available room types for Vastu analysis"""
-    try:
-        room_types = vastu_service.get_room_types()
-        return {"room_types": room_types}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get room types: {str(e)}")
-
-@app.get("/vastu/directions")
-async def get_vastu_directions():
-    """Get available directions for Vastu analysis"""
-    try:
-        directions = vastu_service.get_directions()
-        return {"directions": directions}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get directions: {str(e)}")
 
 @app.get("/vastu/elements")
 async def get_vastu_elements():

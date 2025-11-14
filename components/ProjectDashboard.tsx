@@ -58,56 +58,60 @@ export function ProjectDashboard({
     .slice(0, 3);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       {/* Budget Overview */}
-      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+      <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-blue-600" />
-            Budget Overview
+          <CardTitle className="text-base flex items-center gap-2 text-foreground">
+            <div className="p-2 rounded-lg bg-blue-500/10">
+              <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <span>Budget Overview</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="text-2xl font-bold text-blue-800">
+            <div className="text-3xl font-bold text-foreground">
               {IndiaLocalizationService.formatCurrency(project.budget)}
             </div>
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Utilized</span>
-                <span>{budgetUtilization.toFixed(1)}%</span>
+                <span className="font-semibold text-foreground">{budgetUtilization.toFixed(1)}%</span>
               </div>
               <Progress value={budgetUtilization} className="h-2" />
             </div>
-            <div className="text-xs text-blue-600">
-              Tasks: {IndiaLocalizationService.formatCurrency(totalTaskCosts)}
+            <div className="text-sm text-muted-foreground">
+              Tasks: <span className="font-medium text-foreground">{IndiaLocalizationService.formatCurrency(totalTaskCosts)}</span>
             </div>
           </div>
         </CardContent>
       </Card>
 
       {/* Task Progress */}
-      <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+      <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-            Task Progress
+          <CardTitle className="text-base flex items-center gap-2 text-foreground">
+            <div className="p-2 rounded-lg bg-green-500/10">
+              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+            </div>
+            <span>Task Progress</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="text-2xl font-bold text-green-800">
+            <div className="text-3xl font-bold text-foreground">
               {completedTasks}/{totalTasks}
             </div>
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
                 <span>Completed</span>
-                <span>{totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(0) : 0}%</span>
+                <span className="font-semibold text-foreground">{totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toFixed(0) : 0}%</span>
               </div>
               <Progress value={totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0} className="h-2" />
             </div>
             <div className="flex gap-2 text-xs">
-              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+              <Badge variant="secondary" className="font-normal">
                 <Clock className="h-3 w-3 mr-1" />
                 {inProgressTasks} In Progress
               </Badge>
@@ -117,32 +121,34 @@ export function ProjectDashboard({
       </Card>
 
       {/* Milestone Status */}
-      <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+      <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Target className="h-5 w-5 text-purple-600" />
-            Milestones
+          <CardTitle className="text-base flex items-center gap-2 text-foreground">
+            <div className="p-2 rounded-lg bg-purple-500/10">
+              <Target className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <span>Milestones</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="text-2xl font-bold text-purple-800">
+            <div className="text-3xl font-bold text-foreground">
               {completedMilestones}/{totalMilestones}
             </div>
             <div className="space-y-2">
               {upcomingMilestones.map((milestone) => (
-                <div key={milestone.id} className="text-xs">
+                <div key={milestone.id} className="text-xs border-l-2 border-purple-200 dark:border-purple-800 pl-2 py-1">
                   <div className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3 text-purple-600" />
-                    <span className="font-medium">{milestone.name}</span>
+                    <Calendar className="h-3 w-3 text-purple-600 dark:text-purple-400" />
+                    <span className="font-medium text-foreground">{milestone.name}</span>
                   </div>
-                  <div className="text-purple-600 ml-4">
+                  <div className="text-muted-foreground ml-4">
                     {new Date(milestone.target_date).toLocaleDateString()}
                   </div>
                 </div>
               ))}
               {upcomingMilestones.length === 0 && totalMilestones > 0 && (
-                <div className="text-xs text-purple-600">
+                <div className="text-sm text-muted-foreground">
                   All milestones completed!
                 </div>
               )}
@@ -152,35 +158,32 @@ export function ProjectDashboard({
       </Card>
 
       {/* Project Health */}
-      <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+      <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-shadow">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-orange-600" />
-            Project Health
+          <CardTitle className="text-base flex items-center gap-2 text-foreground">
+            <div className="p-2 rounded-lg bg-orange-500/10">
+              <TrendingUp className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <span>Project Health</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="text-2xl font-bold text-orange-800">
+            <div className="text-2xl font-bold text-foreground">
               {project.project_type}
             </div>
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-sm">
-                <Users className="h-4 w-4 text-orange-600" />
-                <span>{project.location}</span>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Users className="h-4 w-4" />
+                <span className="text-foreground">{project.location}</span>
               </div>
               <div className="flex items-center gap-2 text-sm">
-                <Badge variant="outline" className={
-                  project.state === 'tropical' ? 'bg-yellow-100 text-yellow-800' :
-                  project.state === 'subtropical' ? 'bg-green-100 text-green-800' :
-                  project.state === 'mountain' ? 'bg-blue-100 text-blue-800' :
-                  'bg-gray-100 text-gray-800'
-                }>
+                <Badge variant="outline" className="font-normal">
                   {project.climate_zone} Zone
                 </Badge>
               </div>
               {pendingTasks > 0 && (
-                <div className="flex items-center gap-1 text-xs text-orange-700">
+                <div className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/30 px-2 py-1 rounded">
                   <AlertTriangle className="h-3 w-3" />
                   {pendingTasks} tasks pending
                 </div>

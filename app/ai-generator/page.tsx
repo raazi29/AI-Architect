@@ -1,10 +1,7 @@
 "use client"
 
-import { useState } from "react"
 import { Navigation } from "@/components/navigation"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import dynamic from "next/dynamic"
 
 // Lazy load heavy components for better performance
@@ -13,15 +10,9 @@ const ImageGenerator = dynamic(() => import("@/components/image-generator/ImageG
   ssr: false
 })
 
-const VideoGenerator = dynamic(() => import("@/components/image-generator/VideoGenerator").then(mod => ({ default: mod.VideoGenerator })), {
-  loading: () => <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
-  ssr: false
-})
-import type { GeneratorMode } from "@/components/image-generator/types"
-import { Sparkles, Video } from "lucide-react"
+import { Sparkles } from "lucide-react"
 
 export default function AIGenerator() {
-  const [generationType, setGenerationType] = useState<GeneratorMode>("image")
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
@@ -35,8 +26,7 @@ export default function AIGenerator() {
               <h1 className="text-3xl font-bold text-foreground">AI Interior Generator</h1>
             </div>
             <p className="text-lg text-muted-foreground">
-              Upload a room photo and let AI transform it with professional interior design suggestions and dynamic
-              video walkthroughs.
+              Upload a room photo and let AI transform it with professional interior design suggestions.
             </p>
           </div>
 
@@ -44,27 +34,12 @@ export default function AIGenerator() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5" />
-                AI-Powered Design Generation
+                AI-Powered Image Generation
               </CardTitle>
-              <CardDescription>Choose between image or video generation for your interior design</CardDescription>
+              <CardDescription>Generate stunning interior design images from your room photos</CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs value={generationType} onValueChange={(value) => setGenerationType(value as GeneratorMode)}>
-                <TabsList className="grid w-full grid-cols-2 mb-8">
-                  <TabsTrigger value="image" className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Image Generation
-                  </TabsTrigger>
-                  <TabsTrigger value="video" className="flex items-center gap-2">
-                    <Video className="h-4 w-4" />
-                    Video Generation
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-
-              <div className="mt-6">
-                {generationType === "image" ? <ImageGenerator /> : <VideoGenerator />}
-              </div>
+              <ImageGenerator />
             </CardContent>
           </Card>
         </div>

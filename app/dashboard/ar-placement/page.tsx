@@ -308,7 +308,6 @@ export default function ARPlacement() {
                               <Badge variant="outline" className="text-xs">
                                 {item.category}
                               </Badge>
-                              <span className="text-xs font-semibold text-primary">{item.price}</span>
                             </div>
                             <div className="text-xs text-muted-foreground mt-1">
                               {item.dimensions.width}×{item.dimensions.depth}×{item.dimensions.height}cm

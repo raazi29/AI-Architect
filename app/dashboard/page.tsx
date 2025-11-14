@@ -1,16 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { Navigation } from '@/components/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Wand2, 
-  PenTool, 
-  Compass, 
-  Camera, 
-  Palette, 
-  Sparkles, 
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Wand2,
+  PenTool,
+  Compass,
+  Camera,
+  Palette,
+  Sparkles,
   LayoutDashboard,
   IndianRupee,
   Layout,
@@ -20,8 +22,13 @@ import {
   Mountain,
   Calculator,
   ChevronRight,
-  Home
+  Home,
+  Cable as Cube,
+  Maximize2,
+  Minimize2,
+  X
 } from 'lucide-react';
+import DashboardARPlacement from '@/components/DashboardARPlacement';
 
 // Complete list of all features
 const allFeatures = [
@@ -43,19 +50,56 @@ const allFeatures = [
 ];
 
 export default function DashboardPage() {
+  const [showARPlacement, setShowARPlacement] = useState(false);
+  const [arFullscreen, setArFullscreen] = useState(false);
+
+  const handleARPlacementToggle = () => {
+    setShowARPlacement(!showARPlacement);
+    setArFullscreen(false);
+  };
+
+  const handleARFullscreenToggle = () => {
+    setArFullscreen(!arFullscreen);
+  };
+
+  const handleARClose = () => {
+    setShowARPlacement(false);
+    setArFullscreen(false);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <main className="ml-64 p-8">
         <div className="space-y-6">
           {/* Header */}
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Dashboard</h1>
-            <p className="text-muted-foreground">
-              Access all your design tools and features
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight mb-2">Dashboard</h1>
+              <p className="text-muted-foreground">
+                Access all your design tools and features
+              </p>
+            </div>
+
+            {!showARPlacement && (
+              <Button onClick={handleARPlacementToggle} className="gap-2">
+                <Cube className="h-4 w-4" />
+                Try AR Placement
+              </Button>
+            )}
           </div>
+
+          {/* AR Placement Section */}
+          {showARPlacement && (
+            <div className="mb-6">
+              <DashboardARPlacement
+                isFullscreen={arFullscreen}
+                onToggleFullscreen={handleARFullscreenToggle}
+                onClose={handleARClose}
+              />
+            </div>
+          )}
 
           {/* All Features List */}
           <Card>

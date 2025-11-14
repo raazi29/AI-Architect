@@ -78,6 +78,39 @@ class MultiAIService:
         """
         # Start with user's exact prompt - this is the foundation
         enhanced_prompt = user_prompt.strip()
+        lower_prompt = user_prompt.lower()
+        
+        # Detect if user has specified a unique cultural/artistic style
+        # These should NOT be diluted with generic contexts
+        cultural_artistic_keywords = [
+            "tanjore", "tanjavur", "madhubani", "warli", "pattachitra", "kalamkari",
+            "kerala", "rajasthani", "mughal", "indian", "traditional indian",
+            "art deco", "art nouveau", "baroque", "rococo", "gothic", "victorian",
+            "japanese", "zen", "wabi-sabi", "moroccan", "mediterranean", "tuscan",
+            "persian", "arabian", "oriental", "asian", "chinese", "thai",
+            "painting", "artwork", "artistic", "mural", "fresco", "tapestry",
+            "cultural", "ethnic", "heritage", "vintage", "antique", "period"
+        ]
+        
+        has_cultural_artistic_style = any(keyword in lower_prompt for keyword in cultural_artistic_keywords)
+        
+        # If user has a specific cultural/artistic style, use MINIMAL enhancement
+        if has_cultural_artistic_style:
+            logger.info(f"🎨 Detected cultural/artistic style in prompt - using minimal enhancement")
+            # Only add room type if not mentioned
+            room_mentioned = any(room.replace("_", " ") in lower_prompt for room in self.room_contexts.keys())
+            if not room_mentioned and room_type != "auto":
+                enhanced_prompt = f"{room_type.replace('_', ' ')}: {user_prompt}"
+            else:
+                enhanced_prompt = user_prompt
+            
+            # Add ONLY minimal quality context - no style dilution
+            minimal_context = (
+                "high quality interior design photography, detailed textures, "
+                "professional lighting, 8k resolution, photorealistic"
+            )
+            
+            return f"{enhanced_prompt}, {minimal_context}"
         
         # Professional architectural prompt templates by style
         style_templates = {
@@ -91,6 +124,7 @@ class MultiAIService:
             "rustic": "rustic country interior design, natural wood elements, stone features, cozy farmhouse style, warm atmosphere, vintage furniture, natural textures, country charm"
         }
         
+        # STANDARD ENHANCEMENT PATH (for non-cultural/artistic prompts)
         # Auto-detect room type from user prompt if "auto" is specified
         detected_room_type = None
         if room_type == "auto":
@@ -292,31 +326,17 @@ class MultiAIService:
                 f"{enhanced_prompt}, true-to-scale {width_ft} ft by {length_ft} ft room proportions, accurate furniture spacing, realistic dimensions"
             )
         
-        # Add high-quality, realistic rendering context with emphasis on details
-        realism_context = (
-            "interior design photography, realistic lighting, professional interior design, "
-            "detailed textures, accurate proportions, high resolution, 8k quality, "
-            "natural lighting, professional staging, architecturally accurate, "
-            "sharp focus on details, precise object placement, accurate colors, "
-            "professional architectural rendering, photorealistic, studio lighting, "
-            "architectural precision, material realism, proper scale and perspective"
-            "physically-based rendering, global illumination, realistic materials, "
-            "proper shadows and reflections, photorealistic quality"
+        # Add MODERATE quality context - less overwhelming than before
+        quality_context = (
+            "interior design photography, realistic lighting, detailed textures, "
+            "high resolution, 8k quality, professional staging, accurate colors"
         )
         
-        # Add practical context with emphasis on specific objects
-        practical_context = (
-            "functional design, livable space, ergonomic layout, practical furniture arrangement, "
-            "realistic ceiling height, proper scale, believable materials, safe and practical design, "
-            "every object clearly visible and correctly placed as described, "
-            "realistic furniture proportions, authentic textures, accurate architectural elements, "
-            "believable lighting setup, proper furniture placement, realistic room flow"
-        )
+        enhanced_prompt = f"{enhanced_prompt}, {quality_context}"
         
-        enhanced_prompt = f"{enhanced_prompt}, {realism_context}, {practical_context}"
-        
-        # Add a final emphasis to follow the description exactly
-        enhanced_prompt = f"{enhanced_prompt}, CRITICAL: INCLUDE ALL SPECIFIC OBJECTS MENTIONED AND FOLLOW PLACEMENT INSTRUCTIONS EXACTLY AS DESCRIBED BY THE USER"
+        # Add placement emphasis ONLY if user specified placements
+        if all_specific_elements:
+            enhanced_prompt = f"{enhanced_prompt}, INCLUDE ALL SPECIFIED OBJECTS AND FOLLOW PLACEMENT EXACTLY"
         
         return enhanced_prompt
     
@@ -324,9 +344,10 @@ class MultiAIService:
         """
         Create professional negative prompt to ensure architectural accuracy
         """
+        # Note: Removed "cartoon, illustration" to allow artistic/painting styles like Tanjore
         base_negative = (
             "blurry, low quality, distorted, ugly, bad anatomy, bad proportions, grainy, overexposed, underexposed, "
-            "washed out colors, cartoon, illustration, CGI, rendered, fake lighting, watermark, logo, text, floating objects, "
+            "washed out colors, CGI, fake lighting, watermark, logo, text, floating objects, "
             "impractical fixtures, unsafe lighting, exposed wiring, impossible structures, exaggerated proportions, "
             "unrealistic materials, poor lighting, cluttered, messy, unprofessional, amateur, low resolution, "
             "distorted perspective, wrong scale, floating furniture, impossible architecture, bad composition, "

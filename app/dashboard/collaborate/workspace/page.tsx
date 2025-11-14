@@ -386,7 +386,7 @@ export default function CollaborativeWorkspace({ params }: WorkspaceProps) {
                         {documentContent ? (
                           <div dangerouslySetInnerHTML={{ __html: documentContent }} />
                         ) : (
-                          <p className="text-muted-foreground">No content yet. Click "Edit Document" to start writing.</p>
+                          <p className="text-muted-foreground">No content yet. Click &quot;Edit Document&quot; to start writing.</p>
                         )}
                       </div>
                     </ScrollArea>

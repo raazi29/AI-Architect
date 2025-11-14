@@ -384,10 +384,7 @@ const AILayoutPage = () => {
                 <Sparkles className="h-5 w-5 text-purple-500 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-purple-700">AI-Powered Floor Plan Generation</p>
-                  <p className="text-xs text-purple-600 mt-1">
-                    Uses advanced Hugging Face models to create visual floor plans based on your specifications. 
-                    Perfect for visualizing layouts and sharing with clients or contractors.
-                  </p>
+                  
                 </div>
               </div>
             </div>

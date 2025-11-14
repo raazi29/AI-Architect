@@ -7,7 +7,7 @@ from urllib.parse import quote
 class RawpixelService:
     def __init__(self):
         # Rawpixel free CC0 images API - no API key required!
-        self.base_url = "https://api.rawpixel.com/api/v1/search"
+        self.base_url = "https://www.rawpixel.com/api/v1/search"
         self.enabled = True  # Always enabled since it's free
         # Create a shared client for better performance
         self.client = httpx.AsyncClient(timeout=15.0)

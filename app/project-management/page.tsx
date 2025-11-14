@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { 
+import {
   Calculator,
   DollarSign,
   Clock,
@@ -36,7 +36,7 @@ import {
   Activity
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
-import { 
+import {
   projectService,
   projectTaskService,
   materialService,
@@ -110,7 +110,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
   const [projectDescription, setProjectDescription] = useState('');
   const [projectBudget, setProjectBudget] = useState<number | ''>('');
   const [projectTimeline, setProjectTimeline] = useState<number | ''>('');
-  
+
   // State for tasks (initial with sample data)
   const [tasks, setTasks] = useState<ProjectTask[]>([
     {
@@ -153,7 +153,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
       updated_at: new Date().toISOString()
     }
   ]);
-  
+
   // State for materials
   const [materials, setMaterials] = useState<Material[]>([
     {
@@ -184,7 +184,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
       totalCost: 12500
     }
   ]);
-  
+
   // State for expenses
   const [expenses, setExpenses] = useState<Expense[]>([
     {
@@ -206,7 +206,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
       created_by: 'user2'
     }
   ]);
-  
+
   // State for milestones
   const [milestones, setMilestones] = useState<ProjectMilestone[]>([
     {
@@ -234,14 +234,66 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
       actualCost: 0
     }
   ]);
-  
+
   // State for members
   const [members, setMembers] = useState<ProjectMember[]>([
     { id: '1', user_id: 'user1', username: 'Designer1', role: 'owner', joined_at: '2024-01-01' },
     { id: '2', user_id: 'user2', username: 'Contractor1', role: 'editor', joined_at: '2024-01-02' },
     { id: '3', user_id: 'user3', username: 'Engineer1', role: 'editor', joined_at: '2024-01-03' },
   ]);
-  
+
+  // State for contractor network
+  const [contractors, setContractors] = useState<any[]>([]);
+  const [contractorFilter, setContractorFilter] = useState('all');
+
+  // Load contractors from JSON file
+  useEffect(() => {
+    const loadContractors = async () => {
+      try {
+        const response = await fetch('/data/professionals/bengaluru-contractors.json');
+        const data = await response.json();
+
+        // Transform the data to match our contractor format
+        const transformedContractors = data.professionals.map((prof: any) => ({
+          id: prof.id,
+          name: prof.name,
+          specialty: prof.type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+          location: `${prof.area}, Bangalore`,
+          rating: prof.rating,
+          experience: prof.experience,
+          phone: prof.phone,
+          email: prof.email,
+          status: prof.availability.toLowerCase().includes('available') ? 'available' : 'busy',
+          projects: prof.projectsCompleted,
+          businessName: prof.businessName,
+          specializations: prof.specializations,
+          verified: prof.verified
+        }));
+
+        setContractors(transformedContractors);
+      } catch (error) {
+        console.error('Error loading contractors:', error);
+        // Fallback to default contractors if JSON fails to load
+        setContractors([
+          {
+            id: '1',
+            name: 'Rajesh Kumar',
+            specialty: 'General Contractor',
+            location: 'Mumbai, Maharashtra',
+            rating: 4.8,
+            experience: '15 years',
+            phone: '+91 98765 43210',
+            email: 'rajesh.kumar@example.com',
+            status: 'available',
+            projects: 45
+          }
+        ]);
+      }
+    };
+
+    loadContractors();
+  }, []);
+
   // State for form inputs
   const [newTask, setNewTask] = useState({
     name: '',
@@ -252,7 +304,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
     startDate: '',
     endDate: ''
   });
-  
+
   const [newMaterial, setNewMaterial] = useState({
     name: '',
     category: 'Building Materials',
@@ -260,7 +312,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
     unitCost: '' as string | number,
     quantity: '' as string | number
   });
-  
+
   const [newExpense, setNewExpense] = useState({
     name: '',
     category: 'General',
@@ -268,7 +320,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
     date: '',
     notes: ''
   });
-  
+
   // State for real-time features
   const [userPresence, setUserPresence] = useState<UserPresence[]>([]);
   const [activeUsers, setActiveUsers] = useState<number>(0);
@@ -281,12 +333,12 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
   const totalProjectCost = totalTaskCost + totalMaterialCost + totalExpenseCost;
   const projectBudgetNum = typeof projectBudget === 'number' ? projectBudget : 0;
   const budgetRemaining = projectBudgetNum - totalProjectCost;
-  
+
   // Calculate project progress
   const completedTasks = tasks.filter(task => task.status === 'completed').length;
   const totalTasks = tasks.length;
   const projectProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  
+
   // Calculate milestone progress
   const completedMilestones = milestones.filter(m => m.completed).length;
   const totalMilestones = milestones.length;
@@ -309,7 +361,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
         updated_at: new Date().toISOString()
       };
       setTasks([...tasks, task]);
-      
+
       // Reset form
       setNewTask({
         name: '',
@@ -336,7 +388,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
         totalCost: Number(newMaterial.unitCost) * Number(newMaterial.quantity)
       };
       setMaterials([...materials, material]);
-      
+
       // Reset form
       setNewMaterial({
         name: '',
@@ -361,7 +413,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
         created_by: 'current_user' // This should be replaced with actual user ID
       };
       setExpenses([...expenses, expense]);
-      
+
       // Reset form
       setNewExpense({
         name: '',
@@ -390,7 +442,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
   useEffect(() => {
     const initRealtime = async () => {
       setIsOnline(true);
-      
+
       // Subscribe to real-time updates for tasks
       const tasksChannel = supabase
         .channel('tasks_changes')
@@ -408,7 +460,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
             if (payload.eventType === 'INSERT') {
               setTasks(prev => [...prev, payload.new as ProjectTask]);
             } else if (payload.eventType === 'UPDATE') {
-              setTasks(prev => prev.map(task => 
+              setTasks(prev => prev.map(task =>
                 task.id === payload.new.id ? payload.new as ProjectTask : task
               ));
             } else if (payload.eventType === 'DELETE') {
@@ -505,7 +557,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
               Project Management
             </h1>
           </div>
-          
+
           <p className="text-lg text-blue-600 max-w-3xl mx-auto">
             Comprehensive project management and cost estimation tools with real-time collaboration
             specifically designed for the Indian architectural and construction industry
@@ -556,8 +608,8 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                   <label className="block text-sm font-medium mb-1 text-blue-700">Progress</label>
                   <div className="flex items-center gap-2">
                     <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-blue-600 h-2.5 rounded-full" 
+                      <div
+                        className="bg-blue-600 h-2.5 rounded-full"
                         style={{ width: `${projectProgress}%` }}
                       ></div>
                     </div>
@@ -682,11 +734,11 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                             <TableCell>{task.duration}</TableCell>
                             <TableCell>{task.assignedTo}</TableCell>
                             <TableCell>
-                              <Badge 
+                              <Badge
                                 className={
                                   task.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                  task.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
-                                  'bg-gray-100 text-gray-800'
+                                    task.status === 'in-progress' ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-gray-100 text-gray-800'
                                 }
                               >
                                 {task.status.replace('-', ' ')}
@@ -697,9 +749,9 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                                 <Button variant="ghost" size="icon">
                                   <Edit3 className="h-4 w-4" />
                                 </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => removeTask(task.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -713,7 +765,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                   </CardContent>
                 </Card>
               </div>
-              
+
               <div>
                 <Card className="border-blue-200 shadow-lg">
                   <CardHeader>
@@ -728,13 +780,13 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                       <label className="block text-sm font-medium mb-1">Task Name</label>
                       <Input
                         value={newTask.name}
-                        onChange={(e) => setNewTask({...newTask, name: e.target.value})}
+                        onChange={(e) => setNewTask({ ...newTask, name: e.target.value })}
                         placeholder="e.g., Foundation Work"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Category</label>
-                      <Select value={newTask.category} onValueChange={(value) => setNewTask({...newTask, category: value})}>
+                      <Select value={newTask.category} onValueChange={(value) => setNewTask({ ...newTask, category: value })}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -754,7 +806,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                         <Input
                           type="number"
                           value={newTask.cost}
-                          onChange={(e) => setNewTask({...newTask, cost: e.target.value === '' ? '' : Number(e.target.value)})}
+                          onChange={(e) => setNewTask({ ...newTask, cost: e.target.value === '' ? '' : Number(e.target.value) })}
                           placeholder="0"
                         />
                       </div>
@@ -763,7 +815,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                         <Input
                           type="number"
                           value={newTask.duration}
-                          onChange={(e) => setNewTask({...newTask, duration: e.target.value === '' ? '' : Number(e.target.value)})}
+                          onChange={(e) => setNewTask({ ...newTask, duration: e.target.value === '' ? '' : Number(e.target.value) })}
                           placeholder="0"
                         />
                       </div>
@@ -772,7 +824,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                       <label className="block text-sm font-medium mb-1">Assigned To</label>
                       <Input
                         value={newTask.assignedTo}
-                        onChange={(e) => setNewTask({...newTask, assignedTo: e.target.value})}
+                        onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })}
                         placeholder="Team member name"
                       />
                     </div>
@@ -782,7 +834,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                         <Input
                           type="date"
                           value={newTask.startDate}
-                          onChange={(e) => setNewTask({...newTask, startDate: e.target.value})}
+                          onChange={(e) => setNewTask({ ...newTask, startDate: e.target.value })}
                         />
                       </div>
                       <div>
@@ -790,7 +842,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                         <Input
                           type="date"
                           value={newTask.endDate}
-                          onChange={(e) => setNewTask({...newTask, endDate: e.target.value})}
+                          onChange={(e) => setNewTask({ ...newTask, endDate: e.target.value })}
                         />
                       </div>
                     </div>
@@ -849,9 +901,9 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                                 <Button variant="ghost" size="icon">
                                   <Edit3 className="h-4 w-4" />
                                 </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => removeMaterial(material.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -865,7 +917,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                   </CardContent>
                 </Card>
               </div>
-              
+
               <div>
                 <Card className="border-blue-200 shadow-lg">
                   <CardHeader>
@@ -880,13 +932,13 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                       <label className="block text-sm font-medium mb-1">Material Name</label>
                       <Input
                         value={newMaterial.name}
-                        onChange={(e) => setNewMaterial({...newMaterial, name: e.target.value})}
+                        onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
                         placeholder="e.g., Cement"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Category</label>
-                      <Select value={newMaterial.category} onValueChange={(value) => setNewMaterial({...newMaterial, category: value})}>
+                      <Select value={newMaterial.category} onValueChange={(value) => setNewMaterial({ ...newMaterial, category: value })}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -903,7 +955,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium mb-1">Unit</label>
-                        <Select value={newMaterial.unit} onValueChange={(value) => setNewMaterial({...newMaterial, unit: value})}>
+                        <Select value={newMaterial.unit} onValueChange={(value) => setNewMaterial({ ...newMaterial, unit: value })}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -924,7 +976,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                         <Input
                           type="number"
                           value={newMaterial.unitCost}
-                          onChange={(e) => setNewMaterial({...newMaterial, unitCost: e.target.value === '' ? '' : Number(e.target.value)})}
+                          onChange={(e) => setNewMaterial({ ...newMaterial, unitCost: e.target.value === '' ? '' : Number(e.target.value) })}
                           placeholder="0"
                         />
                       </div>
@@ -933,7 +985,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                         <Input
                           type="number"
                           value={newMaterial.quantity}
-                          onChange={(e) => setNewMaterial({...newMaterial, quantity: e.target.value === '' ? '' : Number(e.target.value)})}
+                          onChange={(e) => setNewMaterial({ ...newMaterial, quantity: e.target.value === '' ? '' : Number(e.target.value) })}
                           placeholder="0"
                         />
                       </div>
@@ -991,9 +1043,9 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                                 <Button variant="ghost" size="icon">
                                   <Edit3 className="h-4 w-4" />
                                 </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="icon" 
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
                                   onClick={() => removeExpense(expense.id)}
                                 >
                                   <Trash2 className="h-4 w-4" />
@@ -1007,7 +1059,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                   </CardContent>
                 </Card>
               </div>
-              
+
               <div>
                 <Card className="border-blue-200 shadow-lg">
                   <CardHeader>
@@ -1022,13 +1074,13 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                       <label className="block text-sm font-medium mb-1">Expense Name</label>
                       <Input
                         value={newExpense.name}
-                        onChange={(e) => setNewExpense({...newExpense, name: e.target.value})}
+                        onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })}
                         placeholder="e.g., Permit Fees"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Category</label>
-                      <Select value={newExpense.category} onValueChange={(value) => setNewExpense({...newExpense, category: value})}>
+                      <Select value={newExpense.category} onValueChange={(value) => setNewExpense({ ...newExpense, category: value })}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -1047,7 +1099,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                       <Input
                         type="number"
                         value={newExpense.amount}
-                        onChange={(e) => setNewExpense({...newExpense, amount: e.target.value === '' ? '' : Number(e.target.value)})}
+                        onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value === '' ? '' : Number(e.target.value) })}
                         placeholder="0"
                       />
                     </div>
@@ -1056,14 +1108,14 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                       <Input
                         type="date"
                         value={newExpense.date}
-                        onChange={(e) => setNewExpense({...newExpense, date: e.target.value})}
+                        onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Notes</label>
                       <Textarea
                         value={newExpense.notes}
-                        onChange={(e) => setNewExpense({...newExpense, notes: e.target.value})}
+                        onChange={(e) => setNewExpense({ ...newExpense, notes: e.target.value })}
                         placeholder="Additional details..."
                         className="h-20"
                       />
@@ -1097,13 +1149,13 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                     <span className="text-sm font-medium">{milestoneProgress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2.5">
-                    <div 
-                      className="bg-blue-600 h-2.5 rounded-full" 
+                    <div
+                      className="bg-blue-600 h-2.5 rounded-full"
                       style={{ width: `${milestoneProgress}%` }}
                     ></div>
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {milestones.map((milestone) => (
                     <Card key={milestone.id} className={`border-l-4 ${milestone.completed ? 'border-l-green-500' : 'border-l-yellow-500'}`}>
@@ -1136,108 +1188,202 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
 
           {/* Team Tab */}
           <TabsContent value="team">
-            <Card className="border-blue-200 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-800">
-                  <Users className="h-6 w-6" />
-                  Team Members
-                </CardTitle>
-                <CardDescription>Manage and communicate with project team members</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="mb-6 flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Team Members</h3>
-                  <Button>
-                    <UserPlus className="h-4 w-4 mr-2" />
-                    Invite Member
-                  </Button>
-                </div>
-                
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Member</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Joined Date</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {members.map((member) => (
-                      <TableRow key={member.id}>
-                        <TableCell className="font-medium">{member.username}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            className={
-                              member.role === 'owner' ? 'bg-purple-100 text-purple-800' :
-                              member.role === 'editor' ? 'bg-blue-100 text-blue-800' :
-                              'bg-gray-100 text-gray-800'
-                            }
-                          >
-                            {member.role}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                            <span>Active</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{member.joined_at}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="icon">
-                              <MessageSquare className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon">
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
+            <div className="space-y-6">
+              {/* Current Team Members */}
+              <Card className="border-blue-200 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-blue-800">
+                    <Users className="h-6 w-6" />
+                    Team Members
+                  </CardTitle>
+                  <CardDescription>Current project team members</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6 flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">Active Team</h3>
+                    <Button>
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Invite Member
+                    </Button>
+                  </div>
+
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Member</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Joined Date</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold mb-4">Real-time Collaboration</h3>
-                  <div className="bg-white p-4 rounded-lg border">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="h-10 w-10 bg-blue-500 rounded-full flex items-center justify-center text-white font-bold">
-                        YS
-                      </div>
-                      <div>
-                        <p className="font-medium">You</p>
-                        <p className="text-sm text-gray-600">Online now</p>
-                      </div>
+                    </TableHeader>
+                    <TableBody>
+                      {members.map((member) => (
+                        <TableRow key={member.id}>
+                          <TableCell className="font-medium">{member.username}</TableCell>
+                          <TableCell>
+                            <Badge
+                              className={
+                                member.role === 'owner' ? 'bg-purple-100 text-purple-800' :
+                                  member.role === 'editor' ? 'bg-blue-100 text-blue-800' :
+                                    'bg-gray-100 text-gray-800'
+                              }
+                            >
+                              {member.role}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                              <span>Active</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>{member.joined_at}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button variant="ghost" size="icon">
+                                <MessageSquare className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon">
+                                <Edit3 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+
+              {/* Contractor Network */}
+              <Card className="border-blue-200 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-blue-800">
+                    <Users className="h-6 w-6" />
+                    Contractor Network
+                  </CardTitle>
+                  <CardDescription>Browse and connect with verified contractors across India</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                    <div className="flex gap-2 flex-wrap">
+                      <Button
+                        variant={contractorFilter === 'all' ? 'default' : 'outline'}
+                        onClick={() => setContractorFilter('all')}
+                        size="sm"
+                      >
+                        All ({contractors.length})
+                      </Button>
+                      <Button
+                        variant={contractorFilter === 'available' ? 'default' : 'outline'}
+                        onClick={() => setContractorFilter('available')}
+                        size="sm"
+                      >
+                        Available ({contractors.filter(c => c.status === 'available').length})
+                      </Button>
+                      <Button
+                        variant={contractorFilter === 'busy' ? 'default' : 'outline'}
+                        onClick={() => setContractorFilter('busy')}
+                        size="sm"
+                      >
+                        Busy ({contractors.filter(c => c.status === 'busy').length})
+                      </Button>
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold">
-                          DS
-                        </div>
-                        <div>
-                          <p className="font-medium">Designer1</p>
-                          <p className="text-sm text-gray-600">Active now</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-gray-500 rounded-full flex items-center justify-center text-white font-bold">
-                          CE
-                        </div>
-                        <div>
-                          <p className="font-medium">Contractor1</p>
-                          <p className="text-sm text-gray-600">Offline</p>
-                        </div>
-                      </div>
+                    <div className="flex gap-2">
+                      <Input placeholder="Search contractors..." className="w-64" />
+                      <Button variant="outline" size="icon">
+                        <Search className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {contractors.length === 0 ? (
+                      <div className="col-span-full text-center py-8 text-muted-foreground">
+                        Loading contractors...
+                      </div>
+                    ) : (
+                      contractors
+                        .filter(contractor => contractorFilter === 'all' || contractor.status === contractorFilter)
+                        .map((contractor) => (
+                          <Card key={contractor.id} className="hover:shadow-lg transition-shadow border-l-4 border-l-primary">
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-3">
+                                  <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                                    {contractor.name.split(' ').map((n: string) => n[0]).join('')}
+                                  </div>
+                                  <div>
+                                    <h3 className="font-semibold text-foreground">{contractor.name}</h3>
+                                    <p className="text-sm text-muted-foreground">{contractor.specialty}</p>
+                                    {contractor.businessName && (
+                                      <p className="text-xs text-muted-foreground">{contractor.businessName}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex flex-col gap-1 items-end">
+                                  <Badge
+                                    variant={contractor.status === 'available' ? 'default' : 'secondary'}
+                                    className={contractor.status === 'available' ? 'bg-green-500' : 'bg-orange-500'}
+                                  >
+                                    {contractor.status}
+                                  </Badge>
+                                  {contractor.verified && (
+                                    <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                      ✓ Verified
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="space-y-2 mb-4">
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <Building className="h-4 w-4" />
+                                  <span>{contractor.location}</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Clock className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-muted-foreground">{contractor.experience} experience</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Activity className="h-4 w-4 text-muted-foreground" />
+                                  <span className="text-muted-foreground">{contractor.projects} projects completed</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-yellow-500">★</span>
+                                  <span className="font-semibold">{contractor.rating}</span>
+                                  <span className="text-sm text-muted-foreground">/5.0</span>
+                                </div>
+                                {contractor.specializations && contractor.specializations.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {contractor.specializations.slice(0, 2).map((spec: string, idx: number) => (
+                                      <Badge key={idx} variant="secondary" className="text-xs">
+                                        {spec}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex gap-2">
+                                <Button size="sm" className="flex-1">
+                                  <UserPlus className="h-4 w-4 mr-1" />
+                                  Hire
+                                </Button>
+                                <Button size="sm" variant="outline" className="flex-1">
+                                  <MessageSquare className="h-4 w-4 mr-1" />
+                                  Contact
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
 
           {/* Reports Tab */}
@@ -1258,34 +1404,34 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                       <span className="font-semibold">{formatCurrency(totalTaskCost)}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-blue-600 h-2.5 rounded-full" 
+                      <div
+                        className="bg-blue-600 h-2.5 rounded-full"
                         style={{ width: `${totalProjectCost > 0 ? (totalTaskCost / totalProjectCost) * 100 : 0}%` }}
                       ></div>
                     </div>
-                    
+
                     <div className="flex justify-between">
                       <span>Materials</span>
                       <span className="font-semibold">{formatCurrency(totalMaterialCost)}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-green-600 h-2.5 rounded-full" 
+                      <div
+                        className="bg-green-600 h-2.5 rounded-full"
                         style={{ width: `${totalProjectCost > 0 ? (totalMaterialCost / totalProjectCost) * 100 : 0}%` }}
                       ></div>
                     </div>
-                    
+
                     <div className="flex justify-between">
                       <span>Expenses</span>
                       <span className="font-semibold">{formatCurrency(totalExpenseCost)}</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2.5">
-                      <div 
-                        className="bg-purple-600 h-2.5 rounded-full" 
+                      <div
+                        className="bg-purple-600 h-2.5 rounded-full"
                         style={{ width: `${totalProjectCost > 0 ? (totalExpenseCost / totalProjectCost) * 100 : 0}%` }}
                       ></div>
                     </div>
-                    
+
                     <div className="pt-4 border-t border-gray-200 flex justify-between font-bold">
                       <span>Total</span>
                       <span>{formatCurrency(totalProjectCost)}</span>
@@ -1293,7 +1439,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card className="border-blue-200 shadow-lg">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-blue-800">
@@ -1310,26 +1456,26 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                         <span>{formatCurrency(projectBudgetNum)}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-4">
-                        <div 
-                          className="bg-blue-500 h-4 rounded-full" 
+                        <div
+                          className="bg-blue-500 h-4 rounded-full"
                           style={{ width: '100%' }}
                         ></div>
                       </div>
                     </div>
-                    
+
                     <div>
                       <div className="flex justify-between mb-1">
                         <span>Spent</span>
                         <span>{formatCurrency(totalProjectCost)}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-4">
-                        <div 
-                          className={`${totalProjectCost > projectBudgetNum ? 'bg-red-500' : 'bg-green-500'}`} 
+                        <div
+                          className={`${totalProjectCost > projectBudgetNum ? 'bg-red-500' : 'bg-green-500'}`}
                           style={{ width: `${projectBudgetNum > 0 ? Math.min(100, (totalProjectCost / projectBudgetNum) * 100) : 0}%` }}
                         ></div>
                       </div>
                     </div>
-                    
+
                     <div className="pt-4 border-t border-gray-200">
                       <div className="flex justify-between">
                         <span>Remaining</span>
@@ -1347,7 +1493,7 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                 </CardContent>
               </Card>
             </div>
-            
+
             <Card className="mt-6 border-blue-200 shadow-lg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-blue-800">
@@ -1380,10 +1526,10 @@ export default function RealtimeProjectManagementPage({ params }: { params: { id
                       <p className="text-sm text-yellow-600">Overall completion</p>
                     </div>
                   </div>
-                  
+
                   <div className="mt-6">
                     <h3 className="font-semibold mb-2">Project Notes</h3>
-                    <Textarea 
+                    <Textarea
                       placeholder="Add project notes, observations, or important information..."
                       className="h-32"
                     />

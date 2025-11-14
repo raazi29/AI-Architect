@@ -203,8 +203,16 @@ export default function DesignFeed() {
       }
 
       if (results.length === 0) {
-        console.log('No data returned from API');
-        setHasMore(false);
+        console.log('No data returned from API for page', pageNumber);
+        // If this is page 1 and we got no results, try to fetch from page 1 again
+        // This handles cases where the backend might be starting from a different page
+        if (pageNumber === 1) {
+          console.log('Page 1 returned no results, this might be a backend issue');
+          setHasMore(false);
+        } else {
+          // For other pages, just mark as no more data
+          setHasMore(false);
+        }
       } else {
         // Deduplicate images more effectively
         const filtered = results.filter((item: DesignPost) => {
@@ -327,8 +335,32 @@ export default function DesignFeed() {
     }, 150); // Reduced debounce time for faster response
   };
 
-  // Fetch on style/filters change
+  // Initial mount effect - ensure fresh start
   useEffect(() => {
+    console.log('Design feed mounted, starting fresh load');
+    // Clear everything on initial mount
+    cache.current.clear();
+    cachePage.current.clear();
+    setPage(1);
+    setHasMore(true);
+    setDesignPosts([]);
+    setError(null);
+    setInitialLoading(true);
+    // Start with a fresh fetch
+    fetchDesigns(1, searchQuery);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run on mount
+
+  // Fetch on style/filters change (skip on initial mount)
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    // Skip the first render (initial mount is handled above)
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
+    console.log('Filters changed, fetching new data');
     setPage(1);
     setHasMore(true);
     setDesignPosts([]); // Clear existing posts
@@ -345,7 +377,8 @@ export default function DesignFeed() {
     cachePage.current.clear();
     // Always ensure design-related content is fetched
     fetchDesigns(1, searchQuery);
-  }, [selectedStyle, searchQuery, roomType, layoutType, paletteMode, lighting, selectedColors, selectedMaterials, fetchDesigns]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedStyle, searchQuery, roomType, layoutType, paletteMode, lighting, selectedColors, selectedMaterials]);
 
   // Fetch on page change
   useEffect(() => {

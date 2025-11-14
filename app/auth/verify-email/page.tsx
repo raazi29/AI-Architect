@@ -14,10 +14,10 @@ export default function VerifyEmailPage() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">
-            We've sent a verification email to your inbox. Please click the link in the email to verify your account and activate your collaboration workspace.
+            We&apos;ve sent a verification email to your inbox. Please click the link in the email to verify your account and activate your collaboration workspace.
           </p>
           <p className="mt-4 text-muted-foreground">
-            If you don't see the email, please check your spam folder.
+            If you don&apos;t see the email, please check your spam folder.
           </p>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">

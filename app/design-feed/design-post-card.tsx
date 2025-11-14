@@ -211,7 +211,7 @@ export default function DesignPostCard({ post, viewMode, priority = false }: Des
         </div>
       </div>
       <div className={`card-body p-4 ${viewMode === "list" ? "w-2/3" : ""}`}>
-        <h2 className="card-title text-lg font-semibold mb-1">{post.title || post.alt || "Design Image"}</h2>
+
         {/* Removed photographer information as requested */}
         <div className="card-actions justify-end items-center mt-auto">
           <div className="flex items-center space-x-2">

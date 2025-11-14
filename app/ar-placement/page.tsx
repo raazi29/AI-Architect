@@ -1,31 +1,31 @@
 "use client"
+export const dynamic = "force-dynamic"
+
+import { ARManagerEnhanced } from "@/components/ar/ARManagerEnhanced"
+import NextDynamic from "next/dynamic"
 
 import { useState, useEffect } from "react"
-import dynamic from "next/dynamic"
+
 import { Navigation } from "@/components/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Slider } from "@/components/ui/slider"
-
-// Lazy load heavy AR components
-const EnhancedARScene = dynamic(() => import("@/components/ar/enhanced-ar-scene").then(mod => ({ default: mod.EnhancedARScene || mod.default })), {
-  loading: () => <div className="flex items-center justify-center h-96"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>,
-  ssr: false
-})
-import { modelService, DEFAULT_FURNITURE_MODELS, ModelInfo } from "@/components/ar/model-service"
 import {
   Cable as Cube,
   Camera,
   Search,
   Save,
   Share,
-  Trash2,
-  Ruler,
+  Smartphone,
+  ArrowRight,
 } from "lucide-react"
+
+
+const ModelViewerWrapper = NextDynamic(
+  () => import('@/components/ar/ModelViewerWrapper'),
+  { ssr: false }
+);
 
 interface FurnitureItem {
   id: number
@@ -55,75 +55,91 @@ interface PlacedItem {
 
 const furnitureCategories = ["All", "Seating", "Tables", "Storage", "Lighting", "Decor"]
 
+// Modern furniture catalog with actual 3D models
 const furnitureItems: FurnitureItem[] = [
   {
     id: 1,
-    name: "Modern Sofa",
-    category: "Seating",
-    price: "$1,299",
-    image: "/modern-sofa.png",
-    dimensions: { width: 200, height: 85, depth: 90 },
-    colors: ["#8B4513", "#2F4F4F", "#696969"],
+    name: "Decorative Lantern",
+    category: "Lighting",
+    price: "$89",
+    image: "/placeholder.svg",
+    dimensions: { width: 30, height: 60, depth: 30 },
+    colors: ["#FFD700", "#000000"],
+    modelUrl: "/models/lantern.glb"
   },
   {
     id: 2,
-    name: "Coffee Table",
-    category: "Tables",
-    price: "$399",
-    image: "/modern-coffee-table.png",
-    dimensions: { width: 120, height: 45, depth: 60 },
-    colors: ["#8B4513", "#000000", "#FFFFFF"],
+    name: "Modern Storage Box",
+    category: "Storage",
+    price: "$45",
+    image: "/placeholder.svg",
+    dimensions: { width: 40, height: 40, depth: 40 },
+    colors: ["#8B4513", "#FFFFFF"],
+    modelUrl: "/models/box.glb"
   },
   {
     id: 3,
-    name: "Floor Lamp",
-    category: "Lighting",
-    price: "$199",
-    image: "/modern-floor-lamp.png",
-    dimensions: { width: 30, height: 160, depth: 30 },
-    colors: ["#000000", "#FFFFFF", "#C0C0C0"],
+    name: "Decorative Avocado",
+    category: "Decor",
+    price: "$29",
+    image: "/placeholder.svg",
+    dimensions: { width: 15, height: 20, depth: 15 },
+    colors: ["#567D46", "#8B4513"],
+    modelUrl: "/models/avocado.glb"
   },
   {
     id: 4,
-    name: "Bookshelf",
-    category: "Storage",
-    price: "$599",
-    image: "/modern-bookshelf.png",
-    dimensions: { width: 80, height: 200, depth: 30 },
-    colors: ["#8B4513", "#FFFFFF", "#000000"],
+    name: "Rubber Duck Decor",
+    category: "Decor",
+    price: "$19",
+    image: "/placeholder.svg",
+    dimensions: { width: 20, height: 25, depth: 20 },
+    colors: ["#FFD700", "#FFA500"],
+    modelUrl: "/models/duck.glb"
   },
   {
     id: 5,
-    name: "Dining Chair",
+    name: "Modern Chair (Sample)",
     category: "Seating",
-    price: "$149",
-    image: "/modern-dining-chair.png",
-    dimensions: { width: 45, height: 85, depth: 50 },
-    colors: ["#8B4513", "#000000", "#FFFFFF"],
-  },
-  {
-    id: 6,
-    name: "Side Table",
-    category: "Tables",
-    price: "$199",
-    image: "/modern-side-table.jpg",
-    dimensions: { width: 50, height: 55, depth: 50 },
-    colors: ["#8B4513", "#FFFFFF", "#000000"],
+    price: "$299",
+    image: "/placeholder.svg",
+    dimensions: { width: 60, height: 85, depth: 65 },
+    colors: ["#8B4513", "#2F4F4F"],
+    modelUrl: "/models/furniture/modern/sample (39).glb"
   },
 ]
 
 export default function ARPlacement() {
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [searchQuery, setSearchQuery] = useState("")
-  const [placedItems, setPlacedItems] = useState<PlacedItem[]>([])
-  const [selectedItem, setSelectedItem] = useState<PlacedItem | null>(null)
-  const [showMeasurements, setShowMeasurements] = useState(false)
-  const [roomDimensions, setRoomDimensions] = useState({ width: 400, length: 500 })
-  const [selectedFurnitureForPlacement, setSelectedFurnitureForPlacement] = useState<FurnitureItem | null>(null)
+  const [selectedFurniture, setSelectedFurniture] = useState<FurnitureItem | null>(null)
+  const [showViewer, setShowViewer] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+  const [qrCodeUrl, setQrCodeUrl] = useState('')
+  const [arMode, setArMode] = useState<'webxr' | 'model-viewer' | 'fallback'>('fallback')
 
   useEffect(() => {
-    console.log("AR Placement page loaded successfully")
+    const checkMobile = () => {
+      const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      setIsMobile(mobile)
+      
+      if (!mobile && typeof window !== 'undefined') {
+        const currentUrl = window.location.href
+        setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(currentUrl)}`)
+      }
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
   }, [])
+
+  useEffect(() => {
+    if (!isMobile && !showViewer && furnitureItems.length > 0) {
+      setSelectedFurniture(furnitureItems[0])
+      setShowViewer(true)
+    }
+  }, [isMobile, showViewer])
 
   const filteredFurniture = furnitureItems.filter((item) => {
     const matchesCategory = selectedCategory === "All" || item.category === selectedCategory
@@ -131,45 +147,38 @@ export default function ARPlacement() {
     return matchesCategory && matchesSearch
   })
 
-  const handlePlaceItem = (item: PlacedItem) => {
-    setPlacedItems((prev) => [...prev, item])
-    setSelectedFurnitureForPlacement(null) // Deselect after placing
+  const handleFurnitureSelect = (item: FurnitureItem) => {
+    setSelectedFurniture(item)
+    setShowViewer(true)
   }
 
-  const removeSelectedItem = () => {
-    if (!selectedItem) return
-
-    setPlacedItems((prev) => prev.filter((item) => item.id !== selectedItem.id))
-    setSelectedItem(null)
+  const handleViewerClose = () => {
+    setShowViewer(false)
   }
 
-  const handleUpdateItem = (updatedItem: PlacedItem) => {
-    setPlacedItems((prev) => 
-      prev.map((item) => item.id === updatedItem.id ? updatedItem : item)
-    )
+  const handleModelLoad = () => {
+    console.log('Model loaded successfully')
   }
 
-  const handleDeleteItem = (itemId: string) => {
-    setPlacedItems((prev) => prev.filter((item) => item.id !== itemId))
-    if (selectedItem?.id === itemId) {
-      setSelectedItem(null)
-    }
+  const handleError = (error: Error) => {
+    console.error('AR Error:', error)
+    alert(`Failed to load model: ${error.message}`)
   }
 
-  const saveScene = () => {
-    const sceneData = {
-      items: placedItems,
-      roomDimensions,
-      timestamp: new Date().toISOString(),
-    }
+  const handleARStart = () => {
+    console.log('AR session started')
+  }
 
-    console.log("Saving AR scene:", sceneData)
-    // In production, this would save to a database
-    alert("Scene saved successfully!")
+  const handleAREnd = () => {
+    console.log('AR session ended')
+  }
+
+  const handleObjectPlaced = (objectId: string) => {
+    console.log('Object placed:', objectId)
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <Navigation />
 
       <main className="ml-64 p-8">
@@ -177,231 +186,178 @@ export default function ARPlacement() {
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <Cube className="h-6 w-6 text-primary" />
-                  <h1 className="text-3xl font-bold text-foreground">AR Furniture Placement</h1>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Cube className="h-7 w-7 text-primary" />
+                  </div>
+                  <div>
+                    <h1 className="text-3xl font-bold text-foreground">AR Furniture Placement</h1>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {isMobile ? 'Place furniture in your space' : 'Scan QR code with mobile to try AR'}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-lg text-muted-foreground">
-                  Visualize furniture in your space using augmented reality before you buy.
-                </p>
               </div>
 
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowMeasurements(!showMeasurements)}>
-                  <Ruler className="h-4 w-4 mr-2" />
-                  {showMeasurements ? "Hide" : "Show"} Measurements
+              {showViewer && (
+                <Button variant="outline" onClick={handleViewerClose}>
+                  Close
                 </Button>
-                <Button variant="outline" onClick={saveScene} disabled={placedItems.length === 0}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Scene
-                </Button>
-                <Button variant="outline">
-                  <Share className="h-4 w-4 mr-2" />
-                  Share
-                </Button>
-              </div>
+              )}
             </div>
 
-            {placedItems.length > 0 && (
-              <div className="bg-card border border-border rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <span className="text-sm font-medium">Scene Items: {placedItems.length}</span>
-                    <span className="text-sm text-muted-foreground">
-                      Room: {roomDimensions.width}cm × {roomDimensions.length}cm
-                    </span>
-                  </div>
-                  <Button variant="destructive" size="sm" onClick={() => setPlacedItems([])}>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Clear All
-                  </Button>
-                </div>
-              </div>
-            )}
+            
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-3">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Camera className="h-5 w-5" />
-                      AR Camera View
-                    </div>
-                  </CardTitle>
-                  <CardDescription>Point your camera at the room to place furniture</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="aspect-video bg-muted rounded-lg flex items-center justify-center relative overflow-hidden">
-                    <EnhancedARScene
-                      selectedFurniture={selectedFurnitureForPlacement}
-                      onPlaceItem={handlePlaceItem}
-                      placedItems={placedItems}
-                      onUpdateItem={handleUpdateItem}
-                      onDeleteItem={handleDeleteItem}
-                    />
-                  </div>
-
-                  {selectedItem && (
-                    <div className="mt-4 p-4 bg-muted rounded-lg">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-medium">
-                          {furnitureItems.find((f) => f.id === selectedItem.furnitureId)?.name}
-                        </h4>
-                        <Button size="sm" variant="destructive" onClick={removeSelectedItem}>
-                          <Trash2 className="h-4 w-4" />
+          {showViewer && selectedFurniture ? (
+            /* AR Viewer Mode */
+            <Card>
+                    <CardHeader className="bg-gradient-to-r from-primary to-purple-600 text-white">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-white">{selectedFurniture.name}</CardTitle>
+                          <CardDescription className="text-white/80">{selectedFurniture.category}</CardDescription>
+                        </div>
+                        <Button variant="ghost" onClick={handleViewerClose} className="text-white hover:bg-white/20">
+                          Close
                         </Button>
                       </div>
+                    </CardHeader>
+              <CardContent className="p-0">
+                <div className="relative" style={{ minHeight: isMobile ? '70vh' : '600px' }}>
+                  {selectedFurniture.modelUrl ? (
+                    <ARManagerEnhanced
+                      modelUrl={selectedFurniture.modelUrl}
+                      onARStart={handleARStart}
+                      onAREnd={handleAREnd}
+                      onObjectPlaced={handleObjectPlaced}
+                      onError={handleError}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full bg-muted">
+                      <p className="text-muted-foreground">No 3D model available</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Instructions */}
+                <div className="p-6 bg-muted/50 border-t">
+                  <div className="flex items-start gap-3 text-sm">
+                    <div className="flex-shrink-0">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Camera className="h-5 w-5 text-primary" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium mb-2">How to use AR:</p>
+                      <ul className="space-y-1 text-muted-foreground">
+                        <li>• <strong>Drag</strong> to rotate the model</li>
+                        <li>• <strong>Pinch/Scroll</strong> to zoom in/out</li>
+                        {isMobile && <li>• <strong>Tap "View in AR"</strong> to place in your space</li>}
+                        <li>• <strong>Auto-adaptive quality</strong> ensures smooth performance</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            /* Furniture Catalog Mode */
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+
+            <div className="lg:col-span-4">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Modern Furniture Catalog</CardTitle>
+                      <CardDescription>Select furniture to view in AR</CardDescription>
+                    </div>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 w-64"
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {/* Category Tabs */}
+                  <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+                    {furnitureCategories.map((category) => (
+                      <Button
+                        key={category}
+                        variant={selectedCategory === category ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedCategory(category)}
+                        className="whitespace-nowrap"
+                      >
+                        {category}
+                      </Button>
+                    ))}
+                  </div>
+
+                  {/* Furniture Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredFurniture.map((item) => (
+                      <div
+                        key={item.id}
+                        className="group cursor-pointer"
+                        onClick={() => handleFurnitureSelect(item)}
+                      >
+                        <Card className="overflow-hidden hover:shadow-lg transition-all border-2 hover:border-primary">
+                          <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center relative overflow-hidden">
+                            <div className="text-6xl">{getCategoryIcon(item.category)}</div>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-all" />
+                            <Badge className="absolute top-3 right-3">{item.category}</Badge>
+                          </div>
+                          <CardContent className="p-4">
+                            <h3 className="font-semibold mb-2 line-clamp-1">{item.name}</h3>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {item.dimensions.width}×{item.dimensions.depth}×{item.dimensions.height}cm
+                            </p>
+                          <div className="flex items-center justify-end">
+                            <Button size="sm" className="gap-1">
+                              View
+                              <ArrowRight className="h-3 w-3" />
+                            </Button>
+                          </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    ))}
+                  </div>
+
+                  {filteredFurniture.length === 0 && (
+                    <div className="text-center py-12">
+                      <p className="text-muted-foreground mb-4">No furniture found matching your search.</p>
+                      <Button variant="outline" onClick={() => {setSearchQuery(''); setSelectedCategory('All');}}>
+                        Clear Filters
+                      </Button>
                     </div>
                   )}
                 </CardContent>
               </Card>
             </div>
-
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Furniture Catalog</CardTitle>
-                  <CardDescription>Select items to place in your room</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search furniture..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-
-                    <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-                      <TabsList className="grid grid-cols-2 w-full">
-                        <TabsTrigger value="All">All</TabsTrigger>
-                        <TabsTrigger value="Seating">Seating</TabsTrigger>
-                      </TabsList>
-                      <TabsList className="grid grid-cols-2 w-full mt-2">
-                        <TabsTrigger value="Tables">Tables</TabsTrigger>
-                        <TabsTrigger value="Storage">Storage</TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {filteredFurniture.map((item) => (
-                        <div
-                          key={item.id}
-                          className={`flex items-center gap-3 p-3 border border-border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors ${
-                            selectedFurnitureForPlacement?.id === item.id ? "bg-muted" : ""
-                          }`}
-                          onClick={() => setSelectedFurnitureForPlacement(item)}
-                        >
-                          <img
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.name}
-                            className="w-12 h-12 object-cover rounded-md"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-foreground text-sm truncate">{item.name}</h4>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Badge variant="outline" className="text-xs">
-                                {item.category}
-                              </Badge>
-                              <span className="text-xs font-semibold text-primary">{item.price}</span>
-                            </div>
-                            <div className="text-xs text-muted-foreground mt-1">
-                              {item.dimensions.width}×{item.dimensions.depth}×{item.dimensions.height}cm
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <Button className="w-full mt-4 bg-transparent" variant="outline">
-                      Browse More Furniture
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle className="text-lg">Room Settings</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <Label className="text-sm">Room Width (cm)</Label>
-                    <Slider
-                      value={[roomDimensions.width]}
-                      onValueChange={([value]) => setRoomDimensions((prev) => ({ ...prev, width: value }))}
-                      min={200}
-                      max={800}
-                      step={10}
-                      className="mt-2"
-                    />
-                    <span className="text-xs text-muted-foreground">{roomDimensions.width}cm</span>
-                  </div>
-
-                  <div>
-                    <Label className="text-sm">Room Length (cm)</Label>
-                    <Slider
-                      value={[roomDimensions.length]}
-                      onValueChange={([value]) => setRoomDimensions((prev) => ({ ...prev, length: value }))}
-                      min={200}
-                      max={1000}
-                      step={10}
-                      className="mt-2"
-                    />
-                    <span className="text-xs text-muted-foreground">{roomDimensions.length}cm</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* How to Use AR */}
-              <Card className="mt-6">
-                <CardHeader>
-                  <CardTitle className="text-lg">How to Use AR</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 text-sm text-muted-foreground">
-                    <div className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">
-                        1
-                      </div>
-                      <p>Click the "Start AR" button</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">
-                        2
-                      </div>
-                      <p>Point your device at a flat surface</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">
-                        3
-                      </div>
-                      <p>Select a furniture item from the catalog</p>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">
-                        4
-                      </div>
-                      <p>Tap the screen to place the item</p>
-                    </div>
-                     <div className="flex items-start gap-2">
-                      <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">
-                        5
-                      </div>
-                      <p>Use touch gestures to move, rotate, and scale</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
           </div>
+          )}
         </div>
       </main>
     </div>
   )
+}
+
+// Helper function to get category icons
+function getCategoryIcon(category: string): string {
+  const icons: Record<string, string> = {
+    'Lighting': '💡',
+    'Storage': '📦',
+    'Decor': '🎨',
+    'Seating': '🪑',
+    'Tables': '🪑',
+  }
+  return icons[category] || '🛋️'
 }

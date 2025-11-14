@@ -540,7 +540,7 @@ export default function ProjectManagementPage() {
               <CardContent>
                 {tasks.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <p>No tasks yet. Click "Add Task" to get started.</p>
+                    <p>No tasks yet. Click &quot;Add Task&quot; to get started.</p>
                   </div>
                 ) : (
                   <Table>

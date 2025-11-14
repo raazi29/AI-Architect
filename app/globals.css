@@ -2,48 +2,209 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Improved typography */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl lg:text-5xl;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl lg:text-4xl;
+  }
+
+  p {
+    @apply leading-7;
+  }
+}
+
+@layer components {
+
+  /* Modern Card Styles */
+  .card-modern {
+    @apply rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-md transition-all duration-200;
+  }
+
+  .card-elevated {
+    @apply rounded-lg bg-card border-0 shadow-md hover:shadow-lg transition-all duration-200;
+  }
+
+  /* Clean Button Styles */
+  .btn-solid {
+    @apply bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-200 rounded-lg px-4 py-2 font-medium;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200 rounded-lg px-4 py-2 font-medium;
+  }
+
+  .btn-ghost {
+    @apply text-foreground hover:bg-muted transition-colors duration-200 rounded-lg px-4 py-2 font-medium;
+  }
+
+  /* Subtle Gradient Backgrounds */
+  .bg-gradient-subtle {
+    @apply bg-gradient-to-br from-background via-background to-muted/20;
+  }
+
+  /* Modern Shadows */
+  .shadow-soft {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+
+  .shadow-medium {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+
+  .shadow-strong {
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  }
+}
+
 /* Enhanced animations and transitions */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideIn {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200px 0; }
-  100% { background-position: calc(200px + 100%) 0; }
+  0% {
+    background-position: -200px 0;
+  }
+
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(var(--primary), 0.3);
+  }
+
+  50% {
+    box-shadow: 0 0 40px rgba(var(--primary), 0.6);
+  }
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.3s ease-out;
+  animation: fadeIn 0.5s ease-out;
 }
 
 .animate-slide-in {
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn 0.4s ease-out;
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.4s ease-out;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.2s ease-out;
+  animation: scaleIn 0.3s ease-out;
 }
 
 .animate-shimmer {
   animation: shimmer 2s infinite linear;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
   background-size: 200px 100%;
 }
 
-/* Smooth transitions for theme switching - only on specific elements to prevent flickering */
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Smooth transitions for theme switching */
 .theme-transition {
-  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Enhanced hover effects */
+.hover-lift {
+  @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+}
+
+.hover-scale {
+  @apply transition-transform duration-300 hover:scale-105;
 }
 
 /* Focus styles for accessibility */
@@ -71,83 +232,147 @@
 }
 
 :root {
-  /* Updated color palette for AR Interior Design platform */
-  --background: oklch(1 0 0); /* Pure white */
-  --foreground: oklch(0.35 0 0); /* Dark gray for text */
-  --card: oklch(0.98 0 0); /* Light gray card background */
-  --card-foreground: oklch(0.35 0 0); /* Dark gray card text */
-  --popover: oklch(1 0 0); /* White popover background */
-  --popover-foreground: oklch(0.35 0 0); /* Dark gray popover text */
-  --primary: oklch(0.55 0.15 200); /* Cyan-600 primary color */
-  --primary-foreground: oklch(1 0 0); /* White text on primary */
-  --secondary: oklch(0.75 0.18 120); /* Vibrant green accent */
-  --secondary-foreground: oklch(0.35 0 0); /* Dark gray on secondary */
-  --muted: oklch(0.98 0 0); /* Light gray muted background */
-  --muted-foreground: oklch(0.35 0 0); /* Dark gray muted text */
-  --accent: oklch(0.75 0.18 120); /* Vibrant green accent */
-  --accent-foreground: oklch(0.35 0 0); /* Dark gray accent text */
-  --destructive: oklch(0.62 0.22 25); /* Red for destructive actions */
-  --destructive-foreground: oklch(1 0 0); /* White on destructive */
-  --border: oklch(0.9 0 0); /* Light border color */
-  --input: oklch(0.98 0 0); /* Light input background */
-  --ring: oklch(0.55 0.15 200 / 0.5); /* Primary focus ring */
-  --chart-1: oklch(0.55 0.15 200); /* Primary chart color */
-  --chart-2: oklch(0.75 0.18 120); /* Secondary chart color */
-  --chart-3: oklch(0.65 0.12 260); /* Tertiary chart color */
-  --chart-4: oklch(0.7 0.15 40); /* Quaternary chart color */
-  --chart-5: oklch(0.6 0.1 320); /* Quinary chart color */
+  /* Modern color palette for AR Interior Design platform */
+  --background: 0 0% 100%;
+  /* Pure white */
+  --foreground: 222 47% 11%;
+  /* Dark slate for text */
+  --card: 0 0% 100%;
+  /* White card background */
+  --card-foreground: 222 47% 11%;
+  /* Dark slate card text */
+  --popover: 0 0% 100%;
+  /* White popover background */
+  --popover-foreground: 222 47% 11%;
+  /* Dark slate popover text */
+  --primary: 221 83% 53%;
+  /* Modern blue primary */
+  --primary-foreground: 0 0% 100%;
+  /* White text on primary */
+  --secondary: 142 76% 36%;
+  /* Fresh green accent */
+  --secondary-foreground: 0 0% 100%;
+  /* White text on secondary */
+  --muted: 210 40% 96%;
+  /* Light gray muted background */
+  --muted-foreground: 215 16% 47%;
+  /* Medium gray muted text */
+  --accent: 142 76% 36%;
+  /* Fresh green accent */
+  --accent-foreground: 0 0% 100%;
+  /* White accent text */
+  --destructive: 0 84% 60%;
+  /* Modern red for destructive actions */
+  --destructive-foreground: 0 0% 100%;
+  /* White on destructive */
+  --border: 214 32% 91%;
+  /* Subtle border color */
+  --input: 214 32% 91%;
+  /* Light input border */
+  --ring: 221 83% 53%;
+  /* Primary focus ring */
+  --chart-1: 221 83% 53%;
+  /* Primary chart color */
+  --chart-2: 142 76% 36%;
+  /* Secondary chart color */
+  --chart-3: 262 83% 58%;
+  /* Purple chart color */
+  --chart-4: 32 95% 44%;
+  /* Orange chart color */
+  --chart-5: 340 82% 52%;
+  /* Pink chart color */
   --radius: 0.5rem;
-  --sidebar: oklch(1 0 0); /* White sidebar */
-  --sidebar-foreground: oklch(0.35 0 0); /* Dark gray sidebar text */
-  --sidebar-primary: oklch(0.55 0.15 200); /* Primary sidebar actions */
-  --sidebar-primary-foreground: oklch(1 0 0); /* White on primary sidebar */
-  --sidebar-accent: oklch(0.75 0.18 120); /* Green sidebar accent */
-  --sidebar-accent-foreground: oklch(0.35 0 0); /* Dark gray on sidebar accent */
-  --sidebar-border: oklch(0.9 0 0); /* Light sidebar border */
-  --sidebar-ring: oklch(0.55 0.15 200 / 0.5); /* Primary sidebar focus ring */
+  --sidebar: 0 0% 100%;
+  /* White sidebar */
+  --sidebar-foreground: 222 47% 11%;
+  /* Dark slate sidebar text */
+  --sidebar-primary: 221 83% 53%;
+  /* Primary sidebar actions */
+  --sidebar-primary-foreground: 0 0% 100%;
+  /* White on primary sidebar */
+  --sidebar-accent: 142 76% 36%;
+  /* Green sidebar accent */
+  --sidebar-accent-foreground: 0 0% 100%;
+  /* White on sidebar accent */
+  --sidebar-border: 214 32% 91%;
+  /* Light sidebar border */
+  --sidebar-ring: 221 83% 53%;
+  /* Primary sidebar focus ring */
 }
 
 .dark {
-  /* Updated dark mode colors for AR Interior Design platform */
-  --background: oklch(0.1 0 0); /* Dark background */
-  --foreground: oklch(0.95 0 0); /* Light text */
-  --card: oklch(0.15 0 0); /* Dark card background */
-  --card-foreground: oklch(0.95 0 0); /* Light card text */
-  --popover: oklch(0.15 0 0); /* Dark popover */
-  --popover-foreground: oklch(0.95 0 0); /* Light popover text */
-  --primary: oklch(0.6 0.15 200); /* Brighter cyan for dark mode */
-  --primary-foreground: oklch(0.1 0 0); /* Dark text on primary */
-  --secondary: oklch(0.8 0.18 120); /* Brighter green for dark mode */
-  --secondary-foreground: oklch(0.1 0 0); /* Dark text on secondary */
-  --muted: oklch(0.2 0 0); /* Dark muted background */
-  --muted-foreground: oklch(0.7 0 0); /* Light muted text */
-  --accent: oklch(0.8 0.18 120); /* Bright green accent */
-  --accent-foreground: oklch(0.1 0 0); /* Dark accent text */
-  --destructive: oklch(0.65 0.22 25); /* Brighter red for dark mode */
-  --destructive-foreground: oklch(0.95 0 0); /* Light on destructive */
-  --border: oklch(0.25 0 0); /* Dark border */
-  --input: oklch(0.2 0 0); /* Dark input background */
-  --ring: oklch(0.6 0.15 200 / 0.5); /* Primary focus ring */
-  --chart-1: oklch(0.6 0.15 200); /* Primary chart color */
-  --chart-2: oklch(0.8 0.18 120); /* Secondary chart color */
-  --chart-3: oklch(0.7 0.12 260); /* Tertiary chart color */
-  --chart-4: oklch(0.75 0.15 40); /* Quaternary chart color */
-  --chart-5: oklch(0.65 0.1 320); /* Quinary chart color */
-  --sidebar: oklch(0.12 0 0); /* Dark sidebar */
-  --sidebar-foreground: oklch(0.95 0 0); /* Light sidebar text */
-  --sidebar-primary: oklch(0.6 0.15 200); /* Primary sidebar actions */
-  --sidebar-primary-foreground: oklch(0.1 0 0); /* Dark on primary sidebar */
-  --sidebar-accent: oklch(0.8 0.18 120); /* Green sidebar accent */
-  --sidebar-accent-foreground: oklch(0.1 0 0); /* Dark on sidebar accent */
-  --sidebar-border: oklch(0.25 0 0); /* Dark sidebar border */
-  --sidebar-ring: oklch(0.6 0.15 200 / 0.5); /* Primary sidebar focus ring */
+  /* Modern dark mode colors for AR Interior Design platform */
+  --background: 222 47% 11%;
+  /* Dark slate background */
+  --foreground: 210 40% 98%;
+  /* Light text */
+  --card: 222 47% 14%;
+  /* Slightly lighter card background */
+  --card-foreground: 210 40% 98%;
+  /* Light card text */
+  --popover: 222 47% 14%;
+  /* Dark popover */
+  --popover-foreground: 210 40% 98%;
+  /* Light popover text */
+  --primary: 217 91% 60%;
+  /* Brighter blue for dark mode */
+  --primary-foreground: 222 47% 11%;
+  /* Dark text on primary */
+  --secondary: 142 76% 45%;
+  /* Brighter green for dark mode */
+  --secondary-foreground: 222 47% 11%;
+  /* Dark text on secondary */
+  --muted: 217 33% 17%;
+  /* Dark muted background */
+  --muted-foreground: 215 20% 65%;
+  /* Light muted text */
+  --accent: 142 76% 45%;
+  /* Bright green accent */
+  --accent-foreground: 222 47% 11%;
+  /* Dark accent text */
+  --destructive: 0 84% 65%;
+  /* Brighter red for dark mode */
+  --destructive-foreground: 210 40% 98%;
+  /* Light on destructive */
+  --border: 217 33% 20%;
+  /* Subtle dark border */
+  --input: 217 33% 20%;
+  /* Dark input border */
+  --ring: 217 91% 60%;
+  /* Primary focus ring */
+  --chart-1: 217 91% 60%;
+  /* Primary chart color */
+  --chart-2: 142 76% 45%;
+  /* Secondary chart color */
+  --chart-3: 262 83% 65%;
+  /* Purple chart color */
+  --chart-4: 32 95% 55%;
+  /* Orange chart color */
+  --chart-5: 340 82% 60%;
+  /* Pink chart color */
+  --sidebar: 222 47% 13%;
+  /* Dark sidebar */
+  --sidebar-foreground: 210 40% 98%;
+  /* Light sidebar text */
+  --sidebar-primary: 217 91% 60%;
+  /* Primary sidebar actions */
+  --sidebar-primary-foreground: 222 47% 11%;
+  /* Dark on primary sidebar */
+  --sidebar-accent: 142 76% 45%;
+  /* Green sidebar accent */
+  --sidebar-accent-foreground: 222 47% 11%;
+  /* Dark on sidebar accent */
+  --sidebar-border: 217 33% 20%;
+  /* Dark sidebar border */
+  --sidebar-ring: 217 91% 60%;
+  /* Primary sidebar focus ring */
 }
 
 @layer base {
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;

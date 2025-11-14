@@ -11,6 +11,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
+import InteractiveLayoutDesigner from '@/components/layout/interactive-layout-designer';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Layout, 
   Move3D, 
@@ -352,9 +354,9 @@ const AILayoutPage = () => {
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-lg font-semibold mb-2">Choose Output Format</h3>
+              <h3 className="text-lg font-semibold mb-2">Choose Your Tool</h3>
               <p className="text-sm text-muted-foreground">
-                Select between detailed text analysis or visual floor plan generation
+                Select between AI optimization or the interactive designer.
               </p>
             </div>
             <div className="flex items-center gap-4">
@@ -364,7 +366,7 @@ const AILayoutPage = () => {
                 className="flex items-center gap-2"
               >
                 <FileText className="h-4 w-4" />
-                Text Analysis
+                AI Suggestions
               </Button>
               <Button
                 variant={outputMode === 'image' ? 'default' : 'outline'}
@@ -373,230 +375,499 @@ const AILayoutPage = () => {
               >
                 <ImageIcon className="h-4 w-4" />
                 <Sparkles className="h-4 w-4" />
-                Floor Plan Image
+                Interactive Designer
               </Button>
             </div>
           </div>
-          
-          {outputMode === 'image' && (
-            <div className="mt-4 p-4 bg-white rounded-lg border border-purple-200">
-              <div className="flex items-start gap-3">
-                <Sparkles className="h-5 w-5 text-purple-500 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-purple-700">AI-Powered Floor Plan Generation</p>
-                  <p className="text-xs text-purple-600 mt-1">
-                    Uses advanced Hugging Face models to create visual floor plans based on your specifications. 
-                    Perfect for visualizing layouts and sharing with clients or contractors.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </CardContent>
       </Card>
 
-      {/* Input Form */}
-      <Card className="border-0 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Layout className="h-5 w-5 text-indigo-500" />
-            Room Specifications
-          </CardTitle>
-          <CardDescription>
-            Provide your room details to get AI-powered layout optimization
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div className="space-y-2">
-              <Label htmlFor="room-type">Room Type *</Label>
-              <Select value={roomType} onValueChange={setRoomType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select room type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roomTypes.map((room) => (
-                    <SelectItem key={room.value} value={room.value}>
-                      {room.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Tabs defaultValue="specifications" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="specifications">Specifications</TabsTrigger>
+            <TabsTrigger value="suggestions">AI Suggestions</TabsTrigger>
+          </TabsList>
+          <TabsContent value="specifications">
+            <Card className="border-0 shadow-lg">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Layout className="h-5 w-5 text-indigo-500" />
+                  Room Specifications
+                </CardTitle>
+                <CardDescription>
+                  Provide your room details to get AI-powered layout optimization
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="room-type">Room Type *</Label>
+                    <Select value={roomType} onValueChange={setRoomType}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select room type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roomTypes.map((room) => (
+                          <SelectItem key={room.value} value={room.value}>
+                            {room.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="room-length">Length (meters) *</Label>
-              <Input
-                id="room-length"
-                type="number"
-                placeholder="e.g., 4.5"
-                value={roomLength}
-                onChange={(e) => setRoomLength(e.target.value)}
-                min="1"
-                step="0.1"
-              />
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="room-length">Length (meters) *</Label>
+                    <Input
+                      id="room-length"
+                      type="number"
+                      placeholder="e.g., 4.5"
+                      value={roomLength}
+                      onChange={(e) => setRoomLength(e.target.value)}
+                      min="1"
+                      step="0.1"
+                    />
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="room-width">Width (meters) *</Label>
-              <Input
-                id="room-width"
-                type="number"
-                placeholder="e.g., 3.5"
-                value={roomWidth}
-                onChange={(e) => setRoomWidth(e.target.value)}
-                min="1"
-                step="0.1"
-              />
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="room-width">Width (meters) *</Label>
+                    <Input
+                      id="room-width"
+                      type="number"
+                      placeholder="e.g., 3.5"
+                      value={roomWidth}
+                      onChange={(e) => setRoomWidth(e.target.value)}
+                      min="1"
+                      step="0.1"
+                    />
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="room-height">Height (meters)</Label>
-              <Input
-                id="room-height"
-                type="number"
-                placeholder="e.g., 3.0 (optional)"
-                value={roomHeight}
-                onChange={(e) => setRoomHeight(e.target.value)}
-                min="2"
-                step="0.1"
-              />
-            </div>
-          </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="room-height">Height (meters)</Label>
+                    <Input
+                      id="room-height"
+                      type="number"
+                      placeholder="e.g., 3.0 (optional)"
+                      value={roomHeight}
+                      onChange={(e) => setRoomHeight(e.target.value)}
+                      min="2"
+                      step="0.1"
+                    />
+                  </div>
+                </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="primary-function">Primary Function *</Label>
-              <Textarea
-                id="primary-function"
-                placeholder="e.g., Family entertainment and relaxation, Work and study, Formal dining..."
-                value={primaryFunction}
-                onChange={(e) => setPrimaryFunction(e.target.value)}
-                rows={3}
-              />
-            </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="primary-function">Primary Function *</Label>
+                    <Textarea
+                      id="primary-function"
+                      placeholder="e.g., Family entertainment and relaxation, Work and study, Formal dining..."
+                      value={primaryFunction}
+                      onChange={(e) => setPrimaryFunction(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="traffic-flow">Traffic Flow Requirements *</Label>
-              <Textarea
-                id="traffic-flow"
-                placeholder="e.g., Easy access from entrance to seating, Clear path to balcony, Wheelchair accessible..."
-                value={trafficFlowRequirements}
-                onChange={(e) => setTrafficFlowRequirements(e.target.value)}
-                rows={3}
-              />
-            </div>
-          </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="traffic-flow">Traffic Flow Requirements *</Label>
+                    <Textarea
+                      id="traffic-flow"
+                      placeholder="e.g., Easy access from entrance to seating, Clear path to balcony, Wheelchair accessible..."
+                      value={trafficFlowRequirements}
+                      onChange={(e) => setTrafficFlowRequirements(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                </div>
 
-          {/* Existing Furniture */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="existing-furniture">Existing Furniture (Optional)</Label>
-              <p className="text-sm text-muted-foreground mb-2">
-                Add furniture you already have (e.g., 3-seater sofa, dining table, bookshelf)
-              </p>
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Enter furniture item"
-                  value={furnitureInput}
-                  onChange={(e) => setFurnitureInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && addFurniture()}
-                />
-                <Button type="button" onClick={addFurniture} variant="outline">
-                  Add
+                {/* Existing Furniture */}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="existing-furniture">Existing Furniture (Optional)</Label>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Add furniture you already have (e.g., 3-seater sofa, dining table, bookshelf)
+                    </p>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Enter furniture item"
+                        value={furnitureInput}
+                        onChange={(e) => setFurnitureInput(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && addFurniture()}
+                      />
+                      <Button type="button" onClick={addFurniture} variant="outline">
+                        Add
+                      </Button>
+                    </div>
+                  </div>
+
+                  {existingFurniture.length > 0 && (
+                    <div className="space-y-2">
+                      <Label>Existing Furniture ({existingFurniture.length})</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {existingFurniture.map((furniture, index) => (
+                          <Badge 
+                            key={index} 
+                            variant="secondary" 
+                            className="cursor-pointer hover:bg-red-100"
+                            onClick={() => removeFurniture(furniture)}
+                          >
+                            {furniture} ×
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Button 
+                  onClick={optimizeLayout} 
+                  className='bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600'
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Layout className="mr-2 h-4 w-4" />
+                  )}
+                  {loading 
+                    ? 'Optimizing Layout...'
+                    : 'Optimize Room Layout'
+                  }
                 </Button>
-              </div>
-            </div>
 
-            {existingFurniture.length > 0 && (
-              <div className="space-y-2">
-                <Label>Existing Furniture ({existingFurniture.length})</Label>
-                <div className="flex flex-wrap gap-2">
-                  {existingFurniture.map((furniture, index) => (
-                    <Badge 
-                      key={index} 
-                      variant="secondary" 
-                      className="cursor-pointer hover:bg-red-100"
-                      onClick={() => removeFurniture(furniture)}
-                    >
-                      {furniture} ×
-                    </Badge>
-                  ))}
-                </div>
+                {error && (
+                  <Alert className="border-red-200 bg-red-50">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="suggestions">
+            {/* Text Results */}
+            {optimization && (
+              <div className="space-y-6">
+                {optimization.error ? (
+                  <Alert className="border-red-200 bg-red-50">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{optimization.message}</AlertDescription>
+                  </Alert>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Space Utilization */}
+                    {optimization.space_utilization && (
+                      <Card className="border-0 shadow-lg bg-gradient-to-r from-indigo-500/10 to-cyan-500/10">
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Grid3X3 className="h-6 w-6 text-indigo-600" />
+                            Space Utilization Analysis
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="grid gap-4 md:grid-cols-4">
+                            <div className="text-center p-4 bg-white rounded-lg">
+                              <Ruler className="h-8 w-8 text-indigo-500 mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground mb-1">Total Area</p>
+                              <p className="text-2xl font-bold text-indigo-600">
+                                {optimization.space_utilization.total_area}m²
+                              </p>
+                            </div>
+                            <div className="text-center p-4 bg-white rounded-lg">
+                              <Home className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground mb-1">Usable Area</p>
+                              <p className="text-2xl font-bold text-green-600">
+                                {optimization.space_utilization.usable_area}%
+                              </p>
+                            </div>
+                            <div className="text-center p-4 bg-white rounded-lg">
+                              <Navigation className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground mb-1">Circulation</p>
+                              <p className="text-2xl font-bold text-blue-600">
+                                {optimization.space_utilization.circulation_area}%
+                              </p>
+                            </div>
+                            <div className="text-center p-4 bg-white rounded-lg border-2 border-indigo-200">
+                              <Target className="h-8 w-8 text-indigo-500 mx-auto mb-2" />
+                              <p className="text-sm text-muted-foreground mb-1">Efficiency Score</p>
+                              <p className="text-3xl font-bold text-indigo-700">
+                                {optimization.space_utilization.efficiency_score}/10
+                              </p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-6">
+                        {/* Furniture Placement */}
+                        {optimization.optimal_layout?.furniture_placement && (
+                          <Card className="border-0 shadow-lg">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Move3D className="h-5 w-5 text-purple-500" />
+                                Optimal Furniture Placement
+                              </CardTitle>
+                              <CardDescription>
+                                AI-recommended positions for maximum functionality and flow
+                              </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="grid gap-4">
+                                {optimization.optimal_layout.furniture_placement.map((furniture, index) => (
+                                  <FurnitureCard key={index} furniture={furniture} />
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Traffic Paths */}
+                        {optimization.optimal_layout?.traffic_paths && (
+                          <Card className="border-0 shadow-lg">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Navigation className="h-5 w-5 text-green-500" />
+                                Traffic Flow Paths
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-3">
+                                {optimization.optimal_layout.traffic_paths.map((path, index) => (
+                                  <TrafficPathCard key={index} path={path} />
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Focal Points */}
+                        {optimization.optimal_layout?.focal_points && (
+                          <Card className="border-0 shadow-lg">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Eye className="h-5 w-5 text-orange-500" />
+                                Visual Focal Points
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="grid gap-4">
+                                {optimization.optimal_layout.focal_points.map((focal, index) => (
+                                  <div key={index} className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg">
+                                    <Target className="h-8 w-8 text-orange-500" />
+                                    <div className="flex-1">
+                                      <h4 className="font-medium">{focal.type}</h4>
+                                      <p className="text-sm text-muted-foreground">{focal.description}</p>
+                                      <p className="text-xs text-orange-600">
+                                        Position: ({focal.position.x}, {focal.position.y})
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Functional Zones */}
+                        {optimization.functional_zones && (
+                          <Card className="border-0 shadow-lg">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Grid3X3 className="h-5 w-5 text-blue-500" />
+                                Functional Zones
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="grid gap-4">
+                                {optimization.functional_zones.map((zone, index) => (
+                                  <ZoneCard key={index} zone={zone} />
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+
+                      <div className="space-y-6">
+                        {/* Design Principles */}
+                        {optimization.design_principles && (
+                          <Card className="border-0 shadow-lg bg-purple-50">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Compass className="h-5 w-5 text-purple-600" />
+                                Design Principles Applied
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="grid gap-4">
+                                {Object.entries(optimization.design_principles).map(([principle, description]: [string, any]) => (
+                                  <div key={principle} className="p-4 bg-white rounded-lg border border-purple-200">
+                                    <h4 className="font-medium capitalize mb-2">{principle}</h4>
+                                    <p className="text-sm text-muted-foreground">{description}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Lighting Plan */}
+                        {optimization.lighting_plan && (
+                          <Card className="border-0 shadow-lg bg-yellow-50">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Lightbulb className="h-5 w-5 text-yellow-600" />
+                                Lighting Plan
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                {Object.entries(optimization.lighting_plan).map(([lightingType, lights]: [string, any]) => (
+                                  <div key={lightingType} className="space-y-3">
+                                    <h4 className="font-medium capitalize">{lightingType.replace('_', ' ')}</h4>
+                                    <div className="grid gap-3">
+                                      {Array.isArray(lights) && lights.map((light: any, index: number) => (
+                                        <div key={index} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-yellow-200">
+                                          <Lightbulb className="h-5 w-5 text-yellow-500" />
+                                          <div>
+                                            <p className="font-medium text-sm">{light.type}</p>
+                                            <p className="text-xs text-muted-foreground">{light.position}</p>
+                                            <p className="text-xs text-yellow-700">{light.purpose}</p>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Storage Solutions */}
+                        {optimization.storage_solutions && (
+                          <Card className="border-0 shadow-lg bg-green-50">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Home className="h-5 w-5 text-green-600" />
+                                Storage Solutions
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="grid gap-4">
+                                {optimization.storage_solutions.map((solution: any, index: number) => (
+                                  <div key={index} className="p-4 bg-white rounded-lg border border-green-200">
+                                    <h4 className="font-medium mb-2">{solution.type}</h4>
+                                    <div className="space-y-1 text-sm">
+                                      <p><strong>Location:</strong> {solution.location}</p>
+                                      <p><strong>Capacity:</strong> {solution.capacity}</p>
+                                      <p><strong>Accessibility:</strong> {solution.accessibility}</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Flexibility Features */}
+                        {optimization.flexibility_features && (
+                          <Card className="border-0 shadow-lg bg-blue-50">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Zap className="h-5 w-5 text-blue-600" />
+                                Flexibility Features
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <ul className="space-y-3">
+                                {optimization.flexibility_features.map((feature: string, index: number) => (
+                                  <li key={index} className="flex items-start gap-3">
+                                    <CheckCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                                    <p className="text-sm">{feature}</p>
+                                  </li>
+                                ))}
+                              </ul>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Indian Context */}
+                        {optimization.indian_context && (
+                          <Card className="border-0 shadow-lg bg-orange-50">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Info className="h-5 w-5 text-orange-600" />
+                                Indian Context Considerations
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <div className="space-y-4">
+                                {Object.entries(optimization.indian_context).map(([aspect, description]: [string, any]) => (
+                                  <div key={aspect} className="p-4 bg-white rounded-lg border border-orange-200">
+                                    <h4 className="font-medium capitalize mb-2">{aspect.replace('_', ' ')}</h4>
+                                    <p className="text-sm text-muted-foreground">{description}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
+                        {/* Improvement Suggestions */}
+                        {optimization.improvement_suggestions && (
+                          <Card className="border-0 shadow-lg bg-indigo-50">
+                            <CardHeader>
+                              <CardTitle className="flex items-center gap-2">
+                                <Lightbulb className="h-5 w-5 text-indigo-600" />
+                                Additional Improvement Suggestions
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <ul className="space-y-3">
+                                {optimization.improvement_suggestions.map((suggestion: string, index: number) => (
+                                  <li key={index} className="flex items-start gap-3">
+                                    <div className="w-6 h-6 bg-indigo-500 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">
+                                      {index + 1}
+                                    </div>
+                                    <p className="text-sm">{suggestion}</p>
+                                  </li>
+                                ))}
+                              </ul>
+                            </CardContent>
+                          </Card>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Raw Response Fallback */}
+                    {optimization.raw_response && !optimization.optimal_layout && (
+                      <Card className="border-0 shadow-lg">
+                        <CardHeader>
+                          <CardTitle>AI Layout Optimization</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="prose max-w-none">
+                            <pre className="whitespace-pre-wrap text-sm bg-gray-50 p-4 rounded-lg">
+                              {optimization.raw_response}
+                            </pre>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                )}
               </div>
             )}
-          </div>
-
-          {/* Additional fields for image mode */}
-          {outputMode === 'image' && (
-            <div className="space-y-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="h-5 w-5 text-purple-500" />
-                <h4 className="font-medium text-purple-700">Image Generation Settings</h4>
-              </div>
-              
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="design-style">Design Style</Label>
-                  <Select value={designStyle} onValueChange={setDesignStyle}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select design style" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="modern">Modern</SelectItem>
-                      <SelectItem value="traditional">Traditional</SelectItem>
-                      <SelectItem value="scandinavian">Scandinavian</SelectItem>
-                      <SelectItem value="industrial">Industrial</SelectItem>
-                      <SelectItem value="luxury">Luxury</SelectItem>
-                      <SelectItem value="minimalist">Minimalist</SelectItem>
-                      <SelectItem value="bohemian">Bohemian</SelectItem>
-                      <SelectItem value="rustic">Rustic</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="special-requirements">Special Requirements</Label>
-                  <Input
-                    id="special-requirements"
-                    placeholder="e.g., wheelchair accessible, pet-friendly..."
-                    value={specialRequirements}
-                    onChange={(e) => setSpecialRequirements(e.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          <Button 
-            onClick={optimizeLayout} 
-            className={`w-full ${outputMode === 'image' 
-              ? 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600' 
-              : 'bg-gradient-to-r from-indigo-500 to-cyan-500 hover:from-indigo-600 hover:to-cyan-600'
-            }`}
-            disabled={loading}
-          >
-            {loading ? (
-              <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-            ) : outputMode === 'image' ? (
-              <ImageIcon className="mr-2 h-4 w-4" />
-            ) : (
-              <Layout className="mr-2 h-4 w-4" />
-            )}
-            {loading 
-              ? (outputMode === 'image' ? 'Generating Floor Plan...' : 'Optimizing Layout...') 
-              : (outputMode === 'image' ? 'Generate Floor Plan Image' : 'Optimize Room Layout')
-            }
-          </Button>
-
-          {error && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+          </TabsContent>
+        </Tabs>
+        <div> {/* Removed conditional class */}
+          <InteractiveLayoutDesigner />
+        </div>
+      </div>
 
       {/* Image Results */}
       {imageResponse && (

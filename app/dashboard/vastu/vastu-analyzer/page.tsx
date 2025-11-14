@@ -224,7 +224,7 @@ export default function EnhancedVastuPage() {
               <Shield className="h-6 w-6" />
               Vastu Compliance Score
             </CardTitle>
-            <CardDescription>Overall assessment of your property's Vastu compliance</CardDescription>
+            <CardDescription>Overall assessment of your property&apos;s Vastu compliance</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col items-center justify-center py-6">
@@ -517,7 +517,7 @@ export default function EnhancedVastuPage() {
                   <Shield className="h-6 w-6" />
                   Vastu Compliance Checklist
                 </CardTitle>
-                <CardDescription>Review and improve your property's Vastu compliance</CardDescription>
+                <CardDescription>Review and improve your property&apos;s Vastu compliance</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
@@ -569,9 +569,9 @@ export default function EnhancedVastuPage() {
                   <div>
                     <h3 className="text-xl font-semibold mb-3 text-amber-700">Summary</h3>
                     <p className="text-gray-700">
-                      Your property has a Vastu compliance score of {calculateComplianceScore()}%. 
+                      Your property has a Vastu compliance score of {calculateComplianceScore()}&#37;. 
                       {calculateComplianceScore() >= 80 
-                        ? " Excellent Vastu compliance! Your property is well-aligned with Vastu principles, promoting harmony and positive energy flow." 
+                        ? " Excellent Vastu compliance! Your' property is well-aligned with Vastu principles, promoting harmony and positive energy flow." 
                         : calculateComplianceScore() >= 60 
                         ? " Good Vastu compliance with some areas for improvement. Following our recommendations will enhance the positive energy in your space." 
                         : " Vastu compliance could be improved. Implementing our recommendations will help balance the energy flow in your property."}
