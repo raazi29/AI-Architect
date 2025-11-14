@@ -11,6 +11,11 @@ const nextConfig = {
   swcMinify: true,
   compress: true,
   poweredByHeader: false,
+  // Allow access from network devices
+  devIndicators: {
+    buildActivity: true,
+    buildActivityPosition: 'bottom-right',
+  },
   // Image optimization
   images: {
     dangerouslyAllowSVG: true,
@@ -64,7 +69,7 @@ const nextConfig = {
       },
     ],
   },
-  // Headers for security and CORS
+  // Headers for security, CORS, and WebXR
   async headers() {
     return [
       {
@@ -72,8 +77,8 @@ const nextConfig = {
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: process.env.NODE_ENV === 'production' 
-              ? 'https://your-domain.vercel.app' 
+            value: process.env.NODE_ENV === 'production'
+              ? (process.env.NEXT_PUBLIC_APP_URL || '*')
               : 'http://localhost:3000',
           },
           {
@@ -86,6 +91,34 @@ const nextConfig = {
           },
         ],
       },
+      {
+        // Enable CORS for 3D model files
+        source: '/models/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+          {
+            key: 'Access-Control-Allow-Methods',
+            value: 'GET',
+          },
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'cross-origin',
+          },
+        ],
+      },
+      {
+        // Security headers for WebXR
+        source: '/:path*',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=*, microphone=*, xr-spatial-tracking=*',
+          },
+        ],
+      },
     ]
   },
   // Experimental features for performance
@@ -93,6 +126,34 @@ const nextConfig = {
     optimizeCss: true,
     scrollRestoration: true,
   },
+  // Webpack configuration for Three.js and WebXR
+  webpack: (config, { isServer }) => {
+    // Handle model-viewer web component
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@google/model-viewer': '@google/model-viewer/dist/model-viewer.min.js',
+    };
+
+    // Ignore node-specific modules in client bundle
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+      };
+    }
+
+    // Handle Three.js examples imports
+    config.module.rules.push({
+      test: /\.glsl$/,
+      use: 'raw-loader',
+    });
+
+    return config;
+  },
+  // Transpile packages that need it
+  transpilePackages: ['three', '@google/model-viewer'],
 }
 
 export default nextConfig

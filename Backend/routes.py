@@ -13,17 +13,27 @@ import requests
 from groq import Groq
 from hybrid_service import HybridImageService
 from database import init_db
-from vision_router import vision_router
+from app.routers.vision_router import vision_router
 from floor_plan_service import generate_floor_plan
 from interior_ai_service import interior_ai_service
 from indian_ecommerce_service import IndianEcommerceService
 from interior_design_ecommerce_service import InteriorDesignEcommerceService
 from cache_service import CacheService
-from shops_router import router as shops_router
+from app.routers.shops_router import router as shops_router
 from vastu_service import vastu_service, VastuRequest
-from groq_vastu_service import groq_vastu_service, VastuChatRequest, VastuAnalysisRequest
+from groq_vastu_service import (
+    groq_vastu_service,
+    VastuChatRequest,
+    VastuAnalysisRequest,
+)
 from astrology_api_service import prokerala_service
-from ai_design_service import ai_design_service, MaterialRequest, BudgetRequest, ColorPaletteRequest, LayoutRequest
+from ai_design_service import (
+    ai_design_service,
+    MaterialRequest,
+    BudgetRequest,
+    ColorPaletteRequest,
+    LayoutRequest,
+)
 from realtime_service import realtime_service
 from dotenv import load_dotenv
 import os
@@ -36,9 +46,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Debug: Check if environment variables are loaded
-print(f"HUGGING_FACE_API_TOKEN loaded: {'Yes' if os.environ.get('HUGGING_FACE_API_TOKEN') else 'No'}")
-if os.environ.get('HUGGING_FACE_API_TOKEN'):
-    token = os.environ.get('HUGGING_FACE_API_TOKEN')
+print(
+    f"HUGGING_FACE_API_TOKEN loaded: {'Yes' if os.environ.get('HUGGING_FACE_API_TOKEN') else 'No'}"
+)
+if os.environ.get("HUGGING_FACE_API_TOKEN"):
+    token = os.environ.get("HUGGING_FACE_API_TOKEN")
     print(f"Token length: {len(token)} characters")
     print(f"Token starts with: {token[:10]}...")
 
@@ -47,6 +59,7 @@ hybrid_service = HybridImageService()
 indian_ecommerce_service = IndianEcommerceService()
 interior_design_ecommerce_service = InteriorDesignEcommerceService()
 cache_service = CacheService()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -64,6 +77,7 @@ async def lifespan(app: FastAPI):
         print("Services closed successfully")
     except Exception as e:
         print(f"Error closing services: {e}")
+
 
 # Initialize Groq client for vision analysis
 groq_client = None
@@ -92,17 +106,25 @@ app.add_middleware(
 # Geoapify Places proxy
 GEOAPIFY_API_KEY = os.getenv("GEOAPIFY_API_KEY")
 
+
 @app.get("/places")
 async def get_places(
     lon: float = Query(..., description="Longitude"),
     lat: float = Query(..., description="Latitude"),
-    radius: int = Query(2000, ge=50, le=20000, description="Radius in meters (50-20000)"),
-    categories: str = Query("commercial.furniture", description="Geoapify category string"),
-    limit: int = Query(20, ge=1, le=100, description="Max items to return")
+    radius: int = Query(
+        2000, ge=50, le=20000, description="Radius in meters (50-20000)"
+    ),
+    categories: str = Query(
+        "commercial.furniture", description="Geoapify category string"
+    ),
+    limit: int = Query(20, ge=1, le=100, description="Max items to return"),
 ):
     try:
         if not GEOAPIFY_API_KEY:
-            raise HTTPException(status_code=500, detail="GEOAPIFY_API_KEY is not configured on the server")
+            raise HTTPException(
+                status_code=500,
+                detail="GEOAPIFY_API_KEY is not configured on the server",
+            )
 
         url = "https://api.geoapify.com/v2/places"
         params = {
@@ -115,9 +137,14 @@ async def get_places(
 
         resp = requests.get(url, params=params, timeout=10)
         if resp.status_code == 403:
-            raise HTTPException(status_code=403, detail="Geoapify access forbidden - check API key or quotas")
+            raise HTTPException(
+                status_code=403,
+                detail="Geoapify access forbidden - check API key or quotas",
+            )
         if resp.status_code == 429:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded for Geoapify free plan")
+            raise HTTPException(
+                status_code=429, detail="Rate limit exceeded for Geoapify free plan"
+            )
         resp.raise_for_status()
 
         data = resp.json()
@@ -131,7 +158,7 @@ async def get_places(
                 "address": f.get("properties", {}).get("formatted"),
                 "lat": f.get("properties", {}).get("lat"),
                 "lon": f.get("properties", {}).get("lon"),
-                "distance": f.get("properties", {}).get("distance")
+                "distance": f.get("properties", {}).get("distance"),
             }
             for f in features
         ]
@@ -142,9 +169,12 @@ async def get_places(
     except requests.Timeout:
         raise HTTPException(status_code=504, detail="Geoapify request timed out")
     except requests.RequestException as e:
-        raise HTTPException(status_code=502, detail=f"Geoapify request failed: {str(e)}")
+        raise HTTPException(
+            status_code=502, detail=f"Geoapify request failed: {str(e)}"
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 
 @app.get("/health")
 async def health_check():
@@ -157,9 +187,10 @@ async def health_check():
             "ai_design": "operational",
             "image_generation": "operational",
             "ecommerce": "operational",
-            "database": "operational"
-        }
+            "database": "operational",
+        },
     }
+
 
 @app.post("/floor-plan")
 async def create_floor_plan(request: Request):
@@ -176,19 +207,148 @@ async def create_floor_plan(request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
-@app.get("/feed")
-async def get_feed(
+
+@app.get("/feed/mobile")
+async def get_mobile_feed(
     query: str = Query("", description="Search query for images"),
-    style: str | None = Query(None, description="Optional style to bias results (e.g., Modern, Minimalist)"),
+    style: str | None = Query(
+        None, description="Optional style to bias results (e.g., Modern, Minimalist)"
+    ),
     room_type: str | None = Query(None, description="Room type filter"),
     layout_type: str | None = Query(None, description="Layout type filter"),
     lighting: str | None = Query(None, description="Lighting filter"),
     palette_mode: str | None = Query(None, description="Palette mode filter"),
     colors: str | None = Query(None, description="Colors filter (comma-separated)"),
-    materials: str | None = Query(None, description="Materials filter (comma-separated)"),
+    materials: str | None = Query(
+        None, description="Materials filter (comma-separated)"
+    ),
+    page: int = Query(1, ge=1, description="Page number"),
+    per_page: int = Query(
+        30, ge=1, le=50, description="Number of items per page (limited for mobile)"
+    ),
+):
+    """Mobile-optimized feed endpoint with faster loading and smaller images"""
+    try:
+        # Build combined query with all filters (same as regular feed)
+        filter_terms = []
+        if style and style.lower() != "all":
+            filter_terms.append(style)
+        if query:
+            filter_terms.append(query)
+        if room_type:
+            filter_terms.append(room_type)
+        if layout_type:
+            filter_terms.append(layout_type)
+        if lighting:
+            filter_terms.append(lighting)
+        if palette_mode:
+            filter_terms.append(palette_mode)
+        if colors:
+            filter_terms.extend(colors.split(","))
+        if materials:
+            filter_terms.extend(materials.split(","))
+
+        # Add default design terms if no specific query or minimal query
+        if not filter_terms or (
+            len(filter_terms) == 1
+            and filter_terms[0].lower()
+            in ["", " ", "design", "architecture", "interior"]
+        ):
+            filter_terms.extend(
+                [
+                    "architecture",
+                    "interior design",
+                    "modern interior",
+                    "minimalist design",
+                    "scandinavian interior",
+                    "industrial design",
+                    "luxury home",
+                    "contemporary architecture",
+                    "residential design",
+                    "commercial architecture",
+                    "kitchen design",
+                    "bathroom design",
+                    "living room",
+                    "bedroom design",
+                    "office interior",
+                    "restaurant design",
+                ]
+            )
+        elif not any(
+            term.lower()
+            in [
+                "design",
+                "architecture",
+                "interior",
+                "home",
+                "room",
+                "kitchen",
+                "bathroom",
+                "living",
+                "bedroom",
+                "office",
+            ]
+            for term in filter_terms
+        ):
+            # If the query doesn't contain design-related terms, add some
+            filter_terms.extend(["interior design", "architecture"])
+
+        combined = " ".join(filter_terms)
+        print(
+            f"Mobile feed endpoint called with query: '{query}', style: {style}, combined: '{combined}'"
+        )
+
+        # Use mobile-optimized search for faster loading
+        result = await hybrid_service.search_photos_mobile_optimized(
+            combined, page, per_page
+        )
+
+        # Validate that the result is a list to prevent "Invalid response format" errors
+        if not isinstance(result, list):
+            logger.error(
+                f"Mobile search returned non-list result: {type(result)} - {result}"
+            )
+            result = []  # Fallback to empty list if result is not a list
+
+        print(f"Mobile feed endpoint returning {len(result)} results")
+
+        # Return a response that includes pagination info for infinite scrolling
+        # Always indicate there's more to prevent "No more designs to load" - this ensures infinite scroll continues
+        has_more = True
+
+        return {
+            "results": result,
+            "page": page,
+            "per_page": per_page,
+            "has_more": has_more,
+            "query": combined,
+            "mobile_optimized": True,
+        }
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.get("/feed")
+async def get_feed(
+    query: str = Query("", description="Search query for images"),
+    style: str | None = Query(
+        None, description="Optional style to bias results (e.g., Modern, Minimalist)"
+    ),
+    room_type: str | None = Query(None, description="Room type filter"),
+    layout_type: str | None = Query(None, description="Layout type filter"),
+    lighting: str | None = Query(None, description="Lighting filter"),
+    palette_mode: str | None = Query(None, description="Palette mode filter"),
+    colors: str | None = Query(None, description="Colors filter (comma-separated)"),
+    materials: str | None = Query(
+        None, description="Materials filter (comma-separated)"
+    ),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(60, ge=1, le=100, description="Number of items per page"),
-    use_aggregated: bool = Query(True, description="Whether to use aggregated results from multiple providers"),
+    use_aggregated: bool = Query(
+        True, description="Whether to use aggregated results from multiple providers"
+    ),
 ):
     try:
         # Build combined query with all filters
@@ -211,52 +371,90 @@ async def get_feed(
             filter_terms.extend(materials.split(","))
 
         # Add default design terms if no specific query or minimal query
-        if not filter_terms or (len(filter_terms) == 1 and filter_terms[0].lower() in ["", " ", "design", "architecture", "interior"]):
-            filter_terms.extend([
-                "architecture", "interior design", "modern interior", "minimalist design",
-                "scandinavian interior", "industrial design", "luxury home", "contemporary architecture",
-                "residential design", "commercial architecture", "kitchen design", "bathroom design",
-                "living room", "bedroom design", "office interior", "restaurant design"
-            ])
-        elif not any(term.lower() in ["design", "architecture", "interior", "home", "room", "kitchen", "bathroom", "living", "bedroom", "office"] for term in filter_terms):
+        if not filter_terms or (
+            len(filter_terms) == 1
+            and filter_terms[0].lower()
+            in ["", " ", "design", "architecture", "interior"]
+        ):
+            filter_terms.extend(
+                [
+                    "architecture",
+                    "interior design",
+                    "modern interior",
+                    "minimalist design",
+                    "scandinavian interior",
+                    "industrial design",
+                    "luxury home",
+                    "contemporary architecture",
+                    "residential design",
+                    "commercial architecture",
+                    "kitchen design",
+                    "bathroom design",
+                    "living room",
+                    "bedroom design",
+                    "office interior",
+                    "restaurant design",
+                ]
+            )
+        elif not any(
+            term.lower()
+            in [
+                "design",
+                "architecture",
+                "interior",
+                "home",
+                "room",
+                "kitchen",
+                "bathroom",
+                "living",
+                "bedroom",
+                "office",
+            ]
+            for term in filter_terms
+        ):
             # If the query doesn't contain design-related terms, add some
             filter_terms.extend(["interior design", "architecture"])
 
         combined = " ".join(filter_terms)
-        print(f"Feed endpoint called with query: '{query}', style: {style}, room_type: {room_type}, layout_type: {layout_type}, combined: '{combined}'")
-        
+        print(
+            f"Feed endpoint called with query: '{query}', style: {style}, room_type: {room_type}, layout_type: {layout_type}, combined: '{combined}'"
+        )
+
         if use_aggregated:
             # Use the new aggregated search for unlimited designs
-            result = await hybrid_service.search_photos_aggregated(combined, page, per_page, max_pages=2)
+            result = await hybrid_service.search_photos_aggregated(
+                combined, page, per_page, max_pages=2
+            )
         else:
             # Use the regular search if aggregated is disabled
             result = await hybrid_service.search_photos(combined, page, per_page)
-        
+
         # Validate that the result is a list to prevent "Invalid response format" errors
         if not isinstance(result, list):
             logger.error(f"Search returned non-list result: {type(result)} - {result}")
             result = []  # Fallback to empty list if result is not a list
-            
+
         print(f"Feed endpoint returning {len(result)} results")
-        
+
         # Start background task to cache next few pages
         asyncio.create_task(hybrid_service.cache_next_pages(combined, page, per_page))
-        
+
         # Return a response that includes pagination info for infinite scrolling
         # Always indicate there's more to prevent "No more designs to load" - this ensures infinite scroll continues
         has_more = True
-        
+
         return {
             "results": result,
             "page": page,
             "per_page": per_page,
             "has_more": has_more,
-            "query": combined
+            "query": combined,
         }
     except HTTPException:
         raise  # Re-raise HTTP exceptions as-is
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 
 @app.post("/upload")
 async def upload_design(
@@ -272,22 +470,34 @@ async def upload_design(
     with open(file_location, "wb+") as file_object:
         shutil.copyfileobj(file.file, file_object)
 
-    return {"message": "File uploaded successfully", "filename": file.filename, "title": title, "tags": tags, "author": author}
+    return {
+        "message": "File uploaded successfully",
+        "filename": file.filename,
+        "title": title,
+        "tags": tags,
+        "author": author,
+    }
 
 
 @app.get("/design-feed")
 async def get_design_feed(
     query: str = Query("", description="Search query for images"),
-    style: str | None = Query(None, description="Optional style to bias results (e.g., Modern, Minimalist)"),
+    style: str | None = Query(
+        None, description="Optional style to bias results (e.g., Modern, Minimalist)"
+    ),
     room_type: str | None = Query(None, description="Room type filter"),
     layout_type: str | None = Query(None, description="Layout type filter"),
     lighting: str | None = Query(None, description="Lighting filter"),
     palette_mode: str | None = Query(None, description="Palette mode filter"),
     colors: str | None = Query(None, description="Colors filter (comma-separated)"),
-    materials: str | None = Query(None, description="Materials filter (comma-separated)"),
+    materials: str | None = Query(
+        None, description="Materials filter (comma-separated)"
+    ),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(100, ge=1, le=100, description="Number of items per page"),
-    use_aggregated: bool = Query(True, description="Whether to use aggregated results from multiple providers"),
+    use_aggregated: bool = Query(
+        True, description="Whether to use aggregated results from multiple providers"
+    ),
 ):
     try:
         # Build combined query with all filters
@@ -310,46 +520,81 @@ async def get_design_feed(
             filter_terms.extend(materials.split(","))
 
         # Add default design terms if no specific query or minimal query
-        if not filter_terms or (len(filter_terms) == 1 and filter_terms[0].lower() in ["", " ", "design", "architecture", "interior"]):
-            filter_terms.extend([
-                "architecture", "interior design", "modern interior", "minimalist design",
-                "scandinavian interior", "industrial design", "luxury home", "contemporary architecture",
-                "residential design", "commercial architecture", "kitchen design", "bathroom design",
-                "living room", "bedroom design", "office interior", "restaurant design"
-            ])
-        elif not any(term.lower() in ["design", "architecture", "interior", "home", "room", "kitchen", "bathroom", "living", "bedroom", "office"] for term in filter_terms):
+        if not filter_terms or (
+            len(filter_terms) == 1
+            and filter_terms[0].lower()
+            in ["", " ", "design", "architecture", "interior"]
+        ):
+            filter_terms.extend(
+                [
+                    "architecture",
+                    "interior design",
+                    "modern interior",
+                    "minimalist design",
+                    "scandinavian interior",
+                    "industrial design",
+                    "luxury home",
+                    "contemporary architecture",
+                    "residential design",
+                    "commercial architecture",
+                    "kitchen design",
+                    "bathroom design",
+                    "living room",
+                    "bedroom design",
+                    "office interior",
+                    "restaurant design",
+                ]
+            )
+        elif not any(
+            term.lower()
+            in [
+                "design",
+                "architecture",
+                "interior",
+                "home",
+                "room",
+                "kitchen",
+                "bathroom",
+                "living",
+                "bedroom",
+                "office",
+            ]
+            for term in filter_terms
+        ):
             # If the query doesn't contain design-related terms, add some
             filter_terms.extend(["interior design", "architecture"])
 
         combined = " ".join(filter_terms)
-        
+
         if use_aggregated:
             # Use the new aggregated search for unlimited designs
-            result = await hybrid_service.search_photos_aggregated(combined, page, per_page, max_pages=2)
+            result = await hybrid_service.search_photos_aggregated(
+                combined, page, per_page, max_pages=2
+            )
         else:
             # Use the regular search if aggregated is disabled
             result = await hybrid_service.search_photos(combined, page, per_page)
-        
+
         # Validate that the result is a list to prevent "Invalid response format" errors
         if not isinstance(result, list):
             logger.error(f"Search returned non-list result: {type(result)} - {result}")
             result = []  # Fallback to empty list if result is not a list
-        
+
         print(f"Feed endpoint returning {len(result)} results")
-        
+
         # Start background task to cache next few pages
         asyncio.create_task(hybrid_service.cache_next_pages(combined, page, per_page))
-        
+
         # Return a response that includes pagination info for infinite scrolling
         # Always indicate there's more to prevent "No more designs to load" - this ensures infinite scroll continues
         has_more = True
-        
+
         return {
             "results": result,
             "page": page,
             "per_page": per_page,
             "has_more": has_more,
-            "query": combined
+            "query": combined,
         }
     except HTTPException:
         raise  # Re-raise HTTP exceptions as-is
@@ -365,29 +610,29 @@ async def generate_interior_design(request: Request):
         prompt = data.get("prompt")
         style = data.get("style", "auto")
         room_type = data.get("room_type", "auto")
-        
+
         if not prompt:
             raise HTTPException(status_code=400, detail="Prompt is required")
-        
+
         if not prompt.strip():
             raise HTTPException(status_code=400, detail="Prompt cannot be empty")
-        
+
         # Optional parameters
         width = data.get("width", 1024)
         height = data.get("height", 1024)
         steps = data.get("steps", 50)
         guidance_scale = data.get("guidance_scale", 7.5)
-        
+
         # Log the request for debugging
         logger.info(f"🎨 Interior generation request:")
         logger.info(f"   Prompt: {prompt}")
         logger.info(f"   Style: {style}")
         logger.info(f"   Room Type: {room_type}")
-        
+
         # Try the new multi-provider service first
         try:
             from multi_ai_service import multi_ai_service
-            
+
             image_bytes, used_placeholder = multi_ai_service.generate_interior_image(
                 prompt=prompt,
                 style=style,
@@ -395,20 +640,12 @@ async def generate_interior_design(request: Request):
                 width=width,
                 height=height,
                 steps=steps,
-                guidance_scale=guidance_scale
+                guidance_scale=guidance_scale,
             )
-            
-            if image_bytes and not used_placeholder:
-                logger.info("✅ Successfully generated image with multi-provider service")
-                return Response(content=image_bytes, media_type="image/png")
-            elif used_placeholder:
-                logger.warning("⚠️ Multi-provider service returned placeholder image - treating as failure")
-            else:
-                logger.warning("⚠️ Multi-provider service failed, trying fallback...")
-                
+
         except Exception as multi_error:
             logger.error(f"Multi-provider service error: {str(multi_error)}")
-        
+
         # Fallback to original service
         logger.info("🔄 Falling back to original interior AI service...")
         image_bytes = interior_ai_service.generate_interior_design(
@@ -418,17 +655,17 @@ async def generate_interior_design(request: Request):
             width=width,
             height=height,
             steps=steps,
-            guidance_scale=guidance_scale
+            guidance_scale=guidance_scale,
         )
-        
+
         if not image_bytes:
             raise HTTPException(
-                status_code=503, 
-                detail="AI image generation services are currently overloaded. Please try again in a few minutes. This often happens due to high demand on free AI services."
+                status_code=503,
+                detail="AI image generation services are currently overloaded. Please try again in a few minutes. This often happens due to high demand on free AI services.",
             )
-        
+
         return Response(content=image_bytes, media_type="image/png")
-        
+
     except HTTPException:
         raise  # Re-raise HTTP exceptions as-is
     except ValueError as e:
@@ -436,6 +673,15 @@ async def generate_interior_design(request: Request):
     except Exception as e:
         logger.error(f"Interior generation error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
+
+@app.get("/analytics-updates")
+async def get_analytics_updates(request: Request):
+    """Stream real-time analytics updates"""
+    return StreamingResponse(
+        realtime_service.stream_analytics_updates(request),
+        media_type="text/event-stream",
+    )
 
 
 @app.post("/generate-architecture")
@@ -446,16 +692,16 @@ async def generate_architecture_design(request: Request):
         prompt = data.get("prompt")
         building_type = data.get("building_type", "residential")
         architectural_style = data.get("architectural_style", "contemporary")
-        
+
         if not prompt:
             raise HTTPException(status_code=400, detail="Prompt is required")
-        
+
         # Optional parameters
         width = data.get("width", 1024)
         height = data.get("height", 1024)
         steps = data.get("steps", 50)
         guidance_scale = data.get("guidance_scale", 7.5)
-        
+
         image_bytes = interior_ai_service.generate_architecture_design(
             prompt=prompt,
             building_type=building_type,
@@ -463,14 +709,16 @@ async def generate_architecture_design(request: Request):
             width=width,
             height=height,
             steps=steps,
-            guidance_scale=guidance_scale
+            guidance_scale=guidance_scale,
         )
-        
+
         if not image_bytes:
-            raise HTTPException(status_code=500, detail="Failed to generate architecture design")
-        
+            raise HTTPException(
+                status_code=500, detail="Failed to generate architecture design"
+            )
+
         return Response(content=image_bytes, media_type="image/png")
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -484,19 +732,22 @@ async def analyze_room_with_text(request: Request):
         data = await request.json()
         room_type = data.get("room_type")
         direction = data.get("direction")
-        
+
         if not room_type or not direction:
-            raise HTTPException(status_code=400, detail="Room type and direction are required")
-        
+            raise HTTPException(
+                status_code=400, detail="Room type and direction are required"
+            )
+
         result = vastu_service.analyze_room_with_text(room_type, direction)
         return {
             "analysis": result["analysis"].dict(),
-            "text_summary": result["text_summary"]
+            "text_summary": result["text_summary"],
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+
 
 @app.get("/interior-styles")
 async def get_interior_styles():
@@ -516,7 +767,7 @@ async def get_ai_room_types():
             {"value": "dining_room", "label": "Dining Room"},
             {"value": "office", "label": "Office"},
             {"value": "hallway", "label": "Hallway"},
-            {"value": "outdoor", "label": "Outdoor"}
+            {"value": "outdoor", "label": "Outdoor"},
         ]
     }
 
@@ -905,6 +1156,7 @@ async def get_ai_room_types():
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=f"Failed to fetch product comparisons: {str(e)}")
 
+
 @app.post("/ai/texture-generation")
 async def generate_texture(request: Request):
     """Generate a texture image from a text description."""
@@ -983,18 +1235,16 @@ async def analyze_room_gemini(request: Request):
         data = await request.json()
         room_type = data.get("room_type")
         direction = data.get("direction")
-        
+
         if not room_type or not direction:
-            raise HTTPException(status_code=400, detail="room_type and direction are required")
-        
+            raise HTTPException(
+                status_code=400, detail="room_type and direction are required"
+            )
+
         analysis = vastu_service.analyze_room_with_gemini(room_type, direction)
         return analysis.dict()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to analyze room: {str(e)}")
-
-
-
-
 
 
 @app.get("/vastu/elements")
@@ -1004,7 +1254,10 @@ async def get_vastu_elements():
         elements = vastu_service.get_vastu_elements()
         return {"elements": elements}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get Vastu elements: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get Vastu elements: {str(e)}"
+        )
+
 
 @app.get("/vastu/room-guidelines")
 async def get_vastu_room_guidelines():
@@ -1013,7 +1266,9 @@ async def get_vastu_room_guidelines():
         guidelines = vastu_service.get_room_guidelines()
         return {"guidelines": guidelines}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get room guidelines: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get room guidelines: {str(e)}"
+        )
 
 
 # AI Design Service endpoints
@@ -1024,16 +1279,19 @@ async def get_material_suggestions(request: MaterialRequest):
         suggestions = await ai_design_service.get_material_suggestions(request)
         return suggestions
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get material suggestions: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get material suggestions: {str(e)}"
+        )
 
 
 @app.post("/ai/materials-stream")
 async def stream_material_suggestions(request: MaterialRequest):
     """Stream AI-powered material suggestions in real-time"""
     from fastapi.responses import StreamingResponse
+
     return StreamingResponse(
         ai_design_service.stream_material_suggestions(request),
-        media_type="text/event-stream"
+        media_type="text/event-stream",
     )
 
 
@@ -1042,12 +1300,14 @@ async def get_budget_prediction(request: BudgetRequest):
     """Get AI-powered budget predictions with streaming response"""
     try:
         from fastapi.responses import StreamingResponse
+
         return StreamingResponse(
-            ai_design_service.get_budget_prediction(request),
-            media_type="text/plain"
+            ai_design_service.get_budget_prediction(request), media_type="text/plain"
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get budget prediction: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get budget prediction: {str(e)}"
+        )
 
 
 @app.post("/ai/colors")
@@ -1057,7 +1317,9 @@ async def generate_color_palette(request: ColorPaletteRequest):
         palette = await ai_design_service.generate_color_palette(request)
         return palette
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate color palette: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate color palette: {str(e)}"
+        )
 
 
 @app.post("/ai/layout")
@@ -1067,7 +1329,9 @@ async def optimize_room_layout(request: LayoutRequest):
         layout = await ai_design_service.optimize_room_layout(request)
         return layout
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to optimize room layout: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to optimize room layout: {str(e)}"
+        )
 
 
 @app.get("/ai/room-types")
@@ -1082,7 +1346,7 @@ async def get_ai_room_types():
             {"value": "dining_room", "label": "Dining Room"},
             {"value": "office", "label": "Office"},
             {"value": "hallway", "label": "Hallway"},
-            {"value": "outdoor", "label": "Outdoor"}
+            {"value": "outdoor", "label": "Outdoor"},
         ]
     }
 
@@ -1103,7 +1367,7 @@ async def get_ai_design_styles():
             {"value": "contemporary", "label": "Contemporary"},
             {"value": "mid_century", "label": "Mid-Century Modern"},
             {"value": "farmhouse", "label": "Farmhouse"},
-            {"value": "art_deco", "label": "Art Deco"}
+            {"value": "art_deco", "label": "Art Deco"},
         ]
     }
 
@@ -1121,7 +1385,9 @@ async def generate_layout_image(request: Request):
         return result
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate layout image: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to generate layout image: {str(e)}"
+        )
 
 
 @app.get("/ai/layout-models-status")
@@ -1134,15 +1400,19 @@ async def get_layout_models_status():
         return status
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get model status: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get model status: {str(e)}"
+        )
 
 
 @app.get("/realtime-updates")
-async def get_realtime_updates(request: Request, query: str = Query("design", description="Search query for real-time updates")):
+async def get_realtime_updates(
+    request: Request,
+    query: str = Query("design", description="Search query for real-time updates"),
+):
     """Stream real-time updates for design feed"""
     return StreamingResponse(
-        realtime_service.stream_updates(request, query),
-        media_type="text/event-stream"
+        realtime_service.stream_updates(request, query), media_type="text/event-stream"
     )
 
 
@@ -1178,6 +1448,7 @@ async def get_realtime_updates(request: Request, query: str = Query("design", de
 async def get_vastu_room_types():
     """Get available room types for Vastu analysis"""
     from vastu_service import RoomType
+
     return {
         "room_types": [
             {"value": room.value, "label": room.value.replace("_", " ").title()}
@@ -1190,9 +1461,13 @@ async def get_vastu_room_types():
 async def get_vastu_directions():
     """Get available directions for Vastu analysis"""
     from vastu_service import Direction
+
     return {
         "directions": [
-            {"value": direction.value, "label": direction.value.replace("_", " ").title()}
+            {
+                "value": direction.value,
+                "label": direction.value.replace("_", " ").title(),
+            }
             for direction in Direction
         ]
     }
@@ -1209,14 +1484,18 @@ async def analyze_vastu_room(request: Request):
         direction = data.get("direction")
 
         if not room_type or not direction:
-            raise HTTPException(status_code=400, detail="Room type and direction are required")
+            raise HTTPException(
+                status_code=400, detail="Room type and direction are required"
+            )
 
         # Convert string values to enums
         try:
             room_enum = RoomType(room_type)
             direction_enum = Direction(direction.replace(" ", "-"))
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=f"Invalid room type or direction: {e}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid room type or direction: {e}"
+            )
 
         # Get analysis
         analysis = vastu_service.analyze_room(room_enum.value, direction_enum.value)
@@ -1238,8 +1517,10 @@ async def analyze_vastu_room(request: Request):
                 "properties": analysis.element.properties,
                 "color": analysis.element.color,
                 "benefits": analysis.element.benefits,
-                "tips": analysis.element.tips
-            } if analysis.element else None
+                "tips": analysis.element.tips,
+            }
+            if analysis.element
+            else None,
         }
 
     except Exception as e:
@@ -1257,17 +1538,23 @@ async def analyze_vastu_room_detailed(request: Request):
         direction = data.get("direction")
 
         if not room_type or not direction:
-            raise HTTPException(status_code=400, detail="Room type and direction are required")
+            raise HTTPException(
+                status_code=400, detail="Room type and direction are required"
+            )
 
         # Convert string values to enums
         try:
             room_enum = RoomType(room_type)
             direction_enum = Direction(direction.replace(" ", "-"))
         except ValueError as e:
-            raise HTTPException(status_code=400, detail=f"Invalid room type or direction: {e}")
+            raise HTTPException(
+                status_code=400, detail=f"Invalid room type or direction: {e}"
+            )
 
         # Get detailed analysis
-        detailed_analysis = vastu_service.get_detailed_room_analysis(room_enum.value, direction_enum.value)
+        detailed_analysis = vastu_service.get_detailed_room_analysis(
+            room_enum.value, direction_enum.value
+        )
 
         # Convert to dict for JSON response
         return {
@@ -1276,37 +1563,71 @@ async def analyze_vastu_room_detailed(request: Request):
                 "direction": detailed_analysis.basic_analysis.direction.value,
                 "status": detailed_analysis.basic_analysis.status.value,
                 "score": detailed_analysis.basic_analysis.score,
-                "ideal_directions": [d.value for d in detailed_analysis.basic_analysis.ideal_directions],
-                "avoid_directions": [d.value for d in detailed_analysis.basic_analysis.avoid_directions],
+                "ideal_directions": [
+                    d.value for d in detailed_analysis.basic_analysis.ideal_directions
+                ],
+                "avoid_directions": [
+                    d.value for d in detailed_analysis.basic_analysis.avoid_directions
+                ],
                 "recommendations": detailed_analysis.basic_analysis.recommendations,
                 "benefits": detailed_analysis.basic_analysis.benefits,
                 "issues": detailed_analysis.basic_analysis.issues,
                 "element": {
-                    "name": detailed_analysis.basic_analysis.element.name if detailed_analysis.basic_analysis.element else None,
-                    "direction": detailed_analysis.basic_analysis.element.direction.value if detailed_analysis.basic_analysis.element else None,
-                    "properties": detailed_analysis.basic_analysis.element.properties if detailed_analysis.basic_analysis.element else None,
-                    "color": detailed_analysis.basic_analysis.element.color if detailed_analysis.basic_analysis.element else None,
-                    "benefits": detailed_analysis.basic_analysis.element.benefits if detailed_analysis.basic_analysis.element else None,
-                    "tips": detailed_analysis.basic_analysis.element.tips if detailed_analysis.basic_analysis.element else None
-                } if detailed_analysis.basic_analysis.element else None
+                    "name": detailed_analysis.basic_analysis.element.name
+                    if detailed_analysis.basic_analysis.element
+                    else None,
+                    "direction": detailed_analysis.basic_analysis.element.direction.value
+                    if detailed_analysis.basic_analysis.element
+                    else None,
+                    "properties": detailed_analysis.basic_analysis.element.properties
+                    if detailed_analysis.basic_analysis.element
+                    else None,
+                    "color": detailed_analysis.basic_analysis.element.color
+                    if detailed_analysis.basic_analysis.element
+                    else None,
+                    "benefits": detailed_analysis.basic_analysis.element.benefits
+                    if detailed_analysis.basic_analysis.element
+                    else None,
+                    "tips": detailed_analysis.basic_analysis.element.tips
+                    if detailed_analysis.basic_analysis.element
+                    else None,
+                }
+                if detailed_analysis.basic_analysis.element
+                else None,
             },
             "remedies": {
-                "crystals": detailed_analysis.remedies.crystals if detailed_analysis.remedies else [],
-                "plants": detailed_analysis.remedies.plants if detailed_analysis.remedies else [],
-                "colors": detailed_analysis.remedies.colors if detailed_analysis.remedies else [],
-                "mirrors": detailed_analysis.remedies.mirrors if detailed_analysis.remedies else [],
-                "symbols": detailed_analysis.remedies.symbols if detailed_analysis.remedies else [],
-                "general_tips": detailed_analysis.remedies.general_tips if detailed_analysis.remedies else []
-            } if detailed_analysis.remedies else None,
+                "crystals": detailed_analysis.remedies.crystals
+                if detailed_analysis.remedies
+                else [],
+                "plants": detailed_analysis.remedies.plants
+                if detailed_analysis.remedies
+                else [],
+                "colors": detailed_analysis.remedies.colors
+                if detailed_analysis.remedies
+                else [],
+                "mirrors": detailed_analysis.remedies.mirrors
+                if detailed_analysis.remedies
+                else [],
+                "symbols": detailed_analysis.remedies.symbols
+                if detailed_analysis.remedies
+                else [],
+                "general_tips": detailed_analysis.remedies.general_tips
+                if detailed_analysis.remedies
+                else [],
+            }
+            if detailed_analysis.remedies
+            else None,
             "energy_flow_score": detailed_analysis.energy_flow_score,
             "prosperity_impact": detailed_analysis.prosperity_impact,
             "health_impact": detailed_analysis.health_impact,
             "relationship_impact": detailed_analysis.relationship_impact,
-            "detailed_recommendations": detailed_analysis.detailed_recommendations
+            "detailed_recommendations": detailed_analysis.detailed_recommendations,
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get detailed analysis: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get detailed analysis: {str(e)}"
+        )
 
 
 @app.post("/analyze-image")
@@ -1322,16 +1643,16 @@ async def analyze_image(file: UploadFile):
         image_data = await file.read()
 
         # Convert image to base64
-        base64_image = base64.b64encode(image_data).decode('utf-8')
+        base64_image = base64.b64encode(image_data).decode("utf-8")
 
         # Determine image format from content
-        if image_data.startswith(b'\xff\xd8\xff'):
+        if image_data.startswith(b"\xff\xd8\xff"):
             image_format = "jpeg"
-        elif image_data.startswith(b'\x89PNG\r\n\x1a\n'):
+        elif image_data.startswith(b"\x89PNG\r\n\x1a\n"):
             image_format = "png"
-        elif image_data.startswith(b'GIF87a') or image_data.startswith(b'GIF89a'):
+        elif image_data.startswith(b"GIF87a") or image_data.startswith(b"GIF89a"):
             image_format = "gif"
-        elif image_data.startswith(b'RIFF') and image_data[8:12] == b'WEBP':
+        elif image_data.startswith(b"RIFF") and image_data[8:12] == b"WEBP":
             image_format = "webp"
         else:
             image_format = "jpeg"  # Default fallback
@@ -1364,22 +1685,19 @@ Return ONLY valid JSON, no additional text."""
                     {
                         "role": "user",
                         "content": [
-                            {
-                                "type": "text",
-                                "text": prompt
-                            },
+                            {"type": "text", "text": prompt},
                             {
                                 "type": "image_url",
                                 "image_url": {
                                     "url": f"data:image/{image_format};base64,{base64_image}"
-                                }
-                            }
-                        ]
+                                },
+                            },
+                        ],
                     }
                 ],
                 max_tokens=1000,
                 temperature=0.1,  # Low temperature for consistent analysis
-                top_p=0.1
+                top_p=0.1,
             )
 
             # Extract response
@@ -1395,10 +1713,14 @@ Return ONLY valid JSON, no additional text."""
                     "design_style": analysis.get("design_style", "contemporary"),
                     "furniture_objects": analysis.get("furniture_objects", []),
                     "color_palette": analysis.get("color_palette", []),
-                    "improvement_suggestions": analysis.get("improvement_suggestions", [])
+                    "improvement_suggestions": analysis.get(
+                        "improvement_suggestions", []
+                    ),
                 }
             except json.JSONDecodeError:
-                logger.warning(f"Failed to parse JSON from Groq response: {analysis_text}")
+                logger.warning(
+                    f"Failed to parse JSON from Groq response: {analysis_text}"
+                )
                 # Fallback to structured parsing
                 return _parse_analysis_text(analysis_text)
 
@@ -1408,7 +1730,9 @@ Return ONLY valid JSON, no additional text."""
 
     except Exception as e:
         logger.error(f"Error analyzing image: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to analyze image: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to analyze image: {str(e)}"
+        )
 
 
 async def _fallback_image_analysis():
@@ -1425,8 +1749,8 @@ async def _fallback_image_analysis():
                 "Add more natural light with larger windows",
                 "Consider adding a rug to define the seating area",
                 "The color palette could be more cohesive",
-                "Add some wall art or decorative elements"
-            ]
+                "Add some wall art or decorative elements",
+            ],
         },
         {
             "room_type": "bedroom",
@@ -1437,24 +1761,30 @@ async def _fallback_image_analysis():
                 "Add some color to make the space more inviting",
                 "Consider adding curtains for privacy",
                 "Add bedside lamps for better lighting",
-                "Include some personal touches like photos or artwork"
-            ]
+                "Include some personal touches like photos or artwork",
+            ],
         },
         {
             "room_type": "kitchen",
             "design_style": "traditional",
-            "furniture_objects": ["kitchen_island", "dining_table", "bar_stools", "cabinet"],
+            "furniture_objects": [
+                "kitchen_island",
+                "dining_table",
+                "bar_stools",
+                "cabinet",
+            ],
             "color_palette": ["#DEB887", "#8B4513", "#F5DEB3", "#228B22"],
             "improvement_suggestions": [
                 "Update cabinet hardware for a more modern look",
                 "Consider adding a backsplash",
                 "Improve lighting with under-cabinet lighting",
-                "Add some fresh plants for life"
-            ]
-        }
+                "Add some fresh plants for life",
+            ],
+        },
     ]
 
     import random
+
     analysis = random.choice(mock_analyses)
 
     return {
@@ -1463,7 +1793,7 @@ async def _fallback_image_analysis():
         "design_style": analysis["design_style"],
         "furniture_objects": analysis["furniture_objects"],
         "color_palette": analysis["color_palette"],
-        "improvement_suggestions": analysis["improvement_suggestions"]
+        "improvement_suggestions": analysis["improvement_suggestions"],
     }
 
 
@@ -1471,13 +1801,16 @@ def _parse_analysis_text(text: str):
     """Parse non-JSON analysis text into structured format"""
     try:
         # Simple parsing for cases where JSON parsing fails
-        lines = text.strip().split('\n')
+        lines = text.strip().split("\n")
         analysis = {
             "room_type": "living_room",
             "design_style": "contemporary",
             "furniture_objects": ["sofa", "table"],
             "color_palette": ["#FFFFFF", "#F0F0F0"],
-            "improvement_suggestions": ["Consider adding more color", "Improve lighting"]
+            "improvement_suggestions": [
+                "Consider adding more color",
+                "Improve lighting",
+            ],
         }
 
         # Try to extract information from text
@@ -1504,7 +1837,7 @@ def _parse_analysis_text(text: str):
             "design_style": analysis["design_style"],
             "furniture_objects": analysis["furniture_objects"],
             "color_palette": analysis["color_palette"],
-            "improvement_suggestions": analysis["improvement_suggestions"]
+            "improvement_suggestions": analysis["improvement_suggestions"],
         }
     except Exception:
         return _fallback_image_analysis()
@@ -1525,22 +1858,21 @@ async def search_materials(request: Request):
 
         # Use the Indian e-commerce service to search for materials
         products = await indian_ecommerce_service.search_products(
-            query=query,
-            room_type=room_type,
-            style=style,
-            budget_range=budget_range
+            query=query, room_type=room_type, style=style, budget_range=budget_range
         )
 
         return {
             "success": True,
             "products": products,
             "total": len(products),
-            "query": query
+            "query": query,
         }
 
     except Exception as e:
         logger.error(f"Error searching materials: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to search materials: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to search materials: {str(e)}"
+        )
 
 
 @app.post("/shopping/products")
@@ -1556,18 +1888,26 @@ async def get_shopping_products(request: Request):
 
         # Use the Indian e-commerce service to get products
         products = await indian_ecommerce_service.get_featured_products()
-        
+
         # Apply filters
         filtered_products = products
         if category != "all":
-            filtered_products = [p for p in filtered_products if p.get("category", "").lower() == category.lower()]
-        
+            filtered_products = [
+                p
+                for p in filtered_products
+                if p.get("category", "").lower() == category.lower()
+            ]
+
         if price_range:
-            filtered_products = [p for p in filtered_products if price_range[0] <= p.get("price", 0) <= price_range[1]]
-        
+            filtered_products = [
+                p
+                for p in filtered_products
+                if price_range[0] <= p.get("price", 0) <= price_range[1]
+            ]
+
         # Apply pagination
         start_index = (page - 1) * per_page
-        paginated_products = filtered_products[start_index:start_index + per_page]
+        paginated_products = filtered_products[start_index : start_index + per_page]
 
         return {
             "success": True,
@@ -1575,7 +1915,7 @@ async def get_shopping_products(request: Request):
             "total": len(filtered_products),
             "page": page,
             "per_page": per_page,
-            "total_pages": (len(filtered_products) + per_page - 1) // per_page
+            "total_pages": (len(filtered_products) + per_page - 1) // per_page,
         }
 
     except Exception as e:
@@ -1596,12 +1936,14 @@ async def get_realtime_updates(request: Request):
             "success": True,
             "price_comparisons": [],
             "trending_products": [],
-            "inventory_updates": []
+            "inventory_updates": [],
         }
 
     except Exception as e:
         logger.error(f"Error getting real-time updates: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get real-time updates: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get real-time updates: {str(e)}"
+        )
 
 
 @app.get("/vastu/directional-guide")
@@ -1614,7 +1956,9 @@ async def get_vastu_directional_guide():
         return guide
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get directional guide: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get directional guide: {str(e)}"
+        )
 
 
 @app.get("/vastu/tips/{category}")
@@ -1627,7 +1971,9 @@ async def get_vastu_tips(category: str = "all"):
         return tips
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get Vastu tips: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get Vastu tips: {str(e)}"
+        )
 
 
 @app.get("/vastu/score-interpretation/{score}")
@@ -1640,7 +1986,9 @@ async def get_vastu_score_interpretation(score: int):
         return interpretation
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get score interpretation: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get score interpretation: {str(e)}"
+        )
 
 
 @app.post("/vastu/analyze-house")
@@ -1669,8 +2017,10 @@ async def analyze_vastu_house(request: Request):
 
         vastu_request = VastuRequest(
             rooms=rooms,
-            house_facing=Direction(house_facing.replace(" ", "-")) if house_facing else None,
-            plot_shape=plot_shape
+            house_facing=Direction(house_facing.replace(" ", "-"))
+            if house_facing
+            else None,
+            plot_shape=plot_shape,
         )
 
         # Get analysis
@@ -1688,20 +2038,25 @@ async def analyze_vastu_house(request: Request):
                     "score": analysis.score,
                     "recommendations": analysis.recommendations,
                     "benefits": analysis.benefits,
-                    "issues": analysis.issues
+                    "issues": analysis.issues,
                 }
                 for analysis in house_analysis.room_analyses
             ],
             "general_recommendations": house_analysis.general_recommendations,
             "critical_issues": house_analysis.critical_issues,
-            "positive_aspects": house_analysis.positive_aspects
+            "positive_aspects": house_analysis.positive_aspects,
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to analyze house: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to analyze house: {str(e)}"
+        )
+
+
 # ============================================================================
 # GROQ VASTU SHASTRA AI ENDPOINTS
 # ============================================================================
+
 
 @app.post("/vastu/chat")
 async def vastu_chat(request: VastuChatRequest):
@@ -1713,6 +2068,7 @@ async def vastu_chat(request: VastuChatRequest):
         logger.error(f"Error in Vastu chat: {e}")
         raise HTTPException(status_code=500, detail=f"Vastu chat failed: {str(e)}")
 
+
 @app.post("/vastu/analyze-ai")
 async def analyze_vastu_ai(request: VastuAnalysisRequest):
     """Comprehensive Vastu analysis with astrology integration using Groq AI"""
@@ -1722,6 +2078,7 @@ async def analyze_vastu_ai(request: VastuAnalysisRequest):
     except Exception as e:
         logger.error(f"Error in Vastu AI analysis: {e}")
         raise HTTPException(status_code=500, detail=f"Vastu analysis failed: {str(e)}")
+
 
 @app.get("/vastu/room-types")
 async def get_vastu_room_types():
@@ -1739,9 +2096,10 @@ async def get_vastu_room_types():
             {"value": "pooja_room", "label": "Pooja Room"},
             {"value": "staircase", "label": "Staircase"},
             {"value": "children_room", "label": "Children's Room"},
-            {"value": "store_room", "label": "Store Room"}
+            {"value": "store_room", "label": "Store Room"},
         ]
     }
+
 
 @app.get("/vastu/directions")
 async def get_vastu_directions():
@@ -1756,9 +2114,10 @@ async def get_vastu_directions():
             {"value": "south-west", "label": "South-West"},
             {"value": "west", "label": "West"},
             {"value": "north-west", "label": "North-West"},
-            {"value": "center", "label": "Center"}
+            {"value": "center", "label": "Center"},
         ]
     }
+
 
 @app.get("/vastu/tips/{category}")
 async def get_vastu_tips(category: str):

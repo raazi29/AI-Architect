@@ -73,10 +73,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             username,
           },
         },
-      });
-      return { error };
+      })
+      if (!error) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          await supabase
+            .from('profiles')
+            .upsert({ id: user.id, email, username, avatar_url: null })
+        }
+      }
+      return { error }
     } catch (error) {
-      return { error: error as AuthError };
+      return { error: error as AuthError }
     }
   };
 

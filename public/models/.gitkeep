@@ -1,0 +1,14 @@
+# 3D Models Directory
+Place GLB/GLTF 3D model files here for AR placement.
+
+## Model Requirements:
+- Format: GLB or GLTF
+- Size: < 10MB recommended
+- Optimized for web (low polygon count)
+- Proper materials and textures
+
+## Example Models:
+You can download free models from:
+- Sketchfab (Creative Commons)
+- Poly Haven
+- Google Poly Archive

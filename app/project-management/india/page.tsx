@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useProfile } from '@/contexts/ProfileContext';
 import { 
   projectService,
   projectTaskService,
@@ -35,6 +36,7 @@ import {
 
 export default function IndiaProjectManagementPage() {
   const { toast } = useToast();
+  const { profile } = useProfile();
   const [loading, setLoading] = useState(true);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [allProjects, setAllProjects] = useState<Project[]>([]);
@@ -134,15 +136,19 @@ export default function IndiaProjectManagementPage() {
 
   const loadProjects = async () => {
     try {
+      if (!profile) {
+        toast({ title: 'Profile required', description: 'Please complete your profile first.', variant: 'destructive' })
+        return
+      }
       console.log('📊 Loading projects from database...');
-      const projects = await projectService.getProjects();
+      const projects = await projectService.getProjects(profile.id);
       console.log('📥 Projects loaded:', { count: projects.length });
       setAllProjects(projects);
       
       if (projects.length > 0 && !currentProject) {
         await switchToProject(projects[0].id);
       }
-    } catch (error) {
+  } catch (error) {
       console.error('❌ Error loading projects:', error);
       toast({
         title: 'Error',
@@ -253,9 +259,8 @@ export default function IndiaProjectManagementPage() {
         state: projectForm.state,
         city: projectForm.city,
         climate_zone: projectForm.climate_zone,
-        project_type: projectForm.project_type,
-        created_by: 'current_user' // TODO: Get from auth
-      });
+        project_type: projectForm.project_type
+      }, profile.id);
 
       setAllProjects(prev => [project, ...prev]);
       await switchToProject(project.id);
@@ -300,7 +305,7 @@ export default function IndiaProjectManagementPage() {
         monsoon_dependent: taskForm.monsoon_dependent,
         vastu_compliant: taskForm.vastu_compliant,
         permit_required: taskForm.permit_required
-      });
+      }, profile.id);
 
       setShowAddTask(false);
       setTaskForm({ name: '', category: 'Foundation', cost: '', status: 'pending', monsoon_dependent: false, vastu_compliant: false, permit_required: false });

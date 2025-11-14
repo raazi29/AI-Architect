@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { ARManager, ARUtils } from '@/lib/utils/ar-utils';
 import { ModelViewerWrapperProps } from '@/lib/types/ar';
 
 /**
@@ -24,6 +25,18 @@ export const ModelViewerWrapper: React.FC<ModelViewerWrapperProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isARSupported, setIsARSupported] = useState(false);
+  const [arCapabilities, setArCapabilities] = useState<any>(null);
+  const [platformARModes, setPlatformARModes] = useState(arModes);
+
+  // Validate model format on mount
+  useEffect(() => {
+    if (src && !ARUtils.validateModelFormat(src)) {
+      const errorMsg = 'Unsupported 3D model format. Please use GLB, GLTF, USDZ, or Reality files.';
+      setError(errorMsg);
+      onError?.(new Error(errorMsg));
+      console.error('Invalid model format:', src);
+    }
+  }, [src, onError]);
 
   useEffect(() => {
     // Dynamically import model-viewer
@@ -38,6 +51,26 @@ export const ModelViewerWrapper: React.FC<ModelViewerWrapperProps> = ({
     };
 
     loadModelViewer();
+    
+    // Detect AR capabilities and set platform-specific modes
+    const detectARCapabilities = async () => {
+      try {
+        const arManager = ARManager.getInstance();
+        const capabilities = await arManager.detectCapabilities();
+        setArCapabilities(capabilities);
+        
+        // Set platform-specific AR modes
+        const platformModes = ARUtils.getPlatformARModes();
+        setPlatformARModes(platformModes);
+        
+        console.log('AR Capabilities:', capabilities);
+        console.log('Platform AR Modes:', platformModes);
+      } catch (err) {
+        console.error('Failed to detect AR capabilities:', err);
+      }
+    };
+    
+    detectARCapabilities();
   }, []);
 
   useEffect(() => {
@@ -60,7 +93,8 @@ export const ModelViewerWrapper: React.FC<ModelViewerWrapperProps> = ({
     const handleError = (event: any) => {
       setIsLoading(false);
       const errorMessage = event.detail?.message || 'Failed to load model';
-      setError(errorMessage);
+      const userFriendlyError = ARUtils.handleARError(new Error(errorMessage));
+      setError(userFriendlyError);
       onError?.(new Error(errorMessage));
       console.error('Model load error:', errorMessage);
     };
@@ -107,7 +141,7 @@ export const ModelViewerWrapper: React.FC<ModelViewerWrapperProps> = ({
         src={src}
         alt={alt}
         ar={ar}
-        ar-modes={arModes}
+        ar-modes={platformARModes}
         ar-scale={arScale}
         camera-controls={cameraControls}
         auto-rotate={autoRotate}

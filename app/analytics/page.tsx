@@ -3,17 +3,22 @@
 import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { Navigation } from "@/components/navigation"
+import { AnalyticsProvider, useAnalytics } from "@/contexts/AnalyticsContext"
 
 // Lazy load heavy chart components
 const Recharts = dynamic(() => import("recharts"), {
-  loading: () => <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>,
+  loading: () => (
+    <div className="flex items-center justify-center h-64">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    </div>
+  ),
   ssr: false
 })
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BarChart3, TrendingUp, Users, Eye, Heart, Download, RefreshCw, ArrowUp, ArrowDown, Minus } from "lucide-react"
+import { BarChart3, TrendingUp, Users, Eye, Heart, Download, RefreshCw, ArrowUp, ArrowDown, Minus, Wifi, WifiOff, AlertCircle } from "lucide-react"
 
 interface AnalyticsData {
   totalProjects: number
@@ -89,22 +94,14 @@ const mockAnalyticsData: AnalyticsData = {
   ],
 }
 
-export default function Analytics() {
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>(mockAnalyticsData)
+function Analytics() {
+  const { analyticsData, isLoading, error, connectionStatus, refreshData } = useAnalytics()
   const [timeRange, setTimeRange] = useState("30d")
   const [selectedMetric, setSelectedMetric] = useState("all")
-  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     console.log("Analytics page loaded successfully")
   }, [])
-
-  const refreshData = async () => {
-    setIsLoading(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setIsLoading(false)
-  }
 
   const exportReport = () => {
     const reportData = {
@@ -437,15 +434,15 @@ export default function Analytics() {
                           <span className="text-sm font-medium">8.7%</span>
                         </div>
                         <div className="w-full h-2 bg-muted rounded-full">
-                          <div className="w-[8.7%] h-full bg-accent rounded-full" />
+                          <div className="w-[8.7%] h-full bg-primary rounded-full" />
                         </div>
 
                         <div className="flex justify-between items-center">
                           <span className="text-sm">Shares per View</span>
-                          <span className="text-sm font-medium">3.4%</span>
+                          <span className="text-sm font-medium">3.1%</span>
                         </div>
                         <div className="w-full h-2 bg-muted rounded-full">
-                          <div className="w-[3.4%] h-full bg-muted-foreground rounded-full" />
+                          <div className="w-[3.1%] h-full bg-primary rounded-full" />
                         </div>
                       </div>
                     </CardContent>
@@ -453,31 +450,42 @@ export default function Analytics() {
 
                   <Card>
                     <CardHeader>
-                      <CardTitle>Popular Design Styles</CardTitle>
-                      <CardDescription>Most engaged design categories</CardDescription>
+                      <CardTitle>User Demographics</CardTitle>
+                      <CardDescription>Age and location breakdown of your audience</CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-3">
-                        {[
-                          { style: "Modern Minimalist", engagement: 92 },
-                          { style: "Scandinavian", engagement: 87 },
-                          { style: "Industrial", engagement: 78 },
-                          { style: "Bohemian", engagement: 65 },
-                          { style: "Traditional", engagement: 54 },
-                        ].map((item, index) => (
-                          <div key={index} className="flex items-center justify-between">
-                            <span className="text-sm font-medium">{item.style}</span>
-                            <div className="flex items-center gap-2">
-                              <div className="w-16 h-2 bg-muted rounded-full">
-                                <div
-                                  className="h-full bg-primary rounded-full"
-                                  style={{ width: `${item.engagement}%` }}
-                                />
-                              </div>
-                              <span className="text-sm text-muted-foreground w-8">{item.engagement}%</span>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">18-24</span>
+                          <span className="text-sm font-medium">30%</span>
+                        </div>
+                        <div className="w-full h-2 bg-muted rounded-full">
+                          <div className="w-[30%] h-full bg-primary rounded-full" />
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">25-34</span>
+                          <span className="text-sm font-medium">45%</span>
+                        </div>
+                        <div className="w-full h-2 bg-muted rounded-full">
+                          <div className="w-[45%] h-full bg-primary rounded-full" />
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">35-44</span>
+                          <span className="text-sm font-medium">15%</span>
+                        </div>
+                        <div className="w-full h-2 bg-muted rounded-full">
+                          <div className="w-[15%] h-full bg-primary rounded-full" />
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm">45+</span>
+                          <span className="text-sm font-medium">10%</span>
+                        </div>
+                        <div className="w-full h-2 bg-muted rounded-full">
+                          <div className="w-[10%] h-full bg-primary rounded-full" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -488,5 +496,13 @@ export default function Analytics() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function AnalyticsPage() {
+  return (
+    <AnalyticsProvider>
+      <Analytics />
+    </AnalyticsProvider>
   )
 }

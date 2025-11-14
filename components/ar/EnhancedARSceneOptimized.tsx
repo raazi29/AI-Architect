@@ -406,7 +406,7 @@ export const EnhancedARSceneOptimized: React.FC<EnhancedARSceneProps> = ({
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">AR Not Supported</h3>
           <p className="text-gray-600 mb-4">
-            Your device doesn't support WebXR AR. Try using a compatible mobile device or browser.
+            Your device doesn&apos;t support WebXR AR. Try using a compatible mobile device or browser.
           </p>
         </div>
       </div>

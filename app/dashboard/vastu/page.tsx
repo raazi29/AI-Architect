@@ -325,7 +325,7 @@ const VastuPage = () => {
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="hidden sm:flex">
               <Sparkles className="mr-1 h-3 w-3" />
-              Prokerala API
+              AI-Powered
             </Badge>
             <Button size="sm">
               <BookOpen className="mr-2 h-4 w-4" />
@@ -555,7 +555,7 @@ const VastuPage = () => {
                       <Alert>
                         <Info className="h-4 w-4" />
                         <AlertDescription>
-                          ✅ Authentic astrology data will be fetched from Prokerala API
+                          ✅ Birth details will be used for personalized recommendations
                         </AlertDescription>
                       </Alert>
                     )}

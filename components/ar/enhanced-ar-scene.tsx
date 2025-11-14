@@ -1,495 +1,458 @@
-"use client"
+'use client';
 
-import React, { useEffect, useRef, useState, useCallback } from "react"
-import * as THREE from "three"
-import { ARButton } from "three/examples/jsm/webxr/ARButton.js"
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js"
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { 
-  Camera, 
-  RotateCcw, 
-  Move3D, 
-  Trash2, 
-  Download,
-  Share2,
-  Maximize,
-  Minimize,
-  Palette
-} from "lucide-react"
-
-interface FurnitureItem {
-  id: number
-  name: string
-  dimensions: { width: number; height: number; depth: number }
-  modelUrl?: string // URL to 3D model (GLTF/GLB)
-  thumbnailUrl?: string
-  category: string
-  price?: string
-  colors?: string[]
-}
-
-interface PlacedItem {
-  id: string
-  furnitureId: number
-  position: { x: number; y: number; z: number }
-  rotation: { x: number; y: number; z: number }
-  scale: { x: number; y: number; z: number }
-  model?: THREE.Object3D
-  selected?: boolean
-}
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { ARManager } from './ARManager';
+import { ARCapabilityDetector } from './utils/ARCapabilityDetector';
+import { PerformanceMonitorEnhanced } from './utils/PerformanceMonitorEnhanced';
+import { ModernArchitectureModelLoader } from './utils/ModernArchitectureModelLoader';
+import { FurniturePlacementController } from './utils/FurniturePlacementController';
+import { LightingController } from './utils/LightingController';
+import { ARPlacementUI } from './ARPlacementUI';
+import { ARErrorBoundary } from './ARErrorBoundary';
+import { ARSceneOptimizer } from './utils/ARSceneOptimizer';
 
 interface EnhancedARSceneProps {
-  selectedFurniture: FurnitureItem | null
-  onPlaceItem: (item: PlacedItem) => void
-  placedItems: PlacedItem[]
-  onUpdateItem?: (item: PlacedItem) => void
-  onDeleteItem?: (itemId: string) => void
+  modelUrl?: string;
+  onPlacementComplete?: (position: any, rotation: any) => void;
+  onError?: (error: any) => void;
+  enableOcclusion?: boolean;
+  enableShadows?: boolean;
+  autoScale?: boolean;
+  maxPolygons?: number;
+  quality?: 'low' | 'medium' | 'high';
+  enableRealisticMode?: boolean;
 }
 
-// Default 3D models for common furniture types
-const DEFAULT_MODELS = {
-  sofa: '/models/furniture/sofa.glb',
-  chair: '/models/furniture/chair.glb',
-  table: '/models/furniture/table.glb',
-  bed: '/models/furniture/bed.glb',
-  cabinet: '/models/furniture/cabinet.glb',
-  lamp: '/models/furniture/lamp.glb',
-  bookshelf: '/models/furniture/bookshelf.glb',
-  desk: '/models/furniture/desk.glb'
-}
-
-const EnhancedARScene: React.FC<EnhancedARSceneProps> = ({ 
-  selectedFurniture, 
-  onPlaceItem, 
-  placedItems,
-  onUpdateItem,
-  onDeleteItem 
-}) => {
-  const mountRef = useRef<HTMLDivElement>(null)
-  const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
-  const sceneRef = useRef<THREE.Scene | null>(null)
-  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null)
-  const reticleRef = useRef<THREE.Mesh | null>(null)
-  const hitTestSourceRef = useRef<XRHitTestSource | null>(null)
-  const gltfLoaderRef = useRef<GLTFLoader | null>(null)
-  const modelCacheRef = useRef<Map<string, THREE.Object3D>>(new Map())
-  const controllerRef = useRef<THREE.Group | null>(null)
-  const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster())
-  const sessionRef = useRef<XRSession | null>(null)
-
-  const [isAR, setIsAR] = useState(false)
-  const [isARSupported, setIsARSupported] = useState(false)
-  const [loadingModel, setLoadingModel] = useState(false)
-  const [arStatus, setArStatus] = useState<string>('Checking AR support...')
-  const [selectedItem, setSelectedItem] = useState<PlacedItem | null>(null)
-  const [showControls, setShowControls] = useState(false)
-
+export default function EnhancedARSceneOptimized({
+  modelUrl,
+  onPlacementComplete,
+  onError,
+  enableOcclusion = true,
+  enableShadows = true,
+  autoScale = true,
+  maxPolygons = 50000,
+  quality = 'medium',
+  enableRealisticMode = true
+}: EnhancedARSceneProps) {
+  const [arManager] = useState(() => new ARManager());
+  const [capabilityDetector] = useState(() => new ARCapabilityDetector());
+  const [performanceMonitor] = useState(() => new PerformanceMonitorEnhanced());
+  const [modelLoader] = useState(() => new ModernArchitectureModelLoader());
+  const [placementController] = useState(() => new FurniturePlacementController());
+  const [lightingController] = useState(() => new LightingController());
+  const [sceneOptimizer] = useState(() => new ARSceneOptimizer());
+  
+  const [isARSupported, setIsARSupported] = useState<boolean | null>(null);
+  const [arStatus, setArStatus] = useState<string>('Checking AR support...');
+  const [arCapabilities, setArCapabilities] = useState<any>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [performanceMetrics, setPerformanceMetrics] = useState({
+    fps: 0,
+    memoryUsage: 0,
+    renderTime: 0
+  });
+  
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const arSessionRef = useRef<any>(null);
+  const gltfLoaderRef = useRef<any>(null);
+  const rendererRef = useRef<any>(null);
+  const sceneRefThree = useRef<any>(null);
+  const cameraRef = useRef<any>(null);
+  const modelRef = useRef<any>(null);
+  const reticleRef = useRef<any>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const placementCompleteRef = useRef(false);
+  
   // Check AR support on component mount
   useEffect(() => {
-    checkARSupport()
-  }, [])
-
-  const checkARSupport = async () => {
-    if ('xr' in navigator) {
-      try {
-        const isSupported = await (navigator as any).xr.isSessionSupported('immersive-ar')
-        setIsARSupported(isSupported)
-        setArStatus(isSupported ? 'AR Ready!' : 'AR not supported on this device')
-      } catch (error) {
-        setIsARSupported(false)
-        setArStatus('AR not available')
-      }
-    } else {
-      setIsARSupported(false)
-      setArStatus('WebXR not supported')
+    checkARSupportComprehensive();
+  }, []);
+  
+  // Initialize AR scene when support is confirmed
+  useEffect(() => {
+    if (isARSupported === true && !isInitialized) {
+      initializeARScene();
     }
-  }
-
+  }, [isARSupported, isInitialized]);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, []);
+  
+  // Comprehensive AR support check
+  const checkARSupportComprehensive = async () => {
+    try {
+      const capabilities = await capabilityDetector.detectCapabilities();
+      setArCapabilities(capabilities);
+      
+      const isSupported = capabilities.webXRSupported || capabilities.modelViewerSupported;
+      setIsARSupported(isSupported);
+      
+      if (capabilities.webXRSupported) {
+        setArStatus('WebXR Ready!');
+      } else if (capabilities.modelViewerSupported) {
+        setArStatus('Model Viewer Ready!');
+      } else {
+        setArStatus('AR not supported on this device');
+      }
+      
+      console.log('AR Capabilities:', capabilities);
+    } catch (error) {
+      console.error('Failed to check AR support:', error);
+      setIsARSupported(false);
+      setArStatus('Failed to detect AR support');
+    }
+  };
+  
   // Initialize 3D loaders
   const initializeLoaders = useCallback(() => {
     if (!gltfLoaderRef.current) {
-      const loader = new GLTFLoader()
-      const dracoLoader = new DRACOLoader()
-      dracoLoader.setDecoderPath('/draco/')
-      loader.setDRACOLoader(dracoLoader)
-      gltfLoaderRef.current = loader
+      const loader = new GLTFLoader();
+      const dracoLoader = new DRACOLoader();
+      dracoLoader.setDecoderPath('/draco/');
+      loader.setDRACOLoader(dracoLoader);
+      gltfLoaderRef.current = loader;
     }
-  }, [])
-
-  // Load 3D model
-  const loadModel = useCallback(async (furniture: FurnitureItem): Promise<THREE.Object3D> => {
-    const cacheKey = `${furniture.id}-${furniture.modelUrl || furniture.category}`
-    
-    if (modelCacheRef.current.has(cacheKey)) {
-      return modelCacheRef.current.get(cacheKey)!.clone()
-    }
-
-    setLoadingModel(true)
-    
-    try {
-      const modelUrl = furniture.modelUrl || DEFAULT_MODELS[furniture.category.toLowerCase() as keyof typeof DEFAULT_MODELS]
-      
-      if (!modelUrl) {
-        // Create a simple box geometry as fallback
-        const geometry = new THREE.BoxGeometry(
-          furniture.dimensions.width / 100,
-          furniture.dimensions.height / 100,
-          furniture.dimensions.depth / 100
-        )
-        const material = new THREE.MeshStandardMaterial({ 
-          color: 0x8B4513,
-          roughness: 0.8,
-          metalness: 0.2
-        })
-        const mesh = new THREE.Mesh(geometry, material)
-        modelCacheRef.current.set(cacheKey, mesh)
-        return mesh.clone()
-      }
-
-      const gltf = await new Promise<any>((resolve, reject) => {
-        gltfLoaderRef.current!.load(
-          modelUrl,
-          resolve,
-          undefined,
-          reject
-        )
-      })
-
-      const model = gltf.scene
-      model.traverse((child: any) => {
-        if (child.isMesh) {
-          child.castShadow = true
-          child.receiveShadow = true
-        }
-      })
-
-      // Scale model to match furniture dimensions
-      const box = new THREE.Box3().setFromObject(model)
-      const size = box.getSize(new THREE.Vector3())
-      const scale = Math.min(
-        furniture.dimensions.width / 100 / size.x,
-        furniture.dimensions.height / 100 / size.y,
-        furniture.dimensions.depth / 100 / size.z
-      )
-      model.scale.setScalar(scale)
-
-      modelCacheRef.current.set(cacheKey, model)
-      return model.clone()
-    } catch (error) {
-      console.error('Failed to load model:', error)
-      // Fallback to simple geometry
-      const geometry = new THREE.BoxGeometry(
-        furniture.dimensions.width / 100,
-        furniture.dimensions.height / 100,
-        furniture.dimensions.depth / 100
-      )
-      const material = new THREE.MeshStandardMaterial({ color: 0x8B4513 })
-      const mesh = new THREE.Mesh(geometry, material)
-      return mesh
-    } finally {
-      setLoadingModel(false)
-    }
-  }, [])
-
+  }, []);
+  
   // Initialize AR scene
-  useEffect(() => {
-    if (!mountRef.current || !isAR) return
-
-    initializeLoaders()
-
-    // Scene
-    const scene = new THREE.Scene()
-    sceneRef.current = scene
-
-    // Camera
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
-    cameraRef.current = camera
-
-    // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.setPixelRatio(window.devicePixelRatio)
-    renderer.xr.enabled = true
-    renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap
-    rendererRef.current = renderer
-
-    mountRef.current.appendChild(renderer.domElement)
-
-    // Enhanced lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
-    scene.add(ambientLight)
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
-    directionalLight.position.set(0, 10, 5)
-    directionalLight.castShadow = true
-    directionalLight.shadow.mapSize.width = 2048
-    directionalLight.shadow.mapSize.height = 2048
-    scene.add(directionalLight)
-
-    // Enhanced reticle
-    const reticleGeometry = new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2)
-    const reticleMaterial = new THREE.MeshBasicMaterial({ 
-      color: 0x00ff00,
-      transparent: true,
-      opacity: 0.8
-    })
-    const reticle = new THREE.Mesh(reticleGeometry, reticleMaterial)
-    reticle.matrixAutoUpdate = false
-    reticle.visible = false
-    scene.add(reticle)
-    reticleRef.current = reticle
-
-    // AR Button
-    const arButton = ARButton.createButton(renderer, {
-      requiredFeatures: ["hit-test"],
-      optionalFeatures: ["dom-overlay", "light-estimation"]
-    })
-    arButton.style.position = 'fixed'
-    arButton.style.bottom = '20px'
-    arButton.style.left = '50%'
-    arButton.style.transform = 'translateX(-50%)'
-    arButton.style.zIndex = '1000'
-    document.body.appendChild(arButton)
-
-    // Controllers for interaction
-    const controller = renderer.xr.getController(0)
-    controller.addEventListener('select', handleSelect)
-    scene.add(controller)
-    controllerRef.current = controller
-
-    // Animation loop
-    renderer.setAnimationLoop(async (timestamp, frame) => {
-      if (frame) {
-        const referenceSpace = renderer.xr.getReferenceSpace()
-        if (hitTestSourceRef.current && referenceSpace) {
-          const hitTestResults = frame.getHitTestResults(hitTestSourceRef.current)
-          if (hitTestResults.length) {
-            const hit = hitTestResults[0]
-            const pose = hit.getPose(referenceSpace)
-            if (pose) {
-              reticle.visible = true
-              reticle.matrix.fromArray(pose.transform.matrix)
-            } else {
-              reticle.visible = false
-            }
-          } else {
-            reticle.visible = false
-          }
-        }
-      }
-      renderer.render(scene, camera)
-    })
-
-    // Session management
-    renderer.xr.addEventListener('sessionstart', () => {
-      sessionRef.current = renderer.xr.getSession()
-      setShowControls(true)
-      
-      sessionRef.current?.requestReferenceSpace("local").then((referenceSpace) => {
-        if (sessionRef.current?.requestHitTestSource) {
-          sessionRef.current.requestHitTestSource({ space: referenceSpace }).then((source) => {
-            hitTestSourceRef.current = source
-          })
-        }
-      })
-    })
-
-    renderer.xr.addEventListener('sessionend', () => {
-      hitTestSourceRef.current = null
-      sessionRef.current = null
-      setShowControls(false)
-    })
-
-    // Handle window resize
-    const handleResize = () => {
-      camera.aspect = window.innerWidth / window.innerHeight
-      camera.updateProjectionMatrix()
-      renderer.setSize(window.innerWidth, window.innerHeight)
-    }
-
-    window.addEventListener("resize", handleResize)
-
-    return () => {
-      window.removeEventListener("resize", handleResize)
-      if (mountRef.current && renderer.domElement.parentNode) {
-        mountRef.current.removeChild(renderer.domElement)
-      }
-      if (arButton && arButton.parentNode) {
-        document.body.removeChild(arButton)
-      }
-      renderer.dispose()
-    }
-  }, [isAR, initializeLoaders])
-
-  // Handle item selection
-  const handleSelect = useCallback(() => {
-    if (selectedFurniture && reticleRef.current?.visible) {
-      handlePlaceItem()
-    }
-  }, [selectedFurniture])
-
-  // Place item in AR
-  const handlePlaceItem = useCallback(async () => {
-    if (!selectedFurniture || !reticleRef.current?.visible) return
-
-    const position = new THREE.Vector3()
-    reticleRef.current.getWorldPosition(position)
-
+  const initializeARScene = async () => {
     try {
-      const model = await loadModel(selectedFurniture)
+      setIsLoading(true);
+      setError(null);
       
-      const newItem: PlacedItem = {
-        id: `${selectedFurniture.id}-${Date.now()}`,
-        furnitureId: selectedFurniture.id,
-        position: { x: position.x, y: position.y, z: position.z },
-        rotation: { x: 0, y: 0, z: 0 },
-        scale: { x: 1, y: 1, z: 1 },
-        model
+      if (!sceneRef.current) {
+        throw new Error('Scene container not available');
       }
-
-      onPlaceItem(newItem)
+      
+      // Initialize loaders
+      initializeLoaders();
+      
+      // Create Three.js scene
+      const { scene, camera, renderer } = await createThreeJSScene();
+      sceneRefThree.current = scene;
+      cameraRef.current = camera;
+      rendererRef.current = renderer;
+      
+      // Set up AR session
+      if (arCapabilities.webXRSupported) {
+        await setupWebXRSession();
+      } else if (arCapabilities.modelViewerSupported) {
+        await setupModelViewerFallback();
+      }
+      
+      // Load model if URL provided
+      if (modelUrl) {
+        await loadModel(modelUrl);
+      }
+      
+      // Start render loop
+      startRenderLoop();
+      
+      setIsInitialized(true);
+      setIsLoading(false);
+      setArStatus('AR Scene Ready!');
+      
     } catch (error) {
-      console.error('Failed to place item:', error)
+      console.error('Failed to initialize AR scene:', error);
+      setError(error instanceof Error ? error.message : 'Failed to initialize AR scene');
+      setArStatus('Failed to initialize AR scene');
+      setIsLoading(false);
+      onError?.(error);
     }
-  }, [selectedFurniture, loadModel, onPlaceItem])
-
-  // Update placed items in scene
-  useEffect(() => {
-    const scene = sceneRef.current
-    if (!scene) return
-
-    // Clear existing furniture objects (keep lights and reticle)
-    const objectsToRemove = scene.children.filter(child => 
-      child.userData.isFurniture
-    )
-    objectsToRemove.forEach(obj => scene.remove(obj))
-
-    // Add placed items
-    placedItems.forEach((item) => {
-      if (item.model) {
-        const model = item.model.clone()
-        model.position.set(item.position.x, item.position.y, item.position.z)
-        model.rotation.set(item.rotation.x, item.rotation.y, item.rotation.z)
-        model.scale.set(item.scale.x, item.scale.y, item.scale.z)
-        model.userData.isFurniture = true
-        model.userData.itemId = item.id
+  };
+  
+  // Create Three.js scene
+  const createThreeJSScene = async () => {
+    const scene = new Scene();
+    const camera = new PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new WebGLRenderer({ antialias: true, alpha: true });
+    
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = enableShadows;
+    renderer.shadowMap.type = PCFSoftShadowMap;
+    renderer.outputColorSpace = SRGBColorSpace;
+    renderer.toneMapping = ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1;
+    
+    if (sceneRef.current) {
+      sceneRef.current.appendChild(renderer.domElement);
+    }
+    
+    // Set up lighting
+    setupLighting(scene);
+    
+    // Set up environment
+    setupEnvironment(scene);
+    
+    return { scene, camera, renderer };
+  };
+  
+  // Set up lighting
+  const setupLighting = (scene: any) => {
+    lightingController.setupLighting(scene, {
+      enableShadows,
+      enableRealisticMode,
+      quality
+    });
+  };
+  
+  // Set up environment
+  const setupEnvironment = (scene: any) => {
+    if (enableRealisticMode) {
+      // Add environment map for realistic reflections
+      const pmremGenerator = new PMREMGenerator(rendererRef.current);
+      const envTexture = pmremGenerator.fromScene(new RoomEnvironment()).texture;
+      scene.environment = envTexture;
+      scene.background = envTexture;
+    }
+  };
+  
+  // Set up WebXR session
+  const setupWebXRSession = async () => {
+    try {
+      const session = await navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['hit-test', 'dom-overlay'],
+        optionalFeatures: ['dom-overlay-for-handheld-ar']
+      });
+      
+      arSessionRef.current = session;
+      
+      // Set up hit testing
+      const referenceSpace = await session.requestReferenceSpace('local');
+      const viewerSpace = await session.requestReferenceSpace('viewer');
+      const hitTestSource = await session.requestHitTestSource({ space: viewerSpace });
+      
+      // Set up reticle
+      setupReticle();
+      
+      session.addEventListener('end', () => {
+        arSessionRef.current = null;
+      });
+      
+    } catch (error) {
+      console.error('Failed to setup WebXR session:', error);
+      throw error;
+    }
+  };
+  
+  // Set up Model Viewer fallback
+  const setupModelViewerFallback = async () => {
+    // Create model-viewer element for fallback
+    const modelViewer = document.createElement('model-viewer');
+    modelViewer.setAttribute('ar', '');
+    modelViewer.setAttribute('camera-controls', '');
+    modelViewer.setAttribute('shadow-intensity', '1');
+    modelViewer.setAttribute('exposure', '1');
+    
+    if (sceneRef.current) {
+      sceneRef.current.appendChild(modelViewer);
+    }
+    
+    // Set up reticle for model-viewer
+    setupReticle();
+  };
+  
+  // Set up reticle
+  const setupReticle = () => {
+    const reticleGeometry = new RingGeometry(0.1, 0.15, 32);
+    const reticleMaterial = new MeshBasicMaterial({ 
+      color: 0xffffff, 
+      transparent: true, 
+      opacity: 0.5 
+    });
+    
+    reticleRef.current = new Mesh(reticleGeometry, reticleMaterial);
+    reticleRef.current.visible = false;
+    
+    if (sceneRefThree.current) {
+      sceneRefThree.current.add(reticleRef.current);
+    }
+  };
+  
+  // Load model
+  const loadModel = async (url: string) => {
+    try {
+      setArStatus('Loading model...');
+      
+      const model = await modelLoader.loadModel(url, {
+        maxPolygons,
+        autoScale,
+        quality
+      });
+      
+      if (model) {
+        modelRef.current = model;
         
-        // Add selection highlight
-        if (item.selected) {
-          const box = new THREE.BoxHelper(model, 0x00ff00)
-          scene.add(box)
+        // Optimize model for AR
+        sceneOptimizer.optimizeModel(model, {
+          reducePolygons: true,
+          compressTextures: true,
+          optimizeMaterials: true
+        });
+        
+        // Add to scene but hide initially
+        model.visible = false;
+        if (sceneRefThree.current) {
+          sceneRefThree.current.add(model);
         }
         
-        scene.add(model)
+        setArStatus('Model loaded successfully!');
       }
-    })
-  }, [placedItems])
-
-  // AR Controls Component
-  const ARControls = () => (
-    <div className="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2">
-      <Card className="bg-black/80 text-white border-gray-600">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between mb-2">
-            <Badge variant="secondary" className="bg-green-500">
-              AR Active
-            </Badge>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setIsAR(false)}>
-                Exit AR
-              </Button>
-            </div>
-          </div>
-          
-          {selectedFurniture && (
-            <div className="text-sm">
-              <p>Selected: {selectedFurniture.name}</p>
-              <p className="text-gray-300">Point at a surface and tap to place</p>
-            </div>
-          )}
-          
-          {loadingModel && (
-            <div className="text-sm text-yellow-400">
-              Loading 3D model...
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {selectedItem && (
-        <Card className="bg-black/80 text-white border-gray-600">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Item Controls</span>
-              <Button 
-                size="sm" 
-                variant="destructive"
-                onClick={() => onDeleteItem?.(selectedItem.id)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-2">
-              <Button size="sm" variant="outline">
-                <RotateCcw className="h-4 w-4" />
-              </Button>
-              <Button size="sm" variant="outline">
-                <Move3D className="h-4 w-4" />
-              </Button>
-              <Button size="sm" variant="outline">
-                <Maximize className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
-  )
-
-  return (
-    <div ref={mountRef} className="relative w-full h-full">
-      {!isAR && (
-        <div className="flex flex-col items-center justify-center w-full h-full bg-gradient-to-br from-blue-50 to-purple-50">
-          <div className="text-center p-8 max-w-md">
-            <Camera className="h-16 w-16 mx-auto mb-4 text-blue-500" />
-            <h2 className="text-2xl font-bold mb-2">Enhanced AR Placement</h2>
-            <p className="text-gray-600 mb-4">{arStatus}</p>
-            
-            {isARSupported ? (
-              <Button 
-                onClick={() => setIsAR(true)} 
-                size="lg"
-                className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-              >
-                <Camera className="mr-2 h-5 w-5" />
-                Start AR Experience
-              </Button>
-            ) : (
-              <div className="text-center">
-                <p className="text-red-500 mb-2">AR not supported</p>
-                <p className="text-sm text-gray-500">
-                  Please use a compatible device with AR capabilities
-                </p>
-              </div>
-            )}
-            
-            <div className="mt-6 text-sm text-gray-500">
-              <p>✨ Real 3D models</p>
-              <p>📱 WebXR powered</p>
-              <p>🎯 Precise placement</p>
-            </div>
-          </div>
-        </div>
-      )}
       
-      {isAR && showControls && <ARControls />}
-    </div>
-  )
+    } catch (error) {
+      console.error('Failed to load model:', error);
+      setArStatus('Failed to load model');
+      throw error;
+    }
+  };
+  
+  // Start render loop
+  const startRenderLoop = () => {
+    const animate = () => {
+      animationFrameRef.current = requestAnimationFrame(animate);
+      
+      if (rendererRef.current && sceneRefThree.current && cameraRef.current) {
+        // Update performance metrics
+        const metrics = performanceMonitor.getMetrics();
+        setPerformanceMetrics(metrics);
+        
+        // Update reticle
+        updateReticle();
+        
+        // Render scene
+        rendererRef.current.render(sceneRefThree.current, cameraRef.current);
+      }
+    };
+    
+    animate();
+  };
+  
+  // Update reticle
+  const updateReticle = () => {
+    if (!reticleRef.current || !arSessionRef.current) return;
+    
+    // Update reticle position based on hit testing
+    // This is a simplified version - in a real implementation,
+    // you would use the actual hit test results
+    reticleRef.current.visible = true;
+  };
+  
+  // Handle placement
+  const handlePlacement = () => {
+    if (modelRef.current && reticleRef.current && !placementCompleteRef.current) {
+      // Place model at reticle position
+      modelRef.current.position.copy(reticleRef.current.position);
+      modelRef.current.visible = true;
+      
+      placementCompleteRef.current = true;
+      reticleRef.current.visible = false;
+      
+      onPlacementComplete?.(modelRef.current.position, modelRef.current.rotation);
+      setArStatus('Model placed successfully!');
+    }
+  };
+  
+  // Cleanup
+  const cleanup = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+    }
+    
+    if (arSessionRef.current) {
+      arSessionRef.current.end();
+    }
+    
+    if (rendererRef.current) {
+      rendererRef.current.dispose();
+    }
+    
+    if (sceneRefThree.current) {
+      sceneRefThree.current.clear();
+    }
+    
+    if (sceneRef.current && rendererRef.current?.domElement) {
+      sceneRef.current.removeChild(rendererRef.current.domElement);
+    }
+    
+    performanceMonitor.cleanup();
+  };
+  
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (cameraRef.current && rendererRef.current) {
+        cameraRef.current.aspect = window.innerWidth / window.innerHeight;
+        cameraRef.current.updateProjectionMatrix();
+        rendererRef.current.setSize(window.innerWidth, window.innerHeight);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  if (isARSupported === null) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking AR support...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (isARSupported === false) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center p-6 bg-red-50 rounded-lg">
+          <div className="text-red-500 text-4xl mb-4">⚠️</div>
+          <h3 className="text-lg font-semibold text-red-800 mb-2">AR Not Supported</h3>
+          <p className="text-red-600">{arStatus}</p>
+          <p className="text-sm text-red-500 mt-2">
+            This device doesn&apos;t support WebXR or Model Viewer. Please try on a compatible device.
+          </p>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <ARErrorBoundary onError={onError}>
+      <div className="relative w-full h-full">
+        {/* AR Scene Container */}
+        <div 
+          ref={sceneRef} 
+          className="w-full h-full relative overflow-hidden"
+          style={{ touchAction: 'none' }}
+        />
+        
+        {/* AR Placement UI */}
+        <ARPlacementUI
+          arStatus={arStatus}
+          performanceMetrics={performanceMetrics}
+          isLoading={isLoading}
+          error={error}
+          onPlace={handlePlacement}
+          canPlace={!placementCompleteRef.current && modelRef.current !== null}
+        />
+        
+        {/* Performance Monitor Display */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white p-2 rounded text-xs font-mono">
+            <div>FPS: {performanceMetrics.fps}</div>
+            <div>Memory: {performanceMetrics.memoryUsage}MB</div>
+            <div>Render: {performanceMetrics.renderTime}ms</div>
+          </div>
+        )}
+      </div>
+    </ARErrorBoundary>
+  );
 }
-
-export default EnhancedARScene

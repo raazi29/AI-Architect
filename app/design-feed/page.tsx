@@ -54,6 +54,7 @@ export default function DesignFeed() {
   const [paletteMode, setPaletteMode] = useState<string>("");
   const [chipPreviewOpen, setChipPreviewOpen] = useState(false);
   const [chipToPreview, setChipToPreview] = useState<string>("");
+  const [isMobile, setIsMobile] = useState(false);
   const [seenImageIds, setSeenImageIds] = useState<Set<string>>(() => {
     // Load seen image IDs from localStorage
     try {
@@ -165,9 +166,11 @@ export default function DesignFeed() {
       if (selectedColors.length > 0) params.append('colors', selectedColors.join(','));
       if (selectedMaterials.length > 0) params.append('materials', selectedMaterials.join(','));
 
-      const endpoint = "feed"; // Only use feed endpoint
+      // Use mobile endpoint for mobile devices, regular feed for desktop
+      const endpoint = isMobile ? "feed/mobile" : "feed";
       // Set per_page to 30 for better infinite scroll
-      params.set('per_page', '30');
+      // Set per_page based on device type - fewer for mobile to improve initial load
+      params.set('per_page', isMobile ? '15' : '30');
       console.log('Fetching with params:', Object.fromEntries(params.entries())); // Debug log
       console.log('Making request to:', `${API_BASE_URL}/${endpoint}?${params.toString()}`);
       const res = await fetchWithRetry(`${API_BASE_URL}/${endpoint}?${params.toString()}`);
@@ -412,6 +415,17 @@ export default function DesignFeed() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  // Mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Cleanup debounce timeout
   useEffect(() => {
     return () => {
@@ -424,11 +438,11 @@ export default function DesignFeed() {
   // Real-time updates: periodically check for new content (less frequent for unlimited scrolling)
   useEffect(() => {
     const id = setInterval(async () => {
-      if (!loading && designPosts.length < 50) { // Only add new content if we don't have too many posts
+      if (!loading && designPosts.length < (isMobile ? 30 : 50)) { // Fewer posts for mobile to save memory
         try {
           // Fetch a small amount of new content
           const newContent = await fetchWithRetry(
-            `${API_BASE_URL}/feed?page=1&per_page=5&query=${encodeURIComponent(searchQuery)}&style=${selectedStyle}${roomType ? `&room_type=${roomType}` : ''}`,
+            `${API_BASE_URL}/${isMobile ? 'feed/mobile' : 'feed'}?page=1&per_page=5&query=${encodeURIComponent(searchQuery)}&style=${selectedStyle}${roomType ? `&room_type=${roomType}` : ''}`,
             { headers: { "Content-Type": "application/json" } }
           );
           
@@ -474,7 +488,7 @@ export default function DesignFeed() {
           console.error("Error fetching new content for real-time updates:", e);
         }
       }
-    }, 30000); // Check every 30 seconds (less frequent)
+    }, isMobile ? 45000 : 30000); // Check less frequently on mobile to save battery
     
     return () => clearInterval(id);
   }, [loading, searchQuery, selectedStyle, roomType, designPosts.length, seenImageIds, fetchWithRetry]);

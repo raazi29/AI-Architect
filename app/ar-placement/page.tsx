@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import type { ARError } from "@/lib/types/ar"
 import {
   Cable as Cube,
   Camera,
@@ -54,6 +55,18 @@ interface PlacedItem {
 }
 
 const furnitureCategories = ["All", "Seating", "Tables", "Storage", "Lighting", "Decor"]
+
+// Helper function to get category icons
+function getCategoryIcon(category: string): string {
+  const icons: Record<string, string> = {
+    'Lighting': '💡',
+    'Storage': '📦',
+    'Decor': '🎨',
+    'Seating': '🪑',
+    'Tables': '🪑',
+  }
+  return icons[category] || '🛋️'
+}
 
 // Modern furniture catalog with actual 3D models
 const furnitureItems: FurnitureItem[] = [
@@ -114,6 +127,7 @@ export default function ARPlacement() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedFurniture, setSelectedFurniture] = useState<FurnitureItem | null>(null)
   const [showViewer, setShowViewer] = useState(false)
+  const [hasAutoOpenedViewer, setHasAutoOpenedViewer] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [qrCodeUrl, setQrCodeUrl] = useState('')
   const [arMode, setArMode] = useState<'webxr' | 'model-viewer' | 'fallback'>('fallback')
@@ -135,11 +149,12 @@ export default function ARPlacement() {
   }, [])
 
   useEffect(() => {
-    if (!isMobile && !showViewer && furnitureItems.length > 0) {
+    if (!isMobile && !showViewer && !hasAutoOpenedViewer && furnitureItems.length > 0) {
       setSelectedFurniture(furnitureItems[0])
       setShowViewer(true)
+      setHasAutoOpenedViewer(true)
     }
-  }, [isMobile, showViewer])
+  }, [isMobile, showViewer, hasAutoOpenedViewer])
 
   const filteredFurniture = furnitureItems.filter((item) => {
     const matchesCategory = selectedCategory === "All" || item.category === selectedCategory
@@ -154,13 +169,14 @@ export default function ARPlacement() {
 
   const handleViewerClose = () => {
     setShowViewer(false)
+    setSelectedFurniture(null)
   }
 
   const handleModelLoad = () => {
     console.log('Model loaded successfully')
   }
 
-  const handleError = (error: Error) => {
+  const handleError = (error: ARError) => {
     console.error('AR Error:', error)
     alert(`Failed to load model: ${error.message}`)
   }
@@ -227,6 +243,7 @@ export default function ARPlacement() {
                 <div className="relative" style={{ minHeight: isMobile ? '70vh' : '600px' }}>
                   {selectedFurniture.modelUrl ? (
                     <ARManagerEnhanced
+                      key={selectedFurniture.modelUrl}
                       modelUrl={selectedFurniture.modelUrl}
                       onARStart={handleARStart}
                       onAREnd={handleAREnd}
@@ -348,16 +365,4 @@ export default function ARPlacement() {
       </main>
     </div>
   )
-}
-
-// Helper function to get category icons
-function getCategoryIcon(category: string): string {
-  const icons: Record<string, string> = {
-    'Lighting': '💡',
-    'Storage': '📦',
-    'Decor': '🎨',
-    'Seating': '🪑',
-    'Tables': '🪑',
-  }
-  return icons[category] || '🛋️'
 }

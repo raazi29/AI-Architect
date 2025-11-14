@@ -106,14 +106,14 @@ export interface UserPresence {
 
 // Projects API
 export const projectService = {
-  async getProjects(userId?: string) {
+  async getProjects(profileId?: string) {
     let query = supabase
       .from('projects')
       .select('*')
       .order('created_at', { ascending: false });
 
-    if (userId) {
-      query = query.eq('created_by', userId);
+    if (profileId) {
+      query = query.eq('created_by', profileId);
     }
 
     const { data, error } = await query;
@@ -141,11 +141,12 @@ export const projectService = {
     return data as Project;
   },
 
-  async createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>) {
+  async createProject(project: Omit<Project, 'id' | 'created_at' | 'updated_at'>, profileId: string) {
     const { data, error } = await supabase
       .from('projects')
       .insert([{
         ...project,
+        created_by: profileId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }])
@@ -209,14 +210,14 @@ export const projectTaskService = {
     return data as ProjectTask[];
   },
 
-  async createTask(task: Omit<ProjectTask, 'id' | 'created_by' | 'updated_at'>) {
-    const { data: { user } } = await supabase.auth.getUser();
+  async createTask(task: Omit<ProjectTask, 'id' | 'created_by' | 'updated_at'>, profileId: string) {
+
     
     const { data, error } = await supabase
       .from('tasks')
       .insert([{
         ...task,
-        created_by: user?.id || null,
+        created_by: profileId,
         updated_at: new Date().toISOString()
       }])
       .select()
@@ -280,8 +281,8 @@ export const materialService = {
     return data as Material[];
   },
 
-  async createMaterial(material: Omit<Material, 'id' | 'created_by' | 'updated_at' | 'total_cost'>) {
-    const { data: { user } } = await supabase.auth.getUser();
+  async createMaterial(material: Omit<Material, 'id' | 'created_by' | 'updated_at' | 'total_cost'>, profileId: string) {
+
     
     // Don't send total_cost - it's a GENERATED column in the database
     const { data, error } = await supabase
@@ -293,7 +294,7 @@ export const materialService = {
         unit: material.unit,
         unit_cost: material.unit_cost,
         quantity: material.quantity,
-        created_by: user?.id || null,
+        created_by: profileId,
         updated_at: new Date().toISOString()
       }])
       .select()
@@ -357,14 +358,14 @@ export const expenseService = {
     return data as Expense[];
   },
 
-  async createExpense(expense: Omit<Expense, 'id' | 'created_by' | 'created_at' | 'updated_at'>) {
-    const { data: { user } } = await supabase.auth.getUser();
+  async createExpense(expense: Omit<Expense, 'id' | 'created_by' | 'created_at' | 'updated_at'>, profileId: string) {
+
     
     const { data, error } = await supabase
       .from('expenses')
       .insert([{
         ...expense,
-        created_by: user?.id || null,
+        created_by: profileId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }])
@@ -480,15 +481,15 @@ export const milestoneService = {
     return data as ProjectMilestone[];
   },
 
-  async createMilestone(milestone: Omit<ProjectMilestone, 'id' | 'created_by' | 'created_at' | 'updated_at'>) {
-    const { data: { user } } = await supabase.auth.getUser();
+  async createMilestone(milestone: Omit<ProjectMilestone, 'id' | 'created_by' | 'created_at' | 'updated_at'>, profileId: string) {
+
     
     const { data, error } = await supabase
       .from('milestones')
       .insert([{
         ...milestone,
         status: milestone.status || 'pending',
-        created_by: user?.id || null,
+        created_by: profileId,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }])

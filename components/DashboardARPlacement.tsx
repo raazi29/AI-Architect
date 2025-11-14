@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { ARManager } from "@/lib/utils/ar-utils"
 import {
   Cable as Cube,
   Camera,
@@ -17,9 +18,14 @@ import {
   Minimize2
 } from "lucide-react"
 
-// Dynamically import ModelViewerWrapper to avoid SSR issues
+// Dynamically import AR components to avoid SSR issues
 const ModelViewerWrapper = dynamic(
   () => import('@/components/ar/ModelViewerWrapper'),
+  { ssr: false }
+);
+
+const CrossPlatformARScene = dynamic(
+  () => import('@/components/ar/CrossPlatformARScene'),
   { ssr: false }
 );
 
@@ -122,6 +128,7 @@ export default function DashboardARPlacement({
   const [showViewer, setShowViewer] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [qrCodeUrl, setQrCodeUrl] = useState('')
+  const [useCrossPlatformAR, setUseCrossPlatformAR] = useState(false)
 
   useEffect(() => {
     const checkMobile = () => {
@@ -136,6 +143,23 @@ export default function DashboardARPlacement({
 
     checkMobile()
     window.addEventListener('resize', checkMobile)
+    
+    // Check if cross-platform AR should be used
+    const checkARSupport = async () => {
+      if (typeof window !== 'undefined') {
+        try {
+          const arManager = new ARManager()
+          const capabilities = await arManager.detectCapabilities()
+          setUseCrossPlatformAR(capabilities.webXRSupported)
+        } catch (error) {
+          console.log('AR detection failed, using model-viewer fallback:', error)
+          setUseCrossPlatformAR(false)
+        }
+      }
+    }
+    
+    checkARSupport()
+    
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
@@ -261,17 +285,28 @@ export default function DashboardARPlacement({
           <CardContent className="p-0">
             <div className="relative" style={{ minHeight: isMobile ? '60vh' : '400px' }}>
               {selectedFurniture.modelUrl ? (
-                <ModelViewerWrapper
-                  src={selectedFurniture.modelUrl}
-                  alt={selectedFurniture.name}
-                  ar={true}
-                  arModes="webxr scene-viewer quick-look"
-                  arScale="auto"
-                  cameraControls={true}
-                  autoRotate={true}
-                  onLoad={handleModelLoad}
-                  onError={handleError}
-                />
+                useCrossPlatformAR ? (
+                  <CrossPlatformARScene
+                    modelUrl={selectedFurniture.modelUrl}
+                    modelName={selectedFurniture.name}
+                    onModelLoad={handleModelLoad}
+                    onError={handleError}
+                    enablePerformanceMonitoring={true}
+                    fallbackToModelViewer={true}
+                  />
+                ) : (
+                  <ModelViewerWrapper
+                    src={selectedFurniture.modelUrl}
+                    alt={selectedFurniture.name}
+                    ar={true}
+                    arModes="webxr scene-viewer quick-look"
+                    arScale="auto"
+                    cameraControls={true}
+                    autoRotate={true}
+                    onLoad={handleModelLoad}
+                    onError={handleError}
+                  />
+                )
               ) : (
                 <div className="flex items-center justify-center h-full bg-muted">
                   <p className="text-muted-foreground">No 3D model available</p>
@@ -293,6 +328,7 @@ export default function DashboardARPlacement({
                     <li>• <strong>Drag</strong> to rotate the model</li>
                     <li>• <strong>Pinch/Scroll</strong> to zoom in/out</li>
                     {isMobile && <li>• <strong>Tap &quot;View in AR&quot;</strong> to place in your space</li>}
+                    {useCrossPlatformAR && <li>• <strong>Enhanced AR</strong> with performance monitoring</li>}
                   </ul>
                 </div>
               </div>

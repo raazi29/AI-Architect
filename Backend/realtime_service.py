@@ -4,6 +4,7 @@ from typing import Dict, List, Any
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from web_scraping_service import web_scraping_service
+from analytics_service import analytics_service
 
 
 class RealtimeService:
@@ -52,6 +53,12 @@ class RealtimeService:
         finally:
             # Remove this connection when done
             self.active_connections.discard(request)
+
+    async def stream_analytics_updates(self, request: Request):
+        """
+        Stream real-time analytics updates to connected clients
+        """
+        return await analytics_service.stream_analytics_updates(request)
 
 
 # Global instance

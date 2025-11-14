@@ -46,26 +46,26 @@ class HybridImageService:
         # Start with direct scrapers (no API limits), then unlimited service as guaranteed fallback
         self.providers = []
         
-        # PRIORITY 1: Direct scrapers (PRIMARY - real photos, no API keys, high quality)
+        # PRIORITY 1: Unlimited service (PRIMARY - GUARANTEED TO WORK, FASTEST)
+        self.providers.append(("unlimited", self.unlimited_service))
+        
+        # PRIORITY 2: Direct scrapers (SECONDARY - real photos, no API keys, high quality)
         self.providers.append(("pexels_direct", self.pexels_direct))
         self.providers.append(("pixabay_direct", self.pixabay_direct))
         
-        # PRIORITY 2: Enhanced design scraper (SECONDARY - design-specific websites)
+        # PRIORITY 3: Enhanced design scraper (THIRD - design-specific websites)
         self.providers.append(("enhanced_scraper", self.enhanced_scraper))
         
-        # PRIORITY 3: Old web scraping service (THIRD - aggregated)
+        # PRIORITY 4: Old web scraping service (FOURTH - aggregated)
         self.providers.append(("web_scraping", self.web_scraping))
         
-        # PRIORITY 4: Unlimited service (GUARANTEED FALLBACK - ALWAYS WORKS)
-        self.providers.append(("unlimited", self.unlimited_service))
-        
-        # PRIORITY 3: Free services that support search (THIRD)
+        # PRIORITY 5: Free services that support search (FIFTH)
         self.providers.append(("rawpixel", self.rawpixel))
         self.providers.append(("openverse", self.openverse))
         self.providers.append(("wikimedia", self.wikimedia))
         self.providers.append(("ambientcg", self.ambientcg))
         
-        # PRIORITY 4: API services (FOURTH - only if enabled, subject to rate limits)
+        # PRIORITY 6: API services (SIXTH - only if enabled, subject to rate limits)
         if getattr(self.pexels, "enabled", False):
             self.providers.append(("pexels", self.pexels))
         if getattr(self.unsplash, "enabled", False):
@@ -73,7 +73,7 @@ class HybridImageService:
         if getattr(self.pixabay, "enabled", False):
             self.providers.append(("pixabay", self.pixabay))
         
-        # PRIORITY 5: Picsum (LAST RESORT - fast but uses placeholder images with architecture titles)
+        # PRIORITY 7: Picsum (LAST RESORT - fast but uses placeholder images with architecture titles)
         self.providers.append(("picsum", self.picsum))
         
         # Print debug information about initialized providers
@@ -183,6 +183,52 @@ class HybridImageService:
             # Try another provider
             return await self.search_photos_fallback(query, page, per_page, provider_name)
 
+    async def search_photos_mobile_optimized(
+        self,
+        query: str,
+        page: int = 1,
+        per_page: int = 20
+    ) -> List[Dict[str, Any]]:
+        """Mobile-optimized search with faster loading and smaller images"""
+        print(f"Mobile-optimized search for photos with query: '{query}', page: {page}, per_page: {per_page}")
+        
+        all_results = []
+        processed_urls = set()
+        
+        # FAST PATH: Use unlimited service immediately with mobile-optimized sizes
+        try:
+            print(f"Mobile fast path: Getting guaranteed results from unlimited service")
+            # Request smaller images for mobile
+            raw_data = await self.unlimited_service.search_images(query, page, per_page * 2)  # Get extra for filtering
+            formatted_data = raw_data if isinstance(raw_data, list) else raw_data
+            
+            if formatted_data and isinstance(formatted_data, list):
+                for item in formatted_data[:per_page]:
+                    if item and isinstance(item, dict):
+                        # Ensure mobile-optimized sizes are available
+                        if 'src' in item and item['src']:
+                            # Add mobile-specific sizes if not present
+                            if 'tiny' not in item['src']:
+                                item['src']['tiny'] = item['src'].get('small', item.get('url', ''))
+                            if 'small' not in item['src']:
+                                item['src']['small'] = item.get('url', '')
+                        
+                        item_id = item.get("id") or item.get("image") or item.get("url") or ""
+                        if item_id and item_id not in processed_urls:
+                            all_results.append(item)
+                            processed_urls.add(item_id)
+                
+                print(f"Mobile fast path: Got {len(all_results)} guaranteed results")
+                
+                # If we have enough results, return immediately for fastest mobile experience
+                if len(all_results) >= per_page:
+                    return all_results[:per_page]
+        except Exception as e:
+            print(f"Mobile fast path failed: {e}")
+        
+        # Fallback to regular aggregated search if mobile optimization fails
+        return await self.search_photos_aggregated(query, page, per_page)
+
     async def search_photos_aggregated(
         self,
         query: str,
@@ -196,36 +242,37 @@ class HybridImageService:
         all_results = []
         processed_urls = set()  # To avoid duplicates
         
-        # FAST PATH: Use Picsum immediately to provide instant results while other providers load
-        # This ensures the feed never shows "No designs found"
-        picsum_provider = None
+        # FAST PATH: Use unlimited service immediately to provide guaranteed results
+        # This ensures the feed never shows "No designs found" and is fastest
+        unlimited_provider = None
         for provider_name, provider in self.providers:
-            if provider_name == "picsum":
-                picsum_provider = (provider_name, provider)
+            if provider_name == "unlimited":
+                unlimited_provider = (provider_name, provider)
                 break
         
-        if picsum_provider and page == 1:
-            # On first page, immediately get Picsum results for instant display
+        if unlimited_provider:
+            # Always get unlimited results first (guaranteed to work, fastest)
             try:
-                provider_name, provider = picsum_provider
-                print(f"Fast path: Getting instant results from {provider_name}")
-                raw_data = await provider.search_photos(query, 1, per_page)
-                formatted_data = raw_data if isinstance(raw_data, list) else provider.format_photos_response({"results": raw_data})
+                provider_name, provider = unlimited_provider
+                print(f"Fast path: Getting guaranteed results from {provider_name}")
+                raw_data = await provider.search_images(query, page, per_page)
+                formatted_data = raw_data if isinstance(raw_data, list) else raw_data
                 
                 if formatted_data and isinstance(formatted_data, list):
-                    for item in formatted_data[:per_page]:  # Limit to requested amount
+                    for item in formatted_data[:per_page]:  # Take all unlimited results
                         if item and isinstance(item, dict):
                             item_id = item.get("id") or item.get("image") or item.get("url") or ""
                             if item_id and item_id not in processed_urls:
                                 all_results.append(item)
                                 processed_urls.add(item_id)
-                    print(f"Fast path: Got {len(all_results)} instant results from Picsum")
+                    print(f"Fast path: Got {len(all_results)} guaranteed results from unlimited service")
             except Exception as e:
-                print(f"Fast path Picsum failed: {e}")
+                print(f"Fast path unlimited service failed: {e}")
         
-        # Always prioritize enhanced scraper as it's faster and avoids rate limits
+        # Try other providers in parallel but with short timeout for speed
         enhanced_scraper_provider = None
         web_scraping_provider = None
+        direct_scrapers = []
         other_providers = []
         
         for provider_name, provider in self.providers:
@@ -233,77 +280,85 @@ class HybridImageService:
                 enhanced_scraper_provider = (provider_name, provider)
             elif provider_name == "web_scraping":
                 web_scraping_provider = (provider_name, provider)
-            elif provider_name == "picsum":
-                picsum_provider = (provider_name, provider)
-            else:
+            elif provider_name in ["pexels_direct", "pixabay_direct"]:
+                direct_scrapers.append((provider_name, provider))
+            elif provider_name not in ["unlimited", "picsum"]:
                 other_providers.append((provider_name, provider))
         
-        # Try other architecture-specific providers first before Picsum
-        # Picsum is kept as last resort for fast loading
-        
-        # Then try other rate-limited providers only if we still need more results
-        for provider_name, provider in other_providers:
-            if len(all_results) >= per_page * page:
-                break  # Stop if we have enough results
-                
+        # Try direct scrapers quickly (high success rate, no API limits)
+        if len(all_results) < per_page and direct_scrapers:
             try:
-                for page_num in range(1, min(max_pages, 2) if len(all_results) > 0 else max_pages + 1):  # Limit API calls when we already have some results
-                    if len(all_results) >= per_page * page:
-                        break  # Stop if we have enough results
+                # Try direct scrapers with very short timeout for speed
+                direct_tasks = [
+                    (name, asyncio.create_task(provider.search_photos(query, page, per_page)))
+                    for name, provider in direct_scrapers
+                ]
+                
+                done, pending = await asyncio.wait([task for _, task in direct_tasks], timeout=1.5, return_when=asyncio.FIRST_COMPLETED)
+                
+                for task in done:
+                    provider_name = next(name for name, t in direct_tasks if t == task)
+                    try:
+                        result = await task
+                        if result and isinstance(result, list) and len(result) > 0:
+                            print(f"✅ Direct scraper {provider_name} returned {len(result)} additional results")
+                            
+                            # Add unique results
+                            for item in result:
+                                item_id = item.get("id") or item.get("image") or item.get("url") or ""
+                                if item_id and item_id not in processed_urls:
+                                    all_results.append(item)
+                                    processed_urls.add(item_id)
+                                    
+                            # If we have enough results, break
+                            if len(all_results) >= per_page:
+                                break
+                    except Exception as e:
+                        print(f"❌ Direct scraper {provider_name} failed: {e}")
                         
-                    print(f"Fetching from {provider_name}, page {page_num}")
-                    # Handle different service interfaces
-                    if provider_name == "unlimited":
-                        raw_data = await provider.search_images(query, page_num, per_page)
-                    elif provider_name == "enhanced_scraper":
-                        raw_data = await provider.search_design_images(query, page_num, per_page)
+            except asyncio.TimeoutError:
+                print("⏱️ Direct scraper search timed out, using unlimited results")
+        # Try other providers only if we need more results (with very short timeout)
+        if len(all_results) < per_page:
+            try:
+                # Try a few other providers quickly with short timeout
+                other_tasks = []
+                for provider_name, provider in other_providers[:3]:  # Only try first 3 for speed
+                    if provider_name == "enhanced_scraper":
+                        other_tasks.append((provider_name, asyncio.create_task(provider.search_design_images(query, page, per_page))))
                     elif provider_name == "web_scraping":
-                        raw_data = await provider.search_all_sources(query, page_num, per_page)
+                        other_tasks.append((provider_name, asyncio.create_task(provider.search_all_sources(query, page, per_page))))
                     else:
-                        raw_data = await provider.search_photos(query, page_num, per_page)
-                    
-                    # Handle different response formats
-                    if isinstance(raw_data, list):
-                        # Service returned [...] format directly (Picsum, etc.)
-                        formatted_data = raw_data
-                    elif isinstance(raw_data, dict) and "results" in raw_data:
-                        # Service returned {results: [...]} format (Unsplash, Pexels, etc.)
-                        formatted_data = provider.format_photos_response(raw_data)
-                    elif isinstance(raw_data, dict) and "foundAssets" in raw_data:
-                        # AmbientCG format
-                        formatted_data = provider.format_photos_response(raw_data)
-                    else:
-                        # Fallback - treat as results format
-                        formatted_data = provider.format_photos_response({"results": raw_data})
-                    
-                    # Ensure formatted_data is a list before processing
-                    if not isinstance(formatted_data, list):
-                        print(f"Provider {provider_name} returned non-list data: {type(formatted_data)} for page {page_num}")
-                        formatted_data = []  # Fallback to empty list if not a list
-                    
-                    if formatted_data:
-                        # Filter out duplicates based on item ID and ensure valid design images
-                        for item in formatted_data:
-                            image_url = item.get("image", "")
-                            # Use the unique ID as primary key, fallback to URL
-                            item_id = item.get("id", image_url)  # Use ID if available, else URL
-                            if item_id and item_id not in processed_urls:
-                                # Only add if it's a valid design image
-                                if image_categorization_service.is_valid_design_image(item):
-                                    # Enhance the metadata of the image
-                                    enhanced_item = image_categorization_service.enhance_image_metadata(item)
-                                    all_results.append(enhanced_item)
-                                    processed_urls.add(item_id)  # Store the item_id to prevent duplicates
-                                
-                    # Early exit if we have enough results
-                    if len(all_results) >= per_page * page:
-                        break
+                        other_tasks.append((provider_name, asyncio.create_task(provider.search_photos(query, page, per_page))))
+                
+                done, pending = await asyncio.wait([task for _, task in other_tasks], timeout=2.0, return_when=asyncio.FIRST_COMPLETED)
+                
+                for task in done:
+                    provider_name = next(name for name, t in other_tasks if t == task)
+                    try:
+                        result = await task
+                        if result and isinstance(result, list) and len(result) > 0:
+                            print(f"✅ Additional provider {provider_name} returned {len(result)} results")
+                            
+                            # Add unique results
+                            for item in result:
+                                item_id = item.get("id") or item.get("image") or item.get("url") or ""
+                                if item_id and item_id not in processed_urls:
+                                    # Only add if it's a valid design image
+                                    if image_categorization_service.is_valid_design_image(item):
+                                        enhanced_item = image_categorization_service.enhance_image_metadata(item)
+                                        all_results.append(enhanced_item)
+                                        processed_urls.add(item_id)
+                                    
+                            # If we have enough results, break
+                            if len(all_results) >= per_page:
+                                break
+                    except Exception as e:
+                        print(f"❌ Additional provider {provider_name} failed: {e}")
                         
-            except Exception as e:
-                print(f"Error fetching from {provider_name}: {e}")
-                continue  # Continue with other providers
+            except asyncio.TimeoutError:
+                print("⏱️ Additional provider search timed out, using unlimited results")
         
-        # Picsum disabled - only return architecture-specific results from other providers
         print(f"Total architecture-specific results collected: {len(all_results)}")
         
         # Return the slice for the requested page
@@ -311,25 +366,22 @@ class HybridImageService:
         end_idx = start_idx + per_page
         paginated_results = all_results[start_idx:end_idx] if all_results else []
         
-        # If we don't have any results for this page, use unlimited design service as guaranteed fallback
-        if not paginated_results:
+        # Always return unlimited results if we have them (guaranteed to work)
+        if paginated_results:
+            # Cache the results with a special key for aggregated results
+            await cache_images("aggregated", f"{query}_aggregated", page, paginated_results)
+            print(f"Returning {len(paginated_results)} results for page {page}")
+            return paginated_results
+        else:
+            # Fallback to unlimited service (should never happen now)
             try:
-                print(f"No aggregated results, using unlimited design service as guaranteed fallback")
+                print(f"Using unlimited design service as final fallback")
                 fallback_results = await self.unlimited_service.search_images(query, page, per_page)
-                if fallback_results:
-                    # Cache the fallback results
-                    await cache_images("unlimited_fallback", f"{query}_fallback", page, fallback_results)
-                    return fallback_results
+                await cache_images("aggregated", f"{query}_aggregated", page, fallback_results)
+                return fallback_results
             except Exception as e:
-                print(f"Unlimited design service fallback failed: {e}")
-                # Last resort: return empty array to avoid breaking the frontend
+                print(f"Final unlimited fallback failed: {e}")
                 return []
-        
-        # Cache the results with a special key for aggregated results
-        await cache_images("aggregated", f"{query}_aggregated", page, paginated_results)
-        
-        print(f"Returning {len(paginated_results)} results for page {page}")
-        return paginated_results
     
     async def get_trending_photos(
         self,
