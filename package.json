@@ -5,9 +5,7 @@
   "engines": {
     "node": ">=20.x"
   },
-  "overrides": {
-    "rollup": "^4.28.1"
-  },
+
   "scripts": {
     "build": "next build --webpack",
     "dev": "next dev --webpack",
