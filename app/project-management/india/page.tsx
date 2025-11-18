@@ -16,7 +16,7 @@ import {
   type Expense,
   type ProjectMilestone
 } from '@/lib/projectManagementService';
-import IndiaLocalizationService from '@/lib/services/indiaLocalizationService';
+import IndiaLocalizationService from '@/lib/services/IndiaLocalizationService';
 import { ProjectDashboard } from '@/components/ProjectDashboard';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

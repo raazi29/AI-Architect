@@ -584,42 +584,9 @@ class InteriorDesignEcommerceService:
                         
                         products.append(product)
             
+            # Don't generate fake products - return empty if scraping fails
             if not products:
-                for i in range(3):
-                    product = Product(
-                        id=f"{retailer['name'].replace(' ', '_')}_{query}_{i+1}",
-                        name=f"{query.title()} - Model {i+1}",
-                        brand=retailer["name"],
-                        price=random.randint(5000, 50000),
-                        original_price=random.randint(6000, 6000),
-                        rating=round(random.uniform(3.5, 5.0), 1),
-                        reviews=random.randint(10, 500),
-                        image=f"/placeholder-{i+1}.jpg",
-                        category=category or self._get_category_from_query(query),
-                        style=random.choice(["Modern", "Traditional", "Contemporary", "Industrial", "Scandinavian", "Minimalist"]),
-                        colors=["#8B4513", "#2F4F4F", "#696969", "#FFFFFF", "#000000"],
-                        dimensions={
-                            "width": random.randint(50, 200),
-                            "height": random.randint(50, 200),
-                            "depth": random.randint(30, 100)
-                        },
-                        in_stock=random.choice([True, False]),
-                        discount=random.randint(5, 30),
-                        is_wishlisted=False,
-                        tags=["bestseller", "premium"] if random.choice([True, False]) else ["new-arrival"],
-                        material=random.choice(["Wood", "Metal", "Glass", "Fabric", "Plastic"]),
-                        designer=random.choice(["Local Artisan", "International Designer", "In-house", "Unknown"]),
-                        design_style=random.choice(["Modern", "Traditional", "Contemporary", "Industrial"]),
-                        sustainability_rating=round(random.uniform(3.0, 5.0), 1),
-                        certified_eco_friendly=random.choice([True, False]),
-                        stock_quantity=random.randint(0, 50),
-                        availability_status="in_stock" if random.choice([True, False]) else "out_of_stock"
-                    )
-                    
-                    if product.original_price > product.price:
-                        product.discount = int(((product.original_price - product.price) / product.original_price) * 100)
-                    
-                    products.append(product)
+                logger.warning(f"No products found for query '{query}' from {retailer['name']}")
                     
         except Exception as e:
             logger.error(f"Error parsing HTML from {retailer['name']}: {e}")

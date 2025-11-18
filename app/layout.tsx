@@ -16,11 +16,6 @@ export const metadata: Metadata = {
   description:
     "Transform your space with AI-powered interior design, AR furniture placement, and smart shopping integration (temporarily unavailable)",
   manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Archi AR",
-  },
 }
 
 export const viewport = {
@@ -38,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta name="mobile-web-app-capable" content="yes" />
         {/* Performance: preconnect and dns-prefetch for image CDNs */}
         <link rel="preconnect" href="https://images.pexels.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="//images.pexels.com" />

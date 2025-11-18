@@ -39,7 +39,8 @@ import {
   Briefcase,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
-import { Navigation } from "@/components/navigation";
+import { Navigation } from "@/components/navigation"
+import { MobileNavigation } from "@/components/mobile-navigation";
 import { ProfessionalsService } from "@/lib/services/professionalsService";
 import { ProfessionalCard } from "@/components/professionals/ProfessionalCard";
 import { ContactModal } from "@/components/professionals/ContactModal";
@@ -514,9 +515,9 @@ export default function Collaborate() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      <Navigation />\n      <MobileNavigation />
       
-      <main className="ml-64 p-8">
+      <main className="p-4 pt-20 md:ml-64 md:p-8 md:pt-8">
         <div className="max-w-7xl mx-auto space-y-8">
           <header className="space-y-6">
             <div className="flex items-center justify-between">
@@ -1028,7 +1029,7 @@ export default function Collaborate() {
       </main>
 
       {showCreateProject && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 ml-64">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 md:ml-64">
           <Card className="w-full max-w-md mx-4">
             <CardHeader>
               <CardTitle>Create New Project</CardTitle>
@@ -1069,7 +1070,7 @@ export default function Collaborate() {
       )}
 
       {showContractorDetails && selectedContractor && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 ml-64 p-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 md:ml-64 p-4">
           <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <CardHeader>
               <div className="flex items-start gap-4">

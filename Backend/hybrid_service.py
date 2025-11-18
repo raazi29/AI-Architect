@@ -43,29 +43,23 @@ class HybridImageService:
         self.pexels_direct = pexels_direct_scraper  # Pexels direct scraper (no API key)
         self.pixabay_direct = pixabay_direct_scraper  # Pixabay direct scraper (no API key)
         
-        # Start with direct scrapers (no API limits), then unlimited service as guaranteed fallback
+        # Priority order: Scrapers FIRST (free, unlimited), then API providers (rate limited)
         self.providers = []
         
-        # PRIORITY 1: Unlimited service (PRIMARY - GUARANTEED TO WORK, FASTEST)
-        self.providers.append(("unlimited", self.unlimited_service))
-        
-        # PRIORITY 2: Direct scrapers (SECONDARY - real photos, no API keys, high quality)
+        # PRIORITY 1: Direct scrapers (PRIMARY - real photos, no API keys, unlimited, high quality)
         self.providers.append(("pexels_direct", self.pexels_direct))
         self.providers.append(("pixabay_direct", self.pixabay_direct))
         
-        # PRIORITY 3: Enhanced design scraper (THIRD - design-specific websites)
+        # PRIORITY 2: Enhanced design scraper (SECONDARY - design-specific websites)
         self.providers.append(("enhanced_scraper", self.enhanced_scraper))
         
-        # PRIORITY 4: Old web scraping service (FOURTH - aggregated)
+        # PRIORITY 3: Unlimited service (THIRD - guaranteed to work, fast)
+        self.providers.append(("unlimited", self.unlimited_service))
+        
+        # PRIORITY 4: Old web scraping service (FOURTH - aggregated scraping)
         self.providers.append(("web_scraping", self.web_scraping))
         
-        # PRIORITY 5: Free services that support search (FIFTH)
-        self.providers.append(("rawpixel", self.rawpixel))
-        self.providers.append(("openverse", self.openverse))
-        self.providers.append(("wikimedia", self.wikimedia))
-        self.providers.append(("ambientcg", self.ambientcg))
-        
-        # PRIORITY 6: API services (SIXTH - only if enabled, subject to rate limits)
+        # PRIORITY 5: API services (FIFTH - only if enabled, subject to rate limits)
         if getattr(self.pexels, "enabled", False):
             self.providers.append(("pexels", self.pexels))
         if getattr(self.unsplash, "enabled", False):
@@ -73,7 +67,13 @@ class HybridImageService:
         if getattr(self.pixabay, "enabled", False):
             self.providers.append(("pixabay", self.pixabay))
         
-        # PRIORITY 7: Picsum (LAST RESORT - fast but uses placeholder images with architecture titles)
+        # PRIORITY 6: Free services that support search (SIXTH)
+        self.providers.append(("rawpixel", self.rawpixel))
+        self.providers.append(("openverse", self.openverse))
+        self.providers.append(("wikimedia", self.wikimedia))
+        self.providers.append(("ambientcg", self.ambientcg))
+        
+        # PRIORITY 7: Picsum (LAST RESORT - fast but generic placeholder images)
         self.providers.append(("picsum", self.picsum))
         
         # Print debug information about initialized providers

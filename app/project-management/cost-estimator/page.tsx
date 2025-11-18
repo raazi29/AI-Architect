@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { IndiaLocalizationService, ClimateZone, INDIAN_STATES } from '@/lib/services/indiaLocalizationService';
+import { IndiaLocalizationService, ClimateZone, INDIAN_STATES } from '@/lib/services/IndiaLocalizationService';
 import { MaterialData, INDIAN_MATERIALS } from '@/lib/data/indianMaterials';
 import { RealTimePresence } from '@/components/project-management/RealTimePresence';
 import { IndianMaterialSelector } from '@/components/project-management/IndianMaterialSelector';

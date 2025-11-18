@@ -69,7 +69,7 @@ export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
   const [connectionStatus, setConnectionStatus] = useState<'connected' | 'disconnected' | 'connecting'>('connecting')
   const [eventSource, setEventSource] = useState<EventSource | null>(null)
 
-  // Initialize SSE connection
+  // Initialize analytics with fallback to mock data
   useEffect(() => {
     let sse: EventSource | null = null
     let reconnectTimeout: NodeJS.Timeout | null = null
@@ -77,15 +77,15 @@ export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
     const connectToAnalyticsStream = () => {
       try {
         setConnectionStatus('connecting')
-        
+
         // Close existing connection if any
         if (sse) {
           sse.close()
         }
 
-        // Create new SSE connection
+        // Create new SSE connection with potential backend
         sse = new EventSource('http://localhost:8000/analytics-updates')
-        
+
         sse.onopen = () => {
           console.log('Analytics SSE connection established')
           setConnectionStatus('connected')
@@ -96,7 +96,7 @@ export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
           try {
             const data = JSON.parse(event.data)
             console.log('Analytics update received:', data)
-            
+
             if (data.type === 'initial' || data.type === 'analytics_update') {
               if (data.data) {
                 setAnalyticsData(data.data)
@@ -110,30 +110,213 @@ export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
 
         sse.onerror = (error) => {
           console.error('Analytics SSE connection error:', error)
+
+          // Use mock data as fallback
+          const mockAnalyticsData = {
+            totalProjects: 24,
+            totalViews: 12847,
+            totalLikes: 1923,
+            totalCollaborators: 156,
+            monthlyGrowth: {
+              projects: 12.5,
+              views: 23.8,
+              likes: 18.2,
+              collaborators: 8.7,
+            },
+            projectsByCategory: [
+              { name: "Living Room", value: 35, color: "#3b82f6" },
+              { name: "Bedroom", value: 28, color: "#10b981" },
+              { name: "Kitchen", value: 20, color: "#f59e0b" },
+              { name: "Bathroom", value: 12, color: "#ef4444" },
+              { name: "Office", value: 5, color: "#8b5cf6" },
+            ],
+            activityData: [
+              { date: "Jan", projects: 4, views: 1200, likes: 180 },
+              { date: "Feb", projects: 6, views: 1800, likes: 250 },
+              { date: "Mar", projects: 8, views: 2400, likes: 320 },
+              { date: "Apr", projects: 5, views: 1600, likes: 210 },
+              { date: "May", projects: 9, views: 2800, likes: 380 },
+              { date: "Jun", projects: 12, views: 3200, likes: 450 },
+            ],
+            topDesigns: [
+              {
+                id: "1",
+                title: "Modern Minimalist Living Room",
+                views: 2847,
+                likes: 342,
+                thumbnail: "/modern-minimalist-living-room.jpg",
+              },
+              {
+                id: "2",
+                title: "Scandinavian Bedroom Design",
+                views: 2156,
+                likes: 298,
+                thumbnail: "/scandinavian-bedroom-design.jpg",
+              },
+              {
+                id: "3",
+                title: "Industrial Kitchen Concept",
+                views: 1923,
+                likes: 267,
+                thumbnail: "/industrial-kitchen-design.jpg",
+              },
+            ],
+            userEngagement: [
+              { metric: "Avg. Session Duration", current: 8.5, previous: 7.2, change: 18.1 },
+              { metric: "Pages per Session", current: 4.2, previous: 3.8, change: 10.5 },
+              { metric: "Bounce Rate", current: 32.1, previous: 38.7, change: -17.1 },
+              { metric: "Return Visitors", current: 68.3, previous: 61.2, change: 11.6 },
+            ],
+          }
+
+          setAnalyticsData(mockAnalyticsData)
           setConnectionStatus('disconnected')
-          setError('Failed to connect to analytics stream')
-          
+          setError('Analytics service unavailable, using mock data')
+          setIsLoading(false)
+
           // Close the failed connection
           if (sse) {
             sse.close()
           }
-          
-          // Attempt to reconnect after 5 seconds
-          reconnectTimeout = setTimeout(() => {
-            console.log('Attempting to reconnect to analytics stream...')
-            connectToAnalyticsStream()
-          }, 5000)
+
+          // Don't attempt to reconnect since we're using mock data
+          return
         }
 
         setEventSource(sse)
       } catch (error) {
         console.error('Error establishing analytics SSE connection:', error)
+
+        // Fallback to mock data
+        const mockAnalyticsData = {
+          totalProjects: 24,
+          totalViews: 12847,
+          totalLikes: 1923,
+          totalCollaborators: 156,
+          monthlyGrowth: {
+            projects: 12.5,
+            views: 23.8,
+            likes: 18.2,
+            collaborators: 8.7,
+          },
+          projectsByCategory: [
+            { name: "Living Room", value: 35, color: "#3b82f6" },
+            { name: "Bedroom", value: 28, color: "#10b981" },
+            { name: "Kitchen", value: 20, color: "#f59e0b" },
+            { name: "Bathroom", value: 12, color: "#ef4444" },
+            { name: "Office", value: 5, color: "#8b5cf6" },
+          ],
+          activityData: [
+            { date: "Jan", projects: 4, views: 1200, likes: 180 },
+            { date: "Feb", projects: 6, views: 1800, likes: 250 },
+            { date: "Mar", projects: 8, views: 2400, likes: 320 },
+            { date: "Apr", projects: 5, views: 1600, likes: 210 },
+            { date: "May", projects: 9, views: 2800, likes: 380 },
+            { date: "Jun", projects: 12, views: 3200, likes: 450 },
+          ],
+          topDesigns: [
+            {
+              id: "1",
+              title: "Modern Minimalist Living Room",
+              views: 2847,
+              likes: 342,
+              thumbnail: "/modern-minimalist-living-room.jpg",
+            },
+            {
+              id: "2",
+              title: "Scandinavian Bedroom Design",
+              views: 2156,
+              likes: 298,
+              thumbnail: "/scandinavian-bedroom-design.jpg",
+            },
+            {
+              id: "3",
+              title: "Industrial Kitchen Concept",
+              views: 1923,
+              likes: 267,
+              thumbnail: "/industrial-kitchen-design.jpg",
+            },
+          ],
+          userEngagement: [
+            { metric: "Avg. Session Duration", current: 8.5, previous: 7.2, change: 18.1 },
+            { metric: "Pages per Session", current: 4.2, previous: 3.8, change: 10.5 },
+            { metric: "Bounce Rate", current: 32.1, previous: 38.7, change: -17.1 },
+            { metric: "Return Visitors", current: 68.3, previous: 61.2, change: 11.6 },
+          ],
+        }
+
+        setAnalyticsData(mockAnalyticsData)
         setConnectionStatus('disconnected')
-        setError('Failed to establish analytics connection')
+        setError('Analytics service unavailable, using mock data')
+        setIsLoading(false)
       }
     }
 
-    connectToAnalyticsStream()
+    // Start with mock data to prevent loading forever
+    const mockAnalyticsData = {
+      totalProjects: 24,
+      totalViews: 12847,
+      totalLikes: 1923,
+      totalCollaborators: 156,
+      monthlyGrowth: {
+        projects: 12.5,
+        views: 23.8,
+        likes: 18.2,
+        collaborators: 8.7,
+      },
+      projectsByCategory: [
+        { name: "Living Room", value: 35, color: "#3b82f6" },
+        { name: "Bedroom", value: 28, color: "#10b981" },
+        { name: "Kitchen", value: 20, color: "#f59e0b" },
+        { name: "Bathroom", value: 12, color: "#ef4444" },
+        { name: "Office", value: 5, color: "#8b5cf6" },
+      ],
+      activityData: [
+        { date: "Jan", projects: 4, views: 1200, likes: 180 },
+        { date: "Feb", projects: 6, views: 1800, likes: 250 },
+        { date: "Mar", projects: 8, views: 2400, likes: 320 },
+        { date: "Apr", projects: 5, views: 1600, likes: 210 },
+        { date: "May", projects: 9, views: 2800, likes: 380 },
+        { date: "Jun", projects: 12, views: 3200, likes: 450 },
+      ],
+      topDesigns: [
+        {
+          id: "1",
+          title: "Modern Minimalist Living Room",
+          views: 2847,
+          likes: 342,
+          thumbnail: "/modern-minimalist-living-room.jpg",
+        },
+        {
+          id: "2",
+          title: "Scandinavian Bedroom Design",
+          views: 2156,
+          likes: 298,
+          thumbnail: "/scandinavian-bedroom-design.jpg",
+        },
+        {
+          id: "3",
+          title: "Industrial Kitchen Concept",
+          views: 1923,
+          likes: 267,
+          thumbnail: "/industrial-kitchen-design.jpg",
+        },
+      ],
+      userEngagement: [
+        { metric: "Avg. Session Duration", current: 8.5, previous: 7.2, change: 18.1 },
+        { metric: "Pages per Session", current: 4.2, previous: 3.8, change: 10.5 },
+        { metric: "Bounce Rate", current: 32.1, previous: 38.7, change: -17.1 },
+        { metric: "Return Visitors", current: 68.3, previous: 61.2, change: 11.6 },
+      ],
+    }
+
+    setAnalyticsData(mockAnalyticsData)
+    setIsLoading(false)
+
+    // Then attempt backend connection
+    setTimeout(() => {
+      connectToAnalyticsStream()
+    }, 1000) // Delay connection attempt to allow UI to load with mock data
 
     // Cleanup function
     return () => {

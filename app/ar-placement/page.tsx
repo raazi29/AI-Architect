@@ -126,7 +126,7 @@ const furnitureItems: FurnitureItem[] = [
 export default function ARPlacement() {
   const [selectedCategory, setSelectedCategory] = useState("All")
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedFurniture, setSelectedFurniture] = useState<FurnitureItem | null>(null)
+  const [selectedFurniture, setSelectedFurniture] = useState<FurnitureItem | null>(furnitureItems[0])
   const [showViewer, setShowViewer] = useState(false)
   const [hasAutoOpenedViewer, setHasAutoOpenedViewer] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
@@ -198,7 +198,7 @@ export default function ARPlacement() {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <Navigation />
 
-      <main className="ml-64 p-8">
+      <main className="p-4 md:ml-64 md:p-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">

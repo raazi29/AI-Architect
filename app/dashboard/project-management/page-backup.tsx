@@ -41,7 +41,7 @@ import {
   ProjectMilestone,
   UserPresence
 } from '@/lib/projectManagementService';
-import IndiaLocalizationService from '@/lib/services/indiaLocalizationService';
+import IndiaLocalizationService from '@/lib/services/IndiaLocalizationService';
 
 export default function ProjectManagementPage() {
   const { user } = useAuth();

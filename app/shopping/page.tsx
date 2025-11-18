@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Navigation } from "@/components/navigation"
+import { MobileNavigation } from "@/components/mobile-navigation"
 import { Button } from "@/components/ui/button"
 import { API_BASE_URL } from "@/lib/api"
 import { Card, CardContent } from "@/components/ui/card"
@@ -166,9 +167,9 @@ export default function SmartShopping() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <Navigation />
+      <Navigation />\n      <MobileNavigation />
 
-      <main className="ml-64 p-8">
+      <main className="p-4 pt-20 md:ml-64 md:p-8 md:pt-8">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">

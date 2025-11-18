@@ -30,20 +30,24 @@ export const ModelViewerWrapper: React.FC<ModelViewerWrapperProps> = ({
 
   // Validate model format on mount
   useEffect(() => {
+    console.log('Validating model format for src:', src);
     if (src && !ARUtils.validateModelFormat(src)) {
       const errorMsg = 'Unsupported 3D model format. Please use GLB, GLTF, USDZ, or Reality files.';
       setError(errorMsg);
       onError?.(new Error(errorMsg));
       console.error('Invalid model format:', src);
+    } else {
+      console.log('Model format valid');
     }
   }, [src, onError]);
 
   useEffect(() => {
+    console.log('ModelViewerWrapper mounted with src:', src);
     // Dynamically import model-viewer
     const loadModelViewer = async () => {
       try {
         await import('@google/model-viewer');
-        console.log('model-viewer loaded');
+        console.log('model-viewer loaded successfully');
       } catch (err) {
         console.error('Failed to load model-viewer:', err);
         setError('Failed to load AR viewer');

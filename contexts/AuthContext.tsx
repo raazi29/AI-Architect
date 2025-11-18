@@ -16,6 +16,40 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const createProfileIfNotExists = async (user: User) => {
+  if (!supabase) return;
+
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .single();
+
+    if (error && error.code !== 'PGRST116') { // PGRST116 is not found
+      console.error('Error checking profile:', error);
+      return;
+    }
+
+    if (!data) {
+      // create profile
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert({
+          id: user.id,
+          email: user.email,
+          username: user.user_metadata?.username || user.email?.split('@')[0] || '',
+          avatar_url: null
+        });
+      if (insertError) {
+        console.error('Error creating profile:', insertError);
+      }
+    }
+  } catch (error) {
+    console.error('Error in createProfileIfNotExists:', error);
+  }
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -52,6 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        if (session?.user) {
+          await createProfileIfNotExists(session.user);
+        }
         setLoading(false);
       }
     );
@@ -74,14 +111,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
         },
       })
-      if (!error) {
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          await supabase
-            .from('profiles')
-            .upsert({ id: user.id, email, username, avatar_url: null })
-        }
-      }
       return { error }
     } catch (error) {
       return { error: error as AuthError }

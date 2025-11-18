@@ -198,7 +198,7 @@ const VastuPage = () => {
 
   const fetchVastuTips = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/vastu/tips`);
+      const response = await fetch(`${API_BASE_URL}/vastu/tips/all`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -412,7 +412,7 @@ const VastuPage = () => {
                             </div>
                             <p className={`text-xs text-muted-foreground mt-1 ${
                               message.role === 'user' ? 'text-right' : 'text-left'
-                            }`}>
+                            }`} suppressHydrationWarning>
                               {new Date(message.timestamp).toLocaleTimeString()}
                             </p>
                           </div>

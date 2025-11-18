@@ -23,6 +23,7 @@ import {
   Sun,
 } from "lucide-react"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { useAuth } from "@/contexts/AuthContext"
 import { cn } from "@/lib/utils"
 
 const navigation = [
@@ -45,13 +46,18 @@ const navigation = [
 
 export function Navigation() {
   const pathname = usePathname()
+  const { user, signOut } = useAuth()
 
   const handleNavClick = (href: string, name: string) => {
     console.log("Navigation clicked:", name, "->", href)
   }
 
+  const handleSignOut = async () => {
+    await signOut()
+  }
+
   return (
-    <nav className="fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border">
+    <nav className="hidden md:block fixed left-0 top-0 z-40 h-screen w-64 bg-sidebar border-r border-sidebar-border">
       <div className="flex h-full flex-col">
         <div className="flex h-16 items-center px-4 border-b border-sidebar-border">
           <div className="flex items-center gap-2">
@@ -91,10 +97,27 @@ export function Navigation() {
             <span className="text-xs text-muted-foreground">Theme</span>
             <ThemeToggle />
           </div>
-          <Button variant="ghost" className="w-full justify-start gap-3">
-            <User className="h-4 w-4" />
-            <span className="text-sm">Sign in with Google</span>
-          </Button>
+          {user ? (
+            <>
+              <Link href="/profile">
+                <Button variant="ghost" className="w-full justify-start gap-3">
+                  <User className="h-4 w-4" />
+                  <span className="text-sm">Profile</span>
+                </Button>
+              </Link>
+              <Button variant="ghost" className="w-full justify-start gap-3" onClick={handleSignOut}>
+                <User className="h-4 w-4" />
+                <span className="text-sm">Sign Out</span>
+              </Button>
+            </>
+          ) : (
+            <Link href="/auth/signin">
+              <Button variant="ghost" className="w-full justify-start gap-3">
+                <User className="h-4 w-4" />
+                <span className="text-sm">Sign In</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
     </nav>

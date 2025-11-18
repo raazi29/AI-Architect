@@ -98,16 +98,18 @@ class AnalyticsService:
                 {"name": "Office", "value": 5, "color": "#8b5cf6"},
             ]
 
-            # Mock top designs (would be populated from actual project data)
+            # Top designs from actual project data
             top_designs = []
             for i, project in enumerate(projects[:3]):
+                # Use project thumbnail if available, otherwise use a default design icon
+                thumbnail = project.get("thumbnail") or project.get("image_url") or None
                 top_designs.append(
                     {
                         "id": project["project_id"],
-                        "title": f"Design Project {i + 1}",
+                        "title": project.get("name") or f"Design Project {i + 1}",
                         "views": project["views"],
                         "likes": project["likes"],
-                        "thumbnail": f"/placeholder-design-{i + 1}.jpg",
+                        "thumbnail": thumbnail,
                     }
                 )
 

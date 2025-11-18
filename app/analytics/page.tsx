@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { Navigation } from "@/components/navigation"
+import { MobileNavigation } from "@/components/mobile-navigation"
 import { AnalyticsProvider, useAnalytics } from "@/contexts/AnalyticsContext"
 
 // Lazy load heavy chart components
@@ -135,9 +136,9 @@ function Analytics() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
+      <Navigation />\n      <MobileNavigation />
 
-      <main className="ml-64 p-8">
+      <main className="p-4 pt-20 md:ml-64 md:p-8 md:pt-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
