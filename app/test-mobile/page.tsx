@@ -157,7 +157,7 @@ export default function TestMobilePage() {
           <ul className="list-disc list-inside space-y-2 text-gray-600">
             <li>Open browser developer tools (F12)</li>
             <li>Go to the Console tab</li>
-            <li>Click "Test Mobile Image Loading" button</li>
+            <li>Click &quot;Test Mobile Image Loading&quot; button</li>
             <li>Check console logs for test results</li>
             <li>Resize browser window to test mobile/desktop detection</li>
             <li>Use device emulation in dev tools to simulate mobile devices</li>

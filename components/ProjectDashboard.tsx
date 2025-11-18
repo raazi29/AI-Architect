@@ -12,7 +12,7 @@ import {
   Calendar,
   Target
 } from 'lucide-react';
-import IndiaLocalizationService from '@/lib/services/IndiaLocalizationService';
+import IndiaLocalizationService from '@/lib/services/indiaLocalizationService';
 import type {
   Project,
   ProjectTask,

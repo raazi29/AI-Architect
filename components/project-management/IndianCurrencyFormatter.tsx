@@ -1,6 +1,6 @@
 'use client';
 
-import { IndiaLocalizationService } from '@/lib/services/IndiaLocalizationService';
+import { IndiaLocalizationService } from '@/lib/services/indiaLocalizationService';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { IndianRupee, TrendingUp, TrendingDown, Info } from 'lucide-react';

@@ -33,14 +33,15 @@ const createProfileIfNotExists = async (user: User) => {
 
     if (!data) {
       // create profile
+      const profileData = {
+        id: user.id,
+        email: user.email,
+        username: user.user_metadata?.username || user.email?.split('@')[0] || '',
+        avatar_url: null
+      };
       const { error: insertError } = await supabase
         .from('profiles')
-        .insert({
-          id: user.id,
-          email: user.email,
-          username: user.user_metadata?.username || user.email?.split('@')[0] || '',
-          avatar_url: null
-        });
+        .insert([profileData] as any);
       if (insertError) {
         console.error('Error creating profile:', insertError);
       }
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         if (session?.user) {

@@ -76,7 +76,7 @@ const benefits = [
 
 export default function StartingPage() {
   const { user } = useAuth();
-  const [mounted, setMounted] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -244,7 +244,7 @@ export default function StartingPage() {
                 Why Choose ArchiAI?
               </h2>
               <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-                We combine cutting-edge AI technology with beautiful design to help you create spaces you'll love.
+                We combine cutting-edge AI technology with beautiful design to help you create spaces you&apos;ll love.
               </p>
               <div className="space-y-4">
                 {benefits.map((benefit, index) => (

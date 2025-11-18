@@ -16,7 +16,8 @@ export default function AIGenerator() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <Navigation />\n      <MobileNavigation />
+      <Navigation />
+      <MobileNavigation />
 
       <main className="p-4 pt-20 md:ml-64 md:p-8 md:pt-8">
         <div className="max-w-6xl mx-auto">

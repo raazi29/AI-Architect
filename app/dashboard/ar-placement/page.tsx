@@ -368,7 +368,7 @@ export default function ARPlacement() {
                       <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">
                         1
                       </div>
-                      <p>Click the "Start AR" button</p>
+                      <p>Click the &quot;Start AR&quot; button</p>
                     </div>
                     <div className="flex items-start gap-2">
                       <div className="w-5 h-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold mt-0.5">

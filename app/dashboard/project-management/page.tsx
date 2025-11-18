@@ -44,7 +44,7 @@ import {
   milestoneService,
   subscribeToProjectChanges
 } from '@/lib/projectManagementService';
-import IndiaLocalizationService from '@/lib/services/IndiaLocalizationService';
+import IndiaLocalizationService from '@/lib/services/indiaLocalizationService';
 
 interface ProjectMember {
   id: string;

@@ -922,7 +922,7 @@ export default function Collaborate() {
                     <Card>
                       <CardHeader>
                         <CardTitle>Recent Activity</CardTitle>
-                        <CardDescription>Stay updated with your team's latest actions</CardDescription>
+                        <CardDescription>Stay updated with your team&apos;s latest actions</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <ScrollArea className="h-96">

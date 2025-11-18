@@ -271,7 +271,7 @@ export default function ARPlacement() {
                       <ul className="space-y-1 text-muted-foreground">
                         <li>• <strong>Drag</strong> to rotate the model</li>
                         <li>• <strong>Pinch/Scroll</strong> to zoom in/out</li>
-                        {isMobile && <li>• <strong>Tap "View in AR"</strong> to place in your space</li>}
+                        {isMobile && <li>• <strong>Tap &quot;View in AR&quot;</strong> to place in your space</li>}
                         <li>• <strong>Auto-adaptive quality</strong> ensures smooth performance</li>
                       </ul>
                     </div>

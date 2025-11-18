@@ -101,25 +101,25 @@ export const ImageGenerator: React.FC = () => {
     <div className="w-full max-w-7xl mx-auto p-4 space-y-6">
       {!isClient ? (
         // Loading placeholder during server-side rendering or initial client mount
-        <div className="bg-white rounded-xl shadow-lg p-8">
-          <div className="flex flex-col items-center justify-center text-center text-gray-500 py-12">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
+          <div className="flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 py-12">
             <Spinner />
             <p className="mt-4 text-lg font-medium">Loading AI Generator...</p>
-            <p className="text-sm text-gray-400">Initializing components</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">Initializing components</p>
           </div>
         </div>
       ) : (
         <>
           {/* Controls Section */}
-          <div className="bg-white rounded-xl shadow-lg p-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Upload Reference (Optional)</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Upload Reference (Optional)</label>
               <FileUpload onFileSelect={setUploadedFile} />
             </div>
 
             {/* Prompt Section */}
             <div className="mt-6">
-              <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Describe Your Vision <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -128,10 +128,10 @@ export const ImageGenerator: React.FC = () => {
                 onChange={(e) => setPrompt(e.target.value)}
                 rows={3}
                 placeholder="e.g., a spacious living room with a stone fireplace and large windows overlooking a forest"
-                className="w-full p-4 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition resize-none"
+                className="w-full p-4 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition resize-none placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
               <div className="flex justify-between items-center mt-3">
-                <p className="text-xs text-gray-500">💡 Be as specific as possible in your description for best results</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">💡 Be as specific as possible in your description for best results</p>
                 <Button
                   onClick={handleGenerate}
                   disabled={isLoading || !prompt}
@@ -155,29 +155,29 @@ export const ImageGenerator: React.FC = () => {
 
           {/* Loading State */}
           {isLoading && (
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <div className="flex flex-col items-center justify-center text-center text-gray-500 py-12">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
+              <div className="flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 py-12">
                 <Spinner />
                 <p className="mt-4 text-lg font-medium">Generating your design...</p>
-                <p className="text-sm text-gray-400">This may take 30-60 seconds</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">This may take 30-60 seconds</p>
               </div>
             </div>
           )}
 
           {/* Error State */}
           {error && (
-            <div className="bg-white rounded-xl shadow-lg p-8">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
               <div className="flex flex-col items-center justify-center text-center py-12">
                 <div className="text-red-500 mb-4 text-4xl">⚠️</div>
-                <p className="text-red-600 text-lg font-medium mb-2">Generation Failed</p>
-                <p className="text-red-500 text-center max-w-md">{error}</p>
+                <p className="text-red-600 dark:text-red-400 text-lg font-medium mb-2">Generation Failed</p>
+                <p className="text-red-500 dark:text-red-400 text-center max-w-md">{error}</p>
               </div>
             </div>
           )}
 
           {/* Result State */}
           {generationResult && !isLoading && (
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
               <div className="relative group">
                 <img
                   src={generationResult.imageUrl}
@@ -197,7 +197,7 @@ export const ImageGenerator: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-6 border-t bg-gray-50">
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
                 <div className="flex gap-3 justify-center">
                   <Button onClick={handleDownload} className="bg-green-500 hover:bg-green-600 text-white px-6">
                     <Download className="mr-2 h-4 w-4" />
@@ -230,10 +230,10 @@ export const ImageGenerator: React.FC = () => {
 
           {/* Empty State */}
           {!isLoading && !generationResult && !error && (
-            <div className="bg-white rounded-xl shadow-lg p-8">
-              <div className="flex flex-col items-center justify-center text-center text-gray-500 py-12">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8">
+              <div className="flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400 py-12">
                 <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-16 w-16 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6 6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
                 <p className="text-lg font-medium mb-2">Ready to Generate</p>
                 <p className="text-sm text-gray-400">Describe your vision above and click Generate Image</p>

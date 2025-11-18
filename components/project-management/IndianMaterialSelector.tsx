@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ClimateZone, IndiaLocalizationService } from '@/lib/services/IndiaLocalizationService';
+import { ClimateZone, IndiaLocalizationService } from '@/lib/services/indiaLocalizationService';
 import {
   INDIAN_MATERIALS,
   MaterialData,

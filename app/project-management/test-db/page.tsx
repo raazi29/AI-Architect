@@ -163,7 +163,7 @@ export default function TestDatabasePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h3 className="font-semibold mb-2">If tables don't exist:</h3>
+              <h3 className="font-semibold mb-2">If tables don&apos;t exist:</h3>
               <p className="text-sm text-muted-foreground mb-2">
                 Run <code className="bg-muted px-2 py-1 rounded">supabase/SETUP_DATABASE.sql</code> in Supabase SQL Editor
               </p>
