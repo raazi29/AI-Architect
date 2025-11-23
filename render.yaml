@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: archi-backend
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: "pip install -r Backend/requirements.txt"
+    startCommand: "cd Backend && uvicorn routes:app --host 0.0.0.0 --port $PORT --workers 2"
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: GROQ_API_KEY
+        sync: false
+      - key: HUGGING_FACE_API_TOKEN
+        sync: false
+      - key: PEXELS_API_KEY
+        sync: false
+      - key: PIXABAY_API_KEY
+        sync: false
+      - key: UNSPLASH_ACCESS_KEY
+        sync: false
+      - key: UNSPLASH_SECRET_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false

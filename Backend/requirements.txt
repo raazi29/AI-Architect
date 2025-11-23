@@ -35,6 +35,9 @@ python-multipart>=0.0.6
 typing-extensions>=4.8.0
 asyncio  # Built-in with Python 3.7+
 
+# Rate limiting
+slowapi>=0.1.9
+
 # Testing (optional)
 pytest>=7.4.0
 pytest-asyncio>=0.21.0

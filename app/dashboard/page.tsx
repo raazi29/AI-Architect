@@ -72,18 +72,17 @@ export default function DashboardPage() {
       <Navigation />
 
       <main className="p-4 md:ml-64 md:p-8">
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight mb-2">Dashboard</h1>
-              <p className="text-muted-foreground">
-                Access all your design tools and features
+              <h1 className="text-4xl font-bold tracking-tight">Dashboard</h1>
+              <p className="text-muted-foreground mt-2">
+                Welcome back! Here are your design tools and features.
               </p>
             </div>
-
             {!showARPlacement && (
-              <Button onClick={handleARPlacementToggle} className="gap-2">
+              <Button onClick={handleARPlacementToggle} variant="outline" className="gap-2">
                 <Cube className="h-4 w-4" />
                 Try AR Placement
               </Button>
@@ -101,50 +100,45 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* All Features List */}
-          <Card>
-            <CardHeader>
-              <CardTitle>All Features</CardTitle>
-              <CardDescription>Complete list of available tools and services</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-2">
-                {allFeatures.map((feature) => (
-                  <Link key={feature.title} href={feature.href}>
-                    <div className="flex items-center gap-4 p-3 rounded-lg hover:bg-accent transition-colors group">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-md bg-muted group-hover:bg-muted/80">
-                        <feature.icon className="h-5 w-5 text-muted-foreground" />
+          {/* All Features Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {allFeatures.map((feature) => (
+              <Link key={feature.title} href={feature.href}>
+                <Card className="hover:border-primary/60 transition-all duration-300 h-full flex flex-col">
+                  <CardHeader>
+                    <div className="flex items-center gap-4">
+                      <div className="p-2 bg-muted rounded-lg">
+                        <feature.icon className="h-6 w-6 text-primary" />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm">{feature.title}</div>
-                        <div className="text-xs text-muted-foreground truncate">{feature.description}</div>
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <CardTitle className="text-lg">{feature.title}</CardTitle>
                     </div>
-                  </Link>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    <p className="text-sm text-muted-foreground">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
 
           {/* Simple Stats */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader>
                 <CardDescription>Total Features</CardDescription>
-                <CardTitle className="text-2xl">15</CardTitle>
+                <CardTitle className="text-4xl font-bold">{allFeatures.length}</CardTitle>
               </CardHeader>
             </Card>
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader>
                 <CardDescription>AI Tools</CardDescription>
-                <CardTitle className="text-2xl">5</CardTitle>
+                <CardTitle className="text-4xl font-bold">5</CardTitle>
               </CardHeader>
             </Card>
             <Card>
-              <CardHeader className="pb-3">
+              <CardHeader>
                 <CardDescription>Categories</CardDescription>
-                <CardTitle className="text-2xl">4</CardTitle>
+                <CardTitle className="text-4xl font-bold">4</CardTitle>
               </CardHeader>
             </Card>
           </div>

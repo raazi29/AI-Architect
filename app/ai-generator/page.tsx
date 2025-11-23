@@ -15,7 +15,7 @@ import { Sparkles } from "lucide-react"
 export default function AIGenerator() {
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-background">
       <Navigation />
       <MobileNavigation />
 
@@ -24,7 +24,7 @@ export default function AIGenerator() {
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-4">
               <Sparkles className="h-6 w-6 text-primary" />
-              <h1 className="text-3xl font-bold text-foreground">AI Interior Generator</h1>
+              <h1 className="text-4xl font-bold">AI Interior Generator</h1>
             </div>
             <p className="text-lg text-muted-foreground">
               Upload a room photo and let AI transform it with professional interior design suggestions.

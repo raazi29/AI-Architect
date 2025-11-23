@@ -12,14 +12,22 @@ from fastapi.responses import StreamingResponse
 import requests
 from groq import Groq
 from hybrid_service import HybridImageService
-from database import init_db
-from app.routers.vision_router import vision_router
+from database import init_db, get_chat_history, save_chat_history, get_chat_sessions
+try:
+    from app.routers.vision_router import vision_router
+    from app.routers.shops_router import router as shops_router
+except ImportError:
+    # Fallback for deployment environments
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'app', 'routers'))
+    from vision_router import vision_router
+    from shops_router import router as shops_router
+
 from floor_plan_service import generate_floor_plan
 from interior_ai_service import interior_ai_service
 from indian_ecommerce_service import IndianEcommerceService
 from interior_design_ecommerce_service import InteriorDesignEcommerceService
 from cache_service import CacheService
-from app.routers.shops_router import router as shops_router
 from vastu_service import vastu_service, VastuRequest
 from groq_vastu_service import (
     groq_vastu_service,
@@ -2128,3 +2136,56 @@ async def get_vastu_tips(category: str):
     except Exception as e:
         logger.error(f"Error getting Vastu tips: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get tips: {str(e)}")
+
+
+# ============================================================================
+# CHAT HISTORY ENDPOINTS
+# ============================================================================
+
+
+@app.get("/chat-sessions")
+async def get_all_chat_sessions():
+    """Get all chat sessions"""
+    try:
+        sessions = await get_chat_sessions()
+        return {"sessions": sessions if sessions else []}
+    except Exception as e:
+        logger.error(f"Error getting chat sessions: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get chat sessions: {str(e)}"
+        )
+
+
+@app.get("/chat-history/{session_id}")
+async def get_session_chat_history(session_id: str):
+    """Get chat history for a specific session"""
+    try:
+        history = await get_chat_history(session_id)
+        if history is None:
+            return {"messages": []}
+        return {"messages": history}
+    except Exception as e:
+        logger.error(f"Error getting chat history for session {session_id}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get chat history: {str(e)}"
+        )
+
+
+@app.post("/chat-history/{session_id}")
+async def save_session_chat_history(session_id: str, request: Request):
+    """Save chat history for a specific session"""
+    try:
+        data = await request.json()
+        messages = data.get("messages", [])
+        success = await save_chat_history(session_id, messages)
+        if success:
+            return {"success": True, "message": "Chat history saved"}
+        else:
+            raise HTTPException(
+                status_code=500, detail="Failed to save chat history"
+            )
+    except Exception as e:
+        logger.error(f"Error saving chat history for session {session_id}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to save chat history: {str(e)}"
+        )

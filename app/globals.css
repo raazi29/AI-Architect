@@ -70,15 +70,30 @@
 
   /* Modern Shadows */
   .shadow-soft {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
   .shadow-medium {
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 
   .shadow-strong {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
+  }
+
+  /* Typography Enhancements */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Smooth Transitions */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  /* Focus Ring Styles */
+  .ring-focus {
+    @apply focus:ring-2 focus:ring-primary focus:ring-offset-2;
   }
 }
 
@@ -86,7 +101,7 @@
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
 
   to {
@@ -97,17 +112,19 @@
 
 @keyframes slideIn {
   from {
-    transform: translateX(-100%);
+    transform: translateX(-20px);
+    opacity: 0;
   }
 
   to {
     transform: translateX(0);
+    opacity: 1;
   }
 }
 
 @keyframes slideInRight {
   from {
-    transform: translateX(100%);
+    transform: translateX(20px);
     opacity: 0;
   }
 
@@ -119,7 +136,7 @@
 
 @keyframes scaleIn {
   from {
-    transform: scale(0.95);
+    transform: scale(0.98);
     opacity: 0;
   }
 
@@ -164,19 +181,19 @@
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.5s ease-out;
+  animation: fadeIn 0.4s ease-out;
 }
 
 .animate-slide-in {
-  animation: slideIn 0.4s ease-out;
+  animation: slideIn 0.35s ease-out;
 }
 
 .animate-slide-in-right {
-  animation: slideInRight 0.4s ease-out;
+  animation: slideInRight 0.35s ease-out;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.3s ease-out;
+  animation: scaleIn 0.25s ease-out;
 }
 
 .animate-shimmer {
@@ -232,140 +249,59 @@
 }
 
 :root {
-  /* Modern color palette for AR Interior Design platform */
+  /* Light mode - Modern color palette for AR Interior Design platform */
   --background: 0 0% 100%;
-  /* Pure white */
-  --foreground: 222 47% 11%;
-  /* Dark slate for text */
+  --foreground: 240 10% 3.9%;
   --card: 0 0% 100%;
-  /* White card background */
-  --card-foreground: 222 47% 11%;
-  /* Dark slate card text */
+  --card-foreground: 240 10% 3.9%;
   --popover: 0 0% 100%;
-  /* White popover background */
-  --popover-foreground: 222 47% 11%;
-  /* Dark slate popover text */
-  --primary: 221 83% 53%;
-  /* Modern blue primary */
-  --primary-foreground: 0 0% 100%;
-  /* White text on primary */
-  --secondary: 142 76% 36%;
-  /* Fresh green accent */
-  --secondary-foreground: 0 0% 100%;
-  /* White text on secondary */
-  --muted: 210 40% 96%;
-  /* Light gray muted background */
-  --muted-foreground: 215 16% 47%;
-  /* Medium gray muted text */
-  --accent: 142 76% 36%;
-  /* Fresh green accent */
-  --accent-foreground: 0 0% 100%;
-  /* White accent text */
-  --destructive: 0 84% 60%;
-  /* Modern red for destructive actions */
-  --destructive-foreground: 0 0% 100%;
-  /* White on destructive */
-  --border: 214 32% 91%;
-  /* Subtle border color */
-  --input: 214 32% 91%;
-  /* Light input border */
-  --ring: 221 83% 53%;
-  /* Primary focus ring */
-  --chart-1: 221 83% 53%;
-  /* Primary chart color */
-  --chart-2: 142 76% 36%;
-  /* Secondary chart color */
-  --chart-3: 262 83% 58%;
-  /* Purple chart color */
-  --chart-4: 32 95% 44%;
-  /* Orange chart color */
-  --chart-5: 340 82% 52%;
-  /* Pink chart color */
-  --radius: 0.5rem;
-  --sidebar: 0 0% 100%;
-  /* White sidebar */
-  --sidebar-foreground: 222 47% 11%;
-  /* Dark slate sidebar text */
-  --sidebar-primary: 221 83% 53%;
-  /* Primary sidebar actions */
-  --sidebar-primary-foreground: 0 0% 100%;
-  /* White on primary sidebar */
-  --sidebar-accent: 142 76% 36%;
-  /* Green sidebar accent */
-  --sidebar-accent-foreground: 0 0% 100%;
-  /* White on sidebar accent */
-  --sidebar-border: 214 32% 91%;
-  /* Light sidebar border */
-  --sidebar-ring: 221 83% 53%;
-  /* Primary sidebar focus ring */
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  --sidebar: 0 0% 98%;
+  --sidebar-foreground: 240 5.3% 26.1%;
+  --sidebar-border: 240 5.9% 90%;
+  --sidebar-accent: 240 4.8% 95.9%;
+  --sidebar-accent-foreground: 240 5.9% 10%;
 }
 
 .dark {
-  /* Modern dark mode colors for AR Interior Design platform */
-  --background: 222 47% 11%;
-  /* Dark slate background */
-  --foreground: 210 40% 98%;
-  /* Light text */
-  --card: 222 47% 14%;
-  /* Slightly lighter card background */
-  --card-foreground: 210 40% 98%;
-  /* Light card text */
-  --popover: 222 47% 14%;
-  /* Dark popover */
-  --popover-foreground: 210 40% 98%;
-  /* Light popover text */
-  --primary: 217 91% 60%;
-  /* Brighter blue for dark mode */
-  --primary-foreground: 222 47% 11%;
-  /* Dark text on primary */
-  --secondary: 142 76% 45%;
-  /* Brighter green for dark mode */
-  --secondary-foreground: 222 47% 11%;
-  /* Dark text on secondary */
-  --muted: 217 33% 17%;
-  /* Dark muted background */
-  --muted-foreground: 215 20% 65%;
-  /* Light muted text */
-  --accent: 142 76% 45%;
-  /* Bright green accent */
-  --accent-foreground: 222 47% 11%;
-  /* Dark accent text */
-  --destructive: 0 84% 65%;
-  /* Brighter red for dark mode */
-  --destructive-foreground: 210 40% 98%;
-  /* Light on destructive */
-  --border: 217 33% 20%;
-  /* Subtle dark border */
-  --input: 217 33% 20%;
-  /* Dark input border */
-  --ring: 217 91% 60%;
-  /* Primary focus ring */
-  --chart-1: 217 91% 60%;
-  /* Primary chart color */
-  --chart-2: 142 76% 45%;
-  /* Secondary chart color */
-  --chart-3: 262 83% 65%;
-  /* Purple chart color */
-  --chart-4: 32 95% 55%;
-  /* Orange chart color */
-  --chart-5: 340 82% 60%;
-  /* Pink chart color */
-  --sidebar: 222 47% 13%;
-  /* Dark sidebar */
-  --sidebar-foreground: 210 40% 98%;
-  /* Light sidebar text */
-  --sidebar-primary: 217 91% 60%;
-  /* Primary sidebar actions */
-  --sidebar-primary-foreground: 222 47% 11%;
-  /* Dark on primary sidebar */
-  --sidebar-accent: 142 76% 45%;
-  /* Green sidebar accent */
-  --sidebar-accent-foreground: 222 47% 11%;
-  /* Dark on sidebar accent */
-  --sidebar-border: 217 33% 20%;
-  /* Dark sidebar border */
-  --sidebar-ring: 217 91% 60%;
-  /* Primary sidebar focus ring */
+  /* Dark mode */
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+  --sidebar: 240 10% 3.9%;
+  --sidebar-foreground: 240 5% 64.9%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 0 0% 98%;
 }
 
 @layer base {

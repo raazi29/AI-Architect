@@ -326,7 +326,7 @@ const AILayoutPage = () => {
   );
 
   return (
-    <div className="flex-1 space-y-6 p-8 pt-6 bg-gradient-to-br from-indigo-50 to-cyan-50 min-h-screen">
+    <div className="flex-1 space-y-6 p-8 pt-6 bg-background min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
