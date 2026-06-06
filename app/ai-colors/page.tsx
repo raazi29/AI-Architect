@@ -322,7 +322,7 @@ const AIColorsPage = () => {
   );
 
   return (
-    <div className="flex-1 space-y-6 p-8 pt-6 bg-gradient-to-br from-purple-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
+    <div className="flex-1 space-y-6 p-8 pt-6 bg-background min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

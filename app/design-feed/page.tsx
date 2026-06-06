@@ -529,7 +529,7 @@ export default function DesignFeed() {
 
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 pt-28 pb-8">
       {/* Floating glass search + filters */}
       <div className={`fixed left-1/2 top-6 z-40 -translate-x-1/2 w-[92%] sm:w-[600px] md:w-[720px] transition-all duration-300 ${scrolled ? 'scale-[0.98] backdrop-blur-xl' : 'scale-100 backdrop-blur-lg'}`}>

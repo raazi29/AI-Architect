@@ -317,40 +317,74 @@ export default function Collaborate() {
   // Fetch bids
   useEffect(() => {
     if (!user) return;
-    
+
     const fetchBids = async () => {
-      const { data, error } = await supabase
-        .from('projects')
-        .select(`
-          id,
-          name,
-          bids (
+      try {
+        // First, fetch projects owned by the user
+        const { data: projectsData, error: projectsError } = await supabase
+          .from('projects')
+          .select('id, name')
+          .eq('owner_id', user.id);
+
+        if (projectsError) {
+          console.error('Error fetching projects for bids:', projectsError);
+          return;
+        }
+
+        if (!projectsData || projectsData.length === 0) {
+          setBids([]);
+          return;
+        }
+
+        // Get project IDs
+        const projectIds = projectsData.map(project => project.id);
+
+        // Then fetch bids for these projects
+        const { data: bidsData, error: bidsError } = await supabase
+          .from('bids')
+          .select(`
             *,
             contractor:profiles(username)
-          )
-        `)
-        .eq('owner_id', user.id);
-      
-      if (error) {
-        console.error('Error fetching bids:', error);
-      } else {
-        const allBids: ProjectBid[] = [];
-        data.forEach((project: any) => {
-          if (project.bids) {
-            project.bids.forEach((bid: any) => {
-              allBids.push({
-                ...bid,
-                project: {
-                  name: project.name
-                }
-              });
-            });
-          }
+          `)
+          .in('project_id', projectIds);
+
+        if (bidsError) {
+          console.error('Error fetching bids:', bidsError);
+          // Log more details about the error
+          console.error('Error details:', {
+            message: bidsError.message,
+            details: bidsError.details,
+            hint: bidsError.hint,
+            code: bidsError.code
+          });
+          return;
+        }
+
+        // Map bids to include project names
+        const allBids: ProjectBid[] = (bidsData || []).map((bid: any) => {
+          const project = projectsData.find((p: any) => p.id === bid.project_id);
+          return {
+            ...bid,
+            project: {
+              name: project?.name || 'Unknown Project'
+            }
+          };
         });
+
         setBids(allBids);
+      } catch (error: any) {
+        console.error('Unexpected error fetching bids:', error);
+        // Log more details if it's a known error type
+        if (error && typeof error === 'object') {
+          console.error('Error details:', {
+            message: error.message,
+            name: error.name,
+            stack: error.stack
+          });
+        }
       }
     };
-    
+
     fetchBids();
   }, [user]);
 

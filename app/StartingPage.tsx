@@ -31,37 +31,31 @@ const features = [
     title: "AI Design Generator",
     description: "Create stunning interiors with intelligent design suggestions",
     icon: Wand2,
-    gradient: "from-slate-500 to-slate-700",
   },
   {
     title: "AR Visualization",
     description: "See furniture in your space before buying with augmented reality",
     icon: Eye,
-    gradient: "from-slate-600 to-slate-800",
   },
   {
     title: "Smart Shopping",
     description: "Shop curated furniture and decor directly from your designs",
     icon: ShoppingBag,
-    gradient: "from-slate-500 to-slate-700",
   },
   {
     title: "Floor Plans",
     description: "Generate and optimize floor plans with AI assistance",
     icon: PenTool,
-    gradient: "from-slate-600 to-slate-800",
   },
   {
     title: "Design Assistant",
     description: "Get 24/7 AI-powered design advice and recommendations",
     icon: MessageCircle,
-    gradient: "from-slate-500 to-slate-700",
   },
   {
     title: "Style Gallery",
     description: "Browse curated designs from professionals and community",
     icon: ImageIcon,
-    gradient: "from-slate-600 to-slate-800",
   },
 ];
 
@@ -96,30 +90,23 @@ export default function StartingPage() {
   if (!mounted) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      {/* Background Pattern */}
-      <div className="fixed inset-0 opacity-5">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23000000" fill-opacity="0.1"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }} />
-      </div>
-
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="relative z-10 px-6 py-8">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
+      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">
-            <div className="p-2 rounded-xl bg-gradient-to-r from-slate-500 to-slate-700 shadow-lg">
-              <Sparkles className="h-6 w-6 text-white" />
+            <div className="p-2 rounded-lg bg-primary text-primary-foreground">
+              <Sparkles className="h-6 w-6" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-slate-600 to-slate-800 bg-clip-text text-transparent">
+            <span className="text-xl font-bold tracking-tight">
               ArchiAI
             </span>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-3">
             {user ? (
               <Link href="/dashboard">
-                <Button className="bg-gradient-to-r from-slate-500 to-slate-700 hover:from-slate-600 hover:to-slate-800 shadow-lg">
+                <Button size="sm">
                   Dashboard
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -127,13 +114,13 @@ export default function StartingPage() {
             ) : (
               <>
                 <Link href="/auth/signin">
-                  <Button variant="ghost" className="text-slate-600 hover:text-slate-900">
+                  <Button variant="ghost" size="sm">
                     Sign In
                   </Button>
                 </Link>
                 <Link href="/auth/signup">
-                  <Button className="bg-gradient-to-r from-slate-500 to-slate-700 hover:from-slate-600 hover:to-slate-800 shadow-lg">
-                    Get Started Free
+                  <Button size="sm">
+                    Get Started
                   </Button>
                 </Link>
               </>
@@ -143,30 +130,30 @@ export default function StartingPage() {
       </header>
 
       {/* Hero Section */}
-      <section className="relative z-10 px-6 py-20">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 mb-8">
-            <Zap className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-700">AI-Powered Interior Design</span>
+      <section className="relative px-6 py-40 overflow-hidden">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute top-20 right-10 w-80 h-80 bg-primary/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-20 left-10 w-80 h-80 bg-secondary/5 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="max-w-5xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 mb-8 hover:bg-primary/10 transition-colors">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium text-foreground">AI-Powered Interior Design</span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold text-slate-900 mb-6 leading-tight">
-            Design Your
-            <span className="block bg-gradient-to-r from-slate-600 to-slate-800 bg-clip-text text-transparent">
-              Dream Space
-            </span>
+          <h1 className="text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight mb-6 leading-tight">
+            Design Spaces That Inspire
           </h1>
           
-          <p className="text-xl text-slate-600 max-w-3xl mx-auto mb-12 leading-relaxed">
-            Transform any room with AI-powered design suggestions, 
-            AR furniture placement, and smart shopping. 
-            Professional interior design made simple.
+          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed font-light">
+            Professional interior design powered by AI. Get instant design suggestions, visualize with AR, and shop curated furniture—all in one intelligent platform.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-16">
             {user ? (
               <Link href="/dashboard">
-                <Button size="lg" className="text-lg px-8 py-4 bg-gradient-to-r from-slate-500 to-slate-700 hover:from-slate-600 hover:to-slate-800 shadow-xl">
+                <Button size="lg" className="px-8 h-12 text-base">
                   Go to Dashboard
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
@@ -174,13 +161,13 @@ export default function StartingPage() {
             ) : (
               <>
                 <Link href="/auth/signup">
-                  <Button size="lg" className="text-lg px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-xl">
+                  <Button size="lg" className="px-8 h-12 text-base">
                     Start Designing Free
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
                 <Link href="/auth/signin">
-                  <Button variant="outline" size="lg" className="text-lg px-8 py-4 border-slate-300 text-slate-700 hover:bg-slate-50">
+                  <Button variant="secondary" size="lg" className="px-8 h-12 text-base">
                     Sign In
                   </Button>
                 </Link>
@@ -189,154 +176,194 @@ export default function StartingPage() {
           </div>
 
           {/* Trust Indicators */}
-          <div className="flex flex-wrap justify-center gap-8 text-slate-600">
+          <div className="flex flex-wrap justify-center gap-8 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
-              <span className="font-medium">No credit card required</span>
+              <CheckCircle className="h-4 w-4 text-primary" />
+              <span>No credit card</span>
             </div>
             <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-blue-500" />
-              <span className="font-medium">Secure & private</span>
+              <CheckCircle className="h-4 w-4 text-primary" />
+              <span>Free forever</span>
             </div>
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-purple-500" />
-              <span className="font-medium">100K+ happy users</span>
+              <CheckCircle className="h-4 w-4 text-primary" />
+              <span>100K+ users</span>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Grid */}
-      <section className="relative z-10 px-6 py-20 bg-white/50 backdrop-blur-sm">
+      <section className="relative px-6 py-32 border-t border-border/40">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-slate-900 mb-4">
-              Everything You Need
+          <div className="text-center mb-20">
+            <h2 className="text-5xl md:text-6xl font-bold mb-4 tracking-tight">
+              Powerful Features
             </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Professional tools powered by artificial intelligence
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto font-light">
+              Everything you need to design professional interiors with confidence
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <Card key={feature.title} className="group relative overflow-hidden border-0 shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
-                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
-                <CardContent className="p-8 relative">
-                  <div className={`inline-flex p-3 rounded-xl bg-gradient-to-r ${feature.gradient} mb-6`}>
-                    <feature.icon className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-3">{feature.title}</h3>
-                  <p className="text-slate-600 leading-relaxed">{feature.description}</p>
-                </CardContent>
-              </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((feature) => (
+              <div key={feature.title} className="group relative">
+                <div className="absolute -inset-0.5 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur"></div>
+                <Card className="relative border border-border/50 hover:border-primary/40 transition-all duration-500 bg-background/80 backdrop-blur-sm hover:bg-background">
+                  <CardContent className="p-8">
+                    <div className="inline-flex p-3 rounded-lg bg-primary/10 text-primary mb-6 group-hover:bg-primary/20 group-hover:scale-110 transition-all duration-300">
+                      <feature.icon className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-3 group-hover:text-primary transition-colors">{feature.title}</h3>
+                    <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="relative px-6 py-24 bg-secondary/30 border-t border-border/40">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {[
+              { value: "10K+", label: "Design Templates" },
+              { value: "50K+", label: "Furniture Items" },
+              { value: "100K+", label: "Happy Users" },
+              { value: "1M+", label: "Designs Created" }
+            ].map((stat) => (
+              <div key={stat.label} className="text-center">
+                <div className="text-4xl font-bold mb-2">{stat.value}</div>
+                <div className="text-sm text-muted-foreground">{stat.label}</div>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Benefits Section */}
-      <section className="relative z-10 px-6 py-20">
+      <section className="relative px-6 py-24 border-t border-border/40">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
-              <h2 className="text-4xl font-bold text-slate-900 mb-6">
+              <h2 className="text-4xl font-bold mb-6 tracking-tight">
                 Why Choose ArchiAI?
               </h2>
-              <p className="text-xl text-slate-600 mb-8 leading-relaxed">
-                We combine cutting-edge AI technology with beautiful design to help you create spaces you&apos;ll love.
+              <p className="text-lg text-muted-foreground mb-10">
+                We combine cutting-edge AI technology with intuitive design tools to help you create beautiful spaces.
               </p>
               <div className="space-y-4">
-                {benefits.map((benefit, index) => (
-                  <div key={benefit} className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0" />
-                    <span className="text-slate-700">{benefit}</span>
+                {benefits.map((benefit) => (
+                  <div key={benefit} className="flex items-start gap-4">
+                    <div className="flex-shrink-0 mt-1">
+                      <CheckCircle className="h-5 w-5 text-primary" />
+                    </div>
+                    <span className="text-foreground">{benefit}</span>
                   </div>
                 ))}
               </div>
             </div>
             
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl blur-3xl opacity-20" />
-              <Card className="relative border-0 shadow-2xl">
-                <CardContent className="p-8">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold bg-gradient-to-r from-slate-600 to-slate-800 bg-clip-text text-transparent">10K+</div>
-                      <div className="text-sm text-slate-600">Design Templates</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">50K+</div>
-                      <div className="text-sm text-slate-600">Furniture Items</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold bg-gradient-to-r from-slate-600 to-slate-800 bg-clip-text text-transparent">100K+</div>
-                      <div className="text-sm text-slate-600">Happy Users</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">1M+</div>
-                      <div className="text-sm text-slate-600">Designs Created</div>
-                    </div>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10 rounded-2xl blur-2xl"></div>
+              <div className="relative grid grid-cols-2 gap-6">
+                {[
+                  { value: "10K+", label: "Design Templates" },
+                  { value: "50K+", label: "Furniture Items" },
+                  { value: "100K+", label: "Happy Users" },
+                  { value: "1M+", label: "Designs Created" }
+                ].map((item) => (
+                  <div key={item.label} className="p-6 bg-background/80 backdrop-blur-sm border border-border/50 rounded-xl text-center hover:border-primary/50 transition-colors">
+                    <div className="text-3xl font-bold mb-2">{item.value}</div>
+                    <div className="text-xs text-muted-foreground">{item.label}</div>
                   </div>
-                </CardContent>
-              </Card>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="relative z-10 px-6 py-20">
+      <section className="relative px-6 py-32 border-t border-border/40">
         <div className="max-w-4xl mx-auto">
-          <Card className="border-0 shadow-2xl bg-gradient-to-br from-slate-900 to-slate-800">
-            <CardContent className="p-12 text-center">
-              <div className="inline-flex p-3 rounded-xl bg-gradient-to-r from-slate-500 to-slate-700 mb-6">
-                <Lightbulb className="h-6 w-6 text-white" />
-              </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Ready to Transform Your Space?
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 p-16 text-center">
+            <div className="absolute inset-0 opacity-20">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-96 h-96 bg-primary-foreground/20 rounded-full blur-3xl"></div>
+            </div>
+            
+            <div className="relative z-10">
+              <h2 className="text-5xl md:text-6xl font-bold text-primary-foreground mb-6 tracking-tight">
+                Ready to Transform?
               </h2>
-              <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-8">
-                Join thousands of users designing their dream interiors with AI
+              <p className="text-xl text-primary-foreground/90 max-w-2xl mx-auto mb-10 font-light">
+                Start designing beautiful spaces today. No credit card required.
               </p>
               {user ? (
                 <Link href="/dashboard">
-                  <Button size="lg" className="text-lg px-8 py-4 bg-gradient-to-r from-slate-500 to-slate-700 hover:from-slate-600 hover:to-slate-800 shadow-xl">
-                    Start Designing Free
+                  <Button size="lg" variant="secondary" className="px-10 h-12 text-base font-medium">
+                    Start Designing
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
               ) : (
                 <Link href="/auth/signup">
-                  <Button size="lg" className="text-lg px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 shadow-xl">
-                    Start Designing Free
+                  <Button size="lg" variant="secondary" className="px-10 h-12 text-base font-medium">
+                    Start Free
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-slate-200 bg-white/50 backdrop-blur-sm px-6 py-12">
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="flex items-center justify-center space-x-3 mb-4">
-            <div className="p-2 rounded-lg bg-gradient-to-r from-slate-500 to-slate-700">
-              <Sparkles className="h-5 w-5 text-white" />
+      <footer className="relative border-t border-border/40 px-6 py-16">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+                <div className="p-2 rounded-lg bg-primary text-primary-foreground">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <span className="font-bold text-lg">ArchiAI</span>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">Professional interior design powered by artificial intelligence.</p>
             </div>
-            <span className="text-lg font-bold bg-gradient-to-r from-slate-600 to-slate-800 bg-clip-text text-transparent">
-              ArchiAI
-            </span>
+            <div>
+              <h4 className="font-semibold mb-4 text-sm uppercase tracking-wide">Product</h4>
+              <ul className="space-y-3 text-sm">
+                <li><Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">Features</Link></li>
+                <li><Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">Pricing</Link></li>
+                <li><Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">Gallery</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4 text-sm uppercase tracking-wide">Company</h4>
+              <ul className="space-y-3 text-sm">
+                <li><Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">About</Link></li>
+                <li><Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">Blog</Link></li>
+                <li><Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">Contact</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4 text-sm uppercase tracking-wide">Legal</h4>
+              <ul className="space-y-3 text-sm">
+                <li><Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">Privacy</Link></li>
+                <li><Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">Terms</Link></li>
+                <li><Link href="#" className="text-muted-foreground hover:text-primary transition-colors duration-200">Cookies</Link></li>
+              </ul>
+            </div>
           </div>
-          <p className="text-slate-600 mb-4">AI-powered interior design for everyone</p>
-          <div className="flex justify-center space-x-6 text-sm text-slate-500">
-            <Link href="#" className="hover:text-slate-700 transition-colors">Privacy</Link>
-            <Link href="#" className="hover:text-slate-700 transition-colors">Terms</Link>
-            <Link href="#" className="hover:text-slate-700 transition-colors">Contact</Link>
+          
+          <div className="border-t border-border/40 pt-8 text-center text-sm text-muted-foreground">
+            <p>&copy; 2024 ArchiAI. All rights reserved.</p>
           </div>
-          <p className="text-sm text-slate-500 mt-6">&copy; 2024 ArchiAI. All rights reserved.</p>
         </div>
       </footer>
     </div>
